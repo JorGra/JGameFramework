@@ -451,7 +451,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_TargetDisplay: 0
 --- !u!1 &1043640014
 GameObject:
@@ -515,6 +515,7 @@ MonoBehaviour:
   _persistent: 1
   loadingIndicator: {fileID: 5901804}
   screenFadeController: {fileID: 1543590996}
+  minLoadingScreenTime: 1
   sceneGroups:
   - GroupName: MainScene
     Scenes:
