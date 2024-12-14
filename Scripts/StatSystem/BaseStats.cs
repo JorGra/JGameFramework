@@ -10,16 +10,3 @@ public class BaseStats : ScriptableObject
 
 }
 
-
-[CreateAssetMenu(fileName = "PlayerStats", menuName = "Gameplay/Stats/PlayerStats")]
-public class PlayerStats : BaseStats
-{
-    float DamagePerc = 100f;
-}
-
-
-[CreateAssetMenu(fileName = "ShipStats", menuName = "Gameplay/Stats/ShipStats")]
-public class ShipStats : BaseStats
-{
-
-}
