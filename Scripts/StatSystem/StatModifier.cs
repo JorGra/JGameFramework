@@ -1,6 +1,14 @@
 ﻿using System;
 
 
+public enum OperatorType
+{
+    Add,
+    Multiply,
+}
+
+
+
 public class BasicStatModifier : StatModifier
 {
     readonly StatType statType;
@@ -22,7 +30,7 @@ public class BasicStatModifier : StatModifier
 
 public abstract class StatModifier : IDisposable
 {
-    public bool MarkedForRemoval { get; private set; }
+    public bool MarkedForRemoval { get; set; }
 
     public event Action<StatModifier> OnDisposed = delegate { };
 
@@ -35,7 +43,7 @@ public abstract class StatModifier : IDisposable
 
 
         timer = new CountdownTimer(duration);
-        timer.OnTimerStop += Dispose;
+        timer.OnTimerStop += () => MarkedForRemoval = true;
         timer.Start();
     }
 
@@ -44,7 +52,6 @@ public abstract class StatModifier : IDisposable
     public abstract void Handle(object sender, Query query);
     public void Dispose()
     {
-        MarkedForRemoval = true;
         OnDisposed.Invoke(this);
     }
 }

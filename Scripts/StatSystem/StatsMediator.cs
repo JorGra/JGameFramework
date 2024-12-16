@@ -1,57 +1,43 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class StatsMediator
 {
-    readonly LinkedList<StatModifier> modifiers = new LinkedList<StatModifier>();
-    public EventHandler<Query> Queries;
+    readonly List<StatModifier> listModifiers = new List<StatModifier>();
 
-    public void PerfromQuery(object sender, Query query) => Queries?.Invoke(sender, query);
+    public void PerfromQuery(object sender, Query query)
+    {
 
+        foreach (var modifier in listModifiers)
+        {
+            modifier.Handle(sender, query);
+        }
+    }
     public void AddModifier(StatModifier modifier)
     {
-        modifiers.AddLast(modifier);
-        Queries += modifier.Handle;
-
-        modifier.OnDisposed += _ =>
-        {
-            modifiers.Remove(modifier);
-            Queries -= modifier.Handle;
-        };
+        listModifiers.Add(modifier);
+        modifier.MarkedForRemoval = false;
+        modifier.OnDisposed += _ => listModifiers.Remove(modifier);
     }
 
     public void Update(float deltaTime)
     {
-        //Update all modifiers with deltaTime
-        var node = modifiers.First;
-        while (node != null)
+
+        foreach (var modifier in listModifiers)
         {
-            var modifier = node.Value;
             modifier.Update(deltaTime);
-            node = node.Next;
         }
-
-        //Dispose all modifiers that are marked for removal
-        node = modifiers.First;
-        while (node != null)
+        foreach (var modifier in listModifiers.Where(x => x.MarkedForRemoval).ToList())
         {
-            var nextNode = node.Next;
-
-            if (node.Value.MarkedForRemoval)
-            {
-                modifiers.Remove(node);
-                node.Value.Dispose();
-            }
-
-            node = node.Next;
+            modifier.Dispose();
         }
-
-
     }
 
 }
+
 public class Query
 {
     public readonly StatType StatType;

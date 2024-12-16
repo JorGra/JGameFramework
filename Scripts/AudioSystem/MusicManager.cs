@@ -7,7 +7,7 @@ using UnityEngine.Audio;
 
 namespace JG.Audio
 {
-    [RequireComponent(typeof(MusicManager))]
+    [RequireComponent(typeof(AudioSource))]
     public class MusicManager : PersistentSingleton<MonoBehaviour>
     {
         const float crossFadeTime = 1.0f;
