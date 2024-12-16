@@ -1,16 +1,12 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-
 public class StatsMediator
 {
     readonly List<StatModifier> listModifiers = new List<StatModifier>();
 
     public void PerfromQuery(object sender, Query query)
     {
-
         foreach (var modifier in listModifiers)
         {
             modifier.Handle(sender, query);
@@ -20,7 +16,7 @@ public class StatsMediator
     {
         listModifiers.Add(modifier);
         modifier.MarkedForRemoval = false;
-        modifier.OnDisposed += _ => listModifiers.Remove(modifier);
+        modifier.OnDispose += _ => listModifiers.Remove(modifier);
     }
 
     public void Update(float deltaTime)

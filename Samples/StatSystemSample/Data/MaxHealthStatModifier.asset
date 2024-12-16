@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
-  m_Name: MaxHealthPickup
+  m_Name: MaxHealthStatModifier
   m_EditorClassIdentifier: Assembly-CSharp::StatModifierConfig
   StatType: 0
   OperatorType: 0
-  Value: 100
+  Value: 20
   Duration: 0

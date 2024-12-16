@@ -32,7 +32,7 @@ public abstract class StatModifier : IDisposable
 {
     public bool MarkedForRemoval { get; set; }
 
-    public event Action<StatModifier> OnDisposed = delegate { };
+    public event Action<StatModifier> OnDispose = delegate { };
 
     readonly CountdownTimer timer;
 
@@ -52,6 +52,6 @@ public abstract class StatModifier : IDisposable
     public abstract void Handle(object sender, Query query);
     public void Dispose()
     {
-        OnDisposed.Invoke(this);
+        OnDispose.Invoke(this);
     }
 }
