@@ -1,43 +1,23 @@
 ﻿using System;
 
 
-public enum OperatorType
+public class StatModifier : IDisposable
 {
-    Add,
-    Multiply,
-}
+    public StatType StatType { get; set; }
+    public IOperationStrategy Strategy { get; }
 
 
-
-public class BasicStatModifier : StatModifier
-{
-    readonly StatType statType;
-    readonly Func<float, float> operation;
-
-    public BasicStatModifier(StatType statType, Func<float, float> operation, float duration) : base(duration)
-    {
-        this.statType = statType;
-        this.operation = operation;
-    }
-    public override void Handle(object sender, Query query)
-    {
-        if (query.StatType == statType)
-        {
-            query.Value += operation(query.Value);
-        }
-    }
-}
-
-public abstract class StatModifier : IDisposable
-{
     public bool MarkedForRemoval { get; set; }
 
     public event Action<StatModifier> OnDispose = delegate { };
 
     readonly CountdownTimer timer;
 
-    protected StatModifier(float duration)
+    public StatModifier(StatType statType, IOperationStrategy strategy, float duration)
     {
+        this.StatType = statType;
+        this.Strategy = strategy;
+
         if (duration <= 0f)
             return;
 
@@ -49,7 +29,14 @@ public abstract class StatModifier : IDisposable
 
     public void Update(float deltaTime) => timer?.Tick(deltaTime);
 
-    public abstract void Handle(object sender, Query query);
+    public void Handle(object sender, Query query)
+    {
+        if (query.StatType == StatType)
+        {
+            query.Value = Strategy.Calculate(query.Value);
+        }
+    }
+
     public void Dispose()
     {
         OnDispose.Invoke(this);

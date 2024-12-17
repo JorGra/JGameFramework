@@ -19,7 +19,6 @@ public class Stats
     {
         get
         {
-
             var q = new Query(StatType.MaxHealth, baseStats.MaxHealth);
             mediator.PerfromQuery(this, q);
             return q.Value;

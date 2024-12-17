@@ -1,21 +1,37 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
+
+
+
 public class StatsMediator
 {
     readonly List<StatModifier> listModifiers = new List<StatModifier>();
+    readonly Dictionary<StatType, IEnumerable<StatModifier>> modifierCache = new();
+    IStatModifierApplicationOrder order = new NormalStatModifierApplicationOrder();
+
 
     public void PerfromQuery(object sender, Query query)
     {
-        foreach (var modifier in listModifiers)
+        if (!modifierCache.ContainsKey(query.StatType))
         {
-            modifier.Handle(sender, query);
+            modifierCache[query.StatType] = listModifiers.Where(x => x.StatType == query.StatType).ToList();
         }
+        query.Value = order.Apply(modifierCache[query.StatType], query.Value);
     }
+
+    void InvalidateCache(StatType statType)
+    {
+        modifierCache.Remove(statType);
+    }
+
     public void AddModifier(StatModifier modifier)
     {
         listModifiers.Add(modifier);
+        InvalidateCache(modifier.StatType);
         modifier.MarkedForRemoval = false;
+
+        modifier.OnDispose += _ => InvalidateCache(modifier.StatType);
         modifier.OnDispose += _ => listModifiers.Remove(modifier);
     }
 
