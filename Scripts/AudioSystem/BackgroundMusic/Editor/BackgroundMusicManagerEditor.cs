@@ -10,7 +10,7 @@ public class BackgroundMusicManagerEditor : Editor
 
         JG.Audio.BackgroundMusicManager manager = (JG.Audio.BackgroundMusicManager)target;
         GUILayout.Space(10);
-        EditorGUILayout.LabelField("Current Playlist:", manager.CurrentPlaylist ? manager.CurrentPlaylist.name : "None");
-        EditorGUILayout.LabelField("Current Track:", manager.CurrentTrackName);
+        //EditorGUILayout.LabelField("Current Playlist:", manager.CurrentPlaylist ? manager.CurrentPlaylist.name : "None");
+        //EditorGUILayout.LabelField("Current Track:", manager.CurrentTrackName);
     }
 }

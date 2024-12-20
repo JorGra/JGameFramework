@@ -153,7 +153,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   AutoUnparentOnAwake: 1
   defaultPlaylist: {fileID: 11400000, guid: 3bf709a723847824c9e57a679286e5f8, type: 2}
-  audioMixerGroup: {fileID: 0}
+  audioMixerGroup: {fileID: -1232543491382213792, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
   startFadeInDuration: 2
 --- !u!4 &410639886
 Transform:

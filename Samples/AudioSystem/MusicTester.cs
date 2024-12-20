@@ -1,19 +1,43 @@
 using JG.Audio;
 using UnityEngine;
 
-public class MusicTester : MonoBehaviour
+
+namespace JG.Samples
 {
-    [SerializeField] private PlaylistSO newPlaylistToLoad;
-
-    void Start()
+    public class MusicTester : MonoBehaviour
     {
-        // Example: After some delay, switch to a new playlist
-        Invoke(nameof(SwitchToNewPlaylist), 5f);
-    }
+        [SerializeField] private PlaylistSO newPlaylistToLoad;
 
-    private void SwitchToNewPlaylist()
-    {
-        // Raise event to change the playlist
-        EventBus<ChangePlaylistEvent>.Raise(new ChangePlaylistEvent() { NewPlaylist = newPlaylistToLoad });
+        bool paused = false;
+        void Start()
+        {
+            // Example: After some delay, switch to a new playlist
+            Invoke(nameof(SwitchToNewPlaylist), 5f);
+        }
+
+        private void SwitchToNewPlaylist()
+        {
+            // Raise event to change the playlist
+            EventBus<ChangePlaylistEvent>.Raise(new ChangePlaylistEvent() { NewPlaylist = newPlaylistToLoad });
+        }
+
+        public void Update()
+        {
+            // Example: Play a specific track
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                paused = !paused;
+                EventBus<PauseMusicEvent>.Raise(new PauseMusicEvent() { Paused = paused, FadeDuration = .5f });
+            }
+
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+                EventBus<ChangeMusicPitchEvent>.Raise(new ChangeMusicPitchEvent() { TargetPitch = 0.4f, FadeDuration = .5f });
+            }
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                EventBus<ChangeMusicPitchEvent>.Raise(new ChangeMusicPitchEvent() { TargetPitch = 1f, FadeDuration = .5f });
+            }
+        }
     }
 }
