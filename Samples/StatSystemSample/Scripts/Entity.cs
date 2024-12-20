@@ -7,12 +7,13 @@ namespace JG.Samples
 
     public class Entity : MonoBehaviour
     {
-        [SerializeField] BaseStats baseStats;
+        //[SerializeField] BaseStats baseStats;
+        [SerializeField] StatsDecorator[] stats;
         public Stats Stats { get; private set; }
 
         private void Awake()
         {
-            Stats = new Stats(new StatsMediator(), baseStats);
+            Stats = new Stats(new StatsMediator(), stats);
         }
         // Start is called before the first frame update
         void Start()
