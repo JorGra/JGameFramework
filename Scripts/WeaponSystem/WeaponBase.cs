@@ -8,7 +8,7 @@ public interface IWeapon
     void Initialize(WeaponConfig config);
     void Equip();
     void Unequip();
-    void Use(Transform transform);
+    void Use(Transform target, float windUpPower = 1f);
 }
 
 public abstract class WeaponBase : MonoBehaviour, IWeapon
@@ -30,5 +30,5 @@ public abstract class WeaponBase : MonoBehaviour, IWeapon
         Debug.Log("Unequipping " + config.weaponName);
     }
 
-    public abstract void Use(Transform transform);
+    public abstract void Use(Transform target, float windUpPower = 1f);
 }

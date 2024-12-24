@@ -35,14 +35,14 @@ public class WeaponController : MonoBehaviour
         
     }
 
-    public void Use(Transform target)
+    public void Use(Transform target, float windupPower = 1f)
     {
         if (weapon == null)
         {
             Debug.Log("No weapon equipped");
             return;
         }
-        weapon.Use(target);
+        weapon.Use(target, windupPower);
     }
 
     public void EquipWeapon(WeaponConfig config)

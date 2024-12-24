@@ -59,3 +59,35 @@ public class TargetedState : IWeaponState
     }
 
 }
+public class WindUpState : IWeaponState
+{
+    public float MaxWindUpTime = 3f;
+    public float MinWindUpTime = 1f;
+
+    float currentWindUpTime = 0f;
+    public WindUpState(WeaponConfig weaponConfig)
+    {
+        //TODO: Use weaponConfig to set windup time
+    }
+    public void OnMouseDown(WeaponController controller, Transform playerTransform)
+    {
+        currentWindUpTime = 0f;
+
+    }
+
+    public void OnMouseUp(WeaponController controller, Transform playerTransform)
+    {
+        if (currentWindUpTime > MinWindUpTime)
+        {
+            var windUpPower = 0.5f + Mathf.Clamp01(currentWindUpTime / MaxWindUpTime);
+            //TODO: Pass firepower to the controller
+            controller.Use(playerTransform, windUpPower);
+        }
+
+    }
+
+    public void OnUpdate(WeaponController controller, Transform playerTransform)
+    {
+        currentWindUpTime += Time.deltaTime;
+    }
+}

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class ExampleWeapon : WeaponBase
 {
-    public override void Use(Transform transform)
+    public override void Use(Transform target, float windUpPower = 1f)
     {
         Debug.Log("Using " + config.weaponName + " to deal " + config.weaponDamage + " damage");
 
