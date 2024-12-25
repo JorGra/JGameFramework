@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a68ca4458a5e3f24a902070e458e4d0c, type: 3}
+  m_Name: ProjectileSettings
+  m_EditorClassIdentifier: 
+  prefab: {fileID: 1301537575438761143, guid: 61c02707b7bddb54581cee0e85b326cb, type: 3}
+  despawnDelay: 5
+  speed: 10
+  damage: 10
