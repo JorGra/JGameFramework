@@ -7,12 +7,12 @@ using UnityEngine.EventSystems;
 namespace JG.Samples { 
     public class Player : MonoBehaviour
     {
-        public WeaponController weaponController;
+        public IWeaponController weaponController;
 
         // Start is called before the first frame update
         void Start()
         {
-            weaponController = GetComponent<WeaponController>();
+            weaponController = GetComponent<IWeaponController>();
         }
 
     }

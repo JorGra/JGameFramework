@@ -5,24 +5,24 @@ using UnityEngine;
 
 public interface IWeaponState
 {
-    void OnMouseDown(WeaponController controller, Transform playerTransform);
-    void OnMouseUp(WeaponController controller, Transform playerTransform);
-    void OnUpdate(WeaponController controller, Transform playerTransform);
+    void OnMouseDown(IWeaponController controller, Transform playerTransform);
+    void OnMouseUp(IWeaponController controller, Transform playerTransform);
+    void OnUpdate(IWeaponController controller, Transform playerTransform);
 }
 
 public class NonTargetState : IWeaponState
 {
-    public void OnMouseDown(WeaponController controller, Transform playerTransform)
+    public void OnMouseDown(IWeaponController controller, Transform playerTransform)
     {
         controller.Use(playerTransform);
     }
 
-    public void OnMouseUp(WeaponController controller, Transform playerTransform)
+    public void OnMouseUp(IWeaponController controller, Transform playerTransform)
     {
         
     }
 
-    public void OnUpdate(WeaponController controller, Transform playerTransform)
+    public void OnUpdate(IWeaponController controller, Transform playerTransform)
     {
     }
 }
@@ -36,18 +36,18 @@ public class TargetedState : IWeaponState
         this.targetMarker = targetMarker;
         this.targetMarker.SetActive(false);
     }
-    public void OnMouseDown(WeaponController controller, Transform playerTransform)
+    public void OnMouseDown(IWeaponController controller, Transform playerTransform)
     {
         targetMarker.SetActive(true);
     }
 
-    public void OnMouseUp(WeaponController controller, Transform playerTransform)
+    public void OnMouseUp(IWeaponController controller, Transform playerTransform)
     {
         targetMarker.SetActive(false);
         controller.Use(playerTransform);
     }
 
-    public void OnUpdate(WeaponController controller, Transform playerTransform)
+    public void OnUpdate(IWeaponController controller, Transform playerTransform)
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
@@ -69,13 +69,13 @@ public class WindUpState : IWeaponState
     {
         //TODO: Use weaponConfig to set windup time
     }
-    public void OnMouseDown(WeaponController controller, Transform playerTransform)
+    public void OnMouseDown(IWeaponController controller, Transform playerTransform)
     {
         currentWindUpTime = 0f;
 
     }
 
-    public void OnMouseUp(WeaponController controller, Transform playerTransform)
+    public void OnMouseUp(IWeaponController controller, Transform playerTransform)
     {
         if (currentWindUpTime > MinWindUpTime)
         {
@@ -86,7 +86,7 @@ public class WindUpState : IWeaponState
 
     }
 
-    public void OnUpdate(WeaponController controller, Transform playerTransform)
+    public void OnUpdate(IWeaponController controller, Transform playerTransform)
     {
         currentWindUpTime += Time.deltaTime;
     }

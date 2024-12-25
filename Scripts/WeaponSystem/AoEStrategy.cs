@@ -5,12 +5,13 @@ using UnityEngine;
 
 public abstract class AttackStrategy : ScriptableObject
 {
+    public abstract void Init();
     public abstract void Execute(Vector3 targetPostition, GameObject effectPrefab);
 }
 
 
-[CreateAssetMenu(menuName = "Gameplay/WeaponSystem/AoE Strategy", fileName ="AoEStrategy")]
-public class AoEStrategy : AttackStrategy
+[CreateAssetMenu(menuName = "Gameplay/WeaponSystem/Single Attack Strategy", fileName = "Single Attack Strategy")]
+public class SingleAttackStrategy : AttackStrategy
 {
     public override void Execute(Vector3 targetPostition, GameObject effectPrefab)
     {
@@ -28,5 +29,9 @@ public class AoEStrategy : AttackStrategy
             Destroy(spellEffect, 2f);
         }
 
+    }
+
+    public override void Init()
+    {
     }
 }

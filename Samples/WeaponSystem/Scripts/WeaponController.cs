@@ -1,9 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class WeaponController : MonoBehaviour
+public class WeaponController : MonoBehaviour, IWeaponController
 {
     GameObject currentWeapon;
     public Transform mountPoint;
@@ -13,6 +11,9 @@ public class WeaponController : MonoBehaviour
     IWeapon weapon;
     IWeaponState currentState;
 
+    IWeapon IWeaponController.Weapon { get => weapon; set => weapon = value; }
+
+    IWeaponState IWeaponController.CurrentState { get => currentState; set => currentState = value; }
 
     private void Update()
     {
@@ -52,7 +53,7 @@ public class WeaponController : MonoBehaviour
             Destroy(currentWeapon);
         }
 
-        currentState = config.attackStrategy is AoEStrategy? new TargetedState(targetMarkerPrefab) : new NonTargetState();
+        currentState = config.attackStrategy is SingleAttackStrategy? new TargetedState(targetMarkerPrefab) : new NonTargetState();
 
         currentWeapon = weaponFactory.CreateWeapon(config);
         weapon = currentWeapon.GetComponent<IWeapon>();

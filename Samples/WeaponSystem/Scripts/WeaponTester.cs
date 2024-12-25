@@ -6,7 +6,7 @@ namespace JG.Samples {
 
     public class WeaponTester : MonoBehaviour
     {
-        public WeaponController weaponController;
+        public IWeaponController weaponController;
         public WeaponConfig weaponConfig;
 
         void Start()
