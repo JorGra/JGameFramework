@@ -35,3 +35,16 @@ public class SingleAttackStrategy : AttackStrategy
     {
     }
 }
+
+public class PooledAttackStrategy : AttackStrategy
+{
+    public override void Execute(Vector3 targetPostition, GameObject effectPrefab)
+    {
+        
+    }
+
+    public override void Init()
+    {
+
+    }
+}

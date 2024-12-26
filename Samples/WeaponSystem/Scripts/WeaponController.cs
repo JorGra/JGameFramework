@@ -15,6 +15,8 @@ public class WeaponController : MonoBehaviour, IWeaponController
 
     IWeaponState IWeaponController.CurrentState { get => currentState; set => currentState = value; }
 
+    //TODO: implemnt weapon reloading and cooldowns
+
     private void Update()
     {
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
@@ -53,7 +55,7 @@ public class WeaponController : MonoBehaviour, IWeaponController
             Destroy(currentWeapon);
         }
 
-        currentState = config.attackStrategy is SingleAttackStrategy? new TargetedState(targetMarkerPrefab) : new NonTargetState();
+        currentState = config.attackCommand is ProjectileCommand? new AutoFireState() : new SingleFireState();
 
         currentWeapon = weaponFactory.CreateWeapon(config);
         weapon = currentWeapon.GetComponent<IWeapon>();

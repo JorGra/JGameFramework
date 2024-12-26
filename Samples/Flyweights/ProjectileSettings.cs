@@ -6,7 +6,7 @@ using JG.Flyweights;
 
 namespace JG.Samples { 
 
-    [CreateAssetMenu(fileName = "FlyweightSettings", menuName = "Gameplay/Flyweight/Projectile Settings", order = 1)]
+    [CreateAssetMenu(fileName = "ProjectileSettings", menuName = "Samples/Gameplay/Flyweight/Projectile Settings", order = 1)]
     public class ProjectileSettings : FlyweightSettings
     {
         public float despawnDelay = 5f;

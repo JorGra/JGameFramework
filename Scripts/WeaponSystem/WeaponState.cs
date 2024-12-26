@@ -10,7 +10,7 @@ public interface IWeaponState
     void OnUpdate(IWeaponController controller, Transform playerTransform);
 }
 
-public class NonTargetState : IWeaponState
+public class SingleFireState : IWeaponState
 {
     public void OnMouseDown(IWeaponController controller, Transform playerTransform)
     {
@@ -27,11 +27,28 @@ public class NonTargetState : IWeaponState
     }
 }
 
-public class TargetedState : IWeaponState
+public class AutoFireState : IWeaponState
+{
+    public void OnMouseDown(IWeaponController controller, Transform playerTransform)
+    {
+
+    }
+
+    public void OnMouseUp(IWeaponController controller, Transform playerTransform)
+    {
+
+    }
+
+    public void OnUpdate(IWeaponController controller, Transform playerTransform)
+    {
+        controller.Use(playerTransform);
+    }
+}
+public class TargetSelectionState : IWeaponState
 {
     GameObject targetMarker;
 
-    public TargetedState(GameObject targetMarker)
+    public TargetSelectionState(GameObject targetMarker)
     {
         this.targetMarker = targetMarker;
         this.targetMarker.SetActive(false);

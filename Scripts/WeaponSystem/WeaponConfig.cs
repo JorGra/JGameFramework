@@ -15,5 +15,6 @@ public class WeaponConfig : ScriptableObject
     public float weaponDamage;
     public GameObject weaponPrefab;
     public WeaponType weaponType;
-    public AttackStrategy attackStrategy;
+    public IAttackCommand attackCommand;
+    public ProjectileSettings projectileSettings;
 }

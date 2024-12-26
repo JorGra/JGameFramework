@@ -11,9 +11,9 @@ namespace JG.Samples
         {
             Debug.Log("Using " + config.weaponName + " to deal " + config.weaponDamage + " damage");
 
-            if (config.attackStrategy)
+            if (config.attackCommand != null)
             {
-                config.attackStrategy.Execute(transform.position, new GameObject("EffectPrefab"));
+                config.attackCommand.Execute(transform.position, transform.rotation);
             }
         }
     }
