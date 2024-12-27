@@ -55,7 +55,12 @@ public class WeaponController : MonoBehaviour, IWeaponController
             Destroy(currentWeapon);
         }
 
-        currentState = config.attackCommand is ProjectileCommand? new AutoFireState() : new SingleFireState();
+        currentState = config.weaponFireMode switch
+        {
+            WeaponFireMode.Single => new SingleFireState(),
+            WeaponFireMode.Auto => new AutoFireState(),
+            _ => new AutoFireState()
+        };
 
         currentWeapon = weaponFactory.CreateWeapon(config);
         weapon = currentWeapon.GetComponent<IWeapon>();
