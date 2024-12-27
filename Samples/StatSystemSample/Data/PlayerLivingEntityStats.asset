@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 67fc4a6ea0153514bbaeb9ac615beea9, type: 3}
   m_Name: PlayerLivingEntityStats
   m_EditorClassIdentifier: 
-  MaxHealth: 3
+  MaxHealth: 30

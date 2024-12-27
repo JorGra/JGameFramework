@@ -30,7 +30,6 @@ public class Stats
         this.decorators = decorators != null ? decorators.ToList() : new List<StatsDecorator>();
     }
 
-
     public float GetStat(StatType statType, float baseValue = 0)
     {
         // start with base value, then add decorators

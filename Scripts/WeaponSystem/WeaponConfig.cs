@@ -12,25 +12,29 @@ public enum WeaponFireMode
 public partial class WeaponConfig : ScriptableObject
 {
     public string weaponName;
-    public float weaponDamage;
     public GameObject weaponPrefab;
     public WeaponFireMode weaponFireMode;
     public IAttackCommand attackCommand;
-    [SerializeReference]
-    public List<IWeaponDataComponent> dataComponents = new List<IWeaponDataComponent>();
+    public StatModifierConfig[] StatsModifiers;
+    public WeaponData[] weaponData;
 
-    public T GetDataComponent<T>() where T : class, IWeaponDataComponent
+    public T GetDataComponent<T>() where T : WeaponData 
     {
-        foreach (var comp in dataComponents)
+        foreach (var comp in weaponData)
         {
             if (comp is T tComp)
                 return tComp;
         }
+        Debug.LogError("No component of type " + typeof(T) + " found in weaponData");
         return null;
     }
 }
 
-public interface IWeaponDataComponent
+
+public abstract class WeaponData : ScriptableObject
 {
-    
+
 }
+
+
+

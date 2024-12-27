@@ -9,7 +9,7 @@ namespace JG.Samples
     {
         public override void Use(Transform target, float windUpPower = 1f)
         {
-            Debug.Log("Using " + config.weaponName + " to deal " + config.weaponDamage + " damage");
+            Debug.Log("Using " + config.weaponName + " to deal.");
 
             if (config.attackCommand != null)
             {

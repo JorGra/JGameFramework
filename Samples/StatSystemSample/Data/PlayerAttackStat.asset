@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf82fa2ce4f7ef641b9b0e6e61bd0449, type: 3}
   m_Name: PlayerAttackStat
   m_EditorClassIdentifier: Assembly-CSharp::MovementStatsDecorator
-  Damage: 5
+  Damage: 0
   AttackSpeed: 1
   Range: 10
