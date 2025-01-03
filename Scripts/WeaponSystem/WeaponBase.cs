@@ -6,7 +6,7 @@ using UnityEngine;
 public interface IWeapon
 {
     void Initialize(WeaponConfig config);
-    void Equip();
+    void Equip(PlayerStatsController playerStats);
     void Unequip();
     void Use(Transform target, float windUpPower = 1f);
 }
@@ -14,13 +14,13 @@ public interface IWeapon
 public abstract class WeaponBase : MonoBehaviour, IWeapon
 {
     protected WeaponConfig config;
-
+    
     public void Initialize(WeaponConfig weaponConfig)
     {
         this.config = weaponConfig;
     }
 
-    public virtual void Equip()
+    public virtual void Equip(PlayerStatsController playerStats)
     {
         Debug.Log("Equipping " + config.weaponName);
     }

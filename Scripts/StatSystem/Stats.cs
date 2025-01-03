@@ -13,7 +13,8 @@ public enum StatType
     Damage,
     AttackSpeed,
     MoveSpeed,
-    Range
+    Range,
+    InwardsDrag,
 }
 
 
@@ -30,6 +31,7 @@ public class Stats
         this.decorators = decorators != null ? decorators.ToList() : new List<StatsDecorator>();
     }
 
+    //TODO: Add decorator caching
     public float GetStat(StatType statType, float baseValue = 0)
     {
         // start with base value, then add decorators
