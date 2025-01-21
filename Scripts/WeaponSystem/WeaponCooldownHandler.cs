@@ -13,12 +13,12 @@ public class WeaponCooldownHandler : WeaponHandlerBase, IWeaponUseageHandler
     public void Initialize(WeaponConfig config)
     {
         this.config = config;
-        Cooldown = new Cooldown(config.GetDataComponent<CooldownWeaponData>().ReloadTime);
+        Cooldown = new Cooldown(1);
     }
 
     public void Use()
     {
-        Cooldown.ResetCooldown(config.GetDataComponent<CooldownWeaponData>().ReloadTime);
+        Cooldown.ResetCooldown(1);
     }
 }
 
