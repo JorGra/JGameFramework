@@ -22,10 +22,10 @@ public class CurvesFollower : MonoBehaviour
     public event Action OnPathEndReached;
 
     // Arc-length table for uniform speed
-    private List<ArcLengthSample> arcLengthTable;
+    private List<CurvesUtils.ArcLengthSample> arcLengthTable;
 
     // Total distance traveled so far
-    public float DistanceTravelled { get; private set; } = 0f;
+    public float DistanceTravelled { get; set; } = 0f;
 
     // How long the entire path is (from the last sample's cumulativeLength)
     private float totalCurveLength = 0f;

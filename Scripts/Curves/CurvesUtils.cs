@@ -215,23 +215,23 @@ public static class CurvesUtils
         // If we somehow pass the loop, just return the last sample
         return arcLengthTable[arcLengthTable.Count - 1].position;
     }
-}
-
-/// <summary>
-/// Holds data for each subdivision sample in the arc-length table.
-/// </summary>
-public struct ArcLengthSample
-{
-    public int segmentIndex;
-    public float t;
-    public float cumulativeLength;
-    public Vector3 position;
-
-    public ArcLengthSample(int segIndex, float localT, float length, Vector3 pos)
+    /// <summary>
+    /// Holds data for each subdivision sample in the arc-length table.
+    /// </summary>
+    public struct ArcLengthSample
     {
-        segmentIndex = segIndex;
-        t = localT;
-        cumulativeLength = length;
-        position = pos;
+        public int segmentIndex;
+        public float t;
+        public float cumulativeLength;
+        public Vector3 position;
+
+        public ArcLengthSample(int segIndex, float localT, float length, Vector3 pos)
+        {
+            segmentIndex = segIndex;
+            t = localT;
+            cumulativeLength = length;
+            position = pos;
+        }
     }
 }
+
