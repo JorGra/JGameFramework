@@ -14,7 +14,7 @@ public interface IWeapon
 public abstract class WeaponBase : MonoBehaviour, IWeapon
 {
     protected WeaponConfig config;
-    
+
     public void Initialize(WeaponConfig weaponConfig)
     {
         this.config = weaponConfig;
