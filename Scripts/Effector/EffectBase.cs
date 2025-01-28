@@ -1,3 +1,4 @@
+using JG.Tools;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,11 +11,19 @@ public abstract class EffectBase : MonoBehaviour, IEffect
 
     [field: SerializeField]
     public float EndDelay { get; set; } = 0f;
+    public virtual void InitEffector()
+    {
 
-    public IEnumerator PlayEffect()
+    }
+    public IEnumerator PlayEffect(bool decoupled = false)
     {
         yield return new WaitForSeconds(StartDelay);
-        yield return PlayEffectLogic();
+
+        if (decoupled)
+            yield return CoroutineRunner.StartCoroutine(PlayEffectLogic());
+        else
+            yield return PlayEffectLogic();
+
         yield return new WaitForSeconds(EndDelay);
     }
 

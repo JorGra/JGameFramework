@@ -5,11 +5,12 @@ using UnityEngine;
 /// <summary>
 /// Flickers one or more Renderers by toggling a color property (default "_BaseColor").
 /// Works with URP Lit materials (which use _BaseColor).
+/// Adjusted so that *all* materials on each renderer are updated.
 /// </summary>
 public class RendererFlickerEffect : EffectBase
 {
     [Header("Renderer Flicker Settings")]
-    [Tooltip("All Renderers to flicker. Each submesh in these renderers will be flickered.")]
+    [Tooltip("All Renderers to flicker. Each material in these renderers will be flickered.")]
     public List<Renderer> targetRenderers = new List<Renderer>();
 
     [Tooltip("Property name to set color on. Default for URP Lit is \"_BaseColor\".")]
@@ -25,45 +26,40 @@ public class RendererFlickerEffect : EffectBase
     public float flickerCycleTime = 0.2f;
 
     /// <summary>
-    /// Internal data for each submesh we want to flicker.
+    /// Tracks information for each material slot we'll flicker.
     /// </summary>
-    private class SubmeshInfo
+    private class MaterialInfo
     {
         public Renderer renderer;
-        public int submeshIndex;
+        public int materialIndex;
         public Color originalColor;
         public MaterialPropertyBlock mpb;
     }
 
-    private List<SubmeshInfo> submeshInfos = new List<SubmeshInfo>();
+    private readonly List<MaterialInfo> materialInfos = new List<MaterialInfo>();
 
-    private void Awake()
+    public override void InitEffector()
     {
-        // Gather all submeshes from each renderer
+        // Gather all materials from each renderer
         foreach (Renderer rend in targetRenderers)
         {
-            if (rend == null)
-                continue;
+            if (rend == null) continue;
 
-            // For each submesh (each material slot)
-            int submeshCount = rend.sharedMaterials.Length;
-            for (int i = 0; i < submeshCount; i++)
+            int materialCount = rend.sharedMaterials.Length;
+            for (int i = 0; i < materialCount; i++)
             {
+                // Create a fresh property block for this material slot
                 var mpb = new MaterialPropertyBlock();
                 rend.GetPropertyBlock(mpb, i);
 
-                // Try to get color from the property block
-                bool hadProperty = mpb.HasProperty(colorProperty);
+                // Try to get the original color from the property block or fallback to the shared material
                 Color origColor = Color.white;
-
-                if (hadProperty)
+                if (mpb.HasProperty(colorProperty))
                 {
                     origColor = mpb.GetColor(colorProperty);
                 }
                 else
                 {
-                    // If property block didn't have the color,
-                    // read from the shared material if possible.
                     Material mat = rend.sharedMaterials[i];
                     if (mat != null && mat.HasProperty(colorProperty))
                     {
@@ -71,15 +67,15 @@ public class RendererFlickerEffect : EffectBase
                     }
                 }
 
-                // Store it in the property block to have a "baseline" for flicker revert
+                // Update the property block to store our baseline color
                 mpb.SetColor(colorProperty, origColor);
                 rend.SetPropertyBlock(mpb, i);
 
-                // Keep track of submesh data
-                submeshInfos.Add(new SubmeshInfo
+                // Keep track of this material slot
+                materialInfos.Add(new MaterialInfo
                 {
                     renderer = rend,
-                    submeshIndex = i,
+                    materialIndex = i,
                     originalColor = origColor,
                     mpb = mpb
                 });
@@ -92,9 +88,9 @@ public class RendererFlickerEffect : EffectBase
     /// </summary>
     protected override IEnumerator PlayEffectLogic()
     {
-        if (submeshInfos.Count == 0)
+        if (materialInfos.Count == 0)
         {
-            Debug.LogWarning($"{name}: No valid renderers assigned or no materials found. Flicker aborted.");
+            Debug.LogWarning($"{name}: No valid materials found. Flicker aborted.");
             yield break;
         }
 
@@ -105,35 +101,35 @@ public class RendererFlickerEffect : EffectBase
             yield return new WaitForSeconds(flickerCycleTime * 0.5f);
 
             // Flicker OFF
-            SetAllToOriginal();
+            SetAllOriginal();
             yield return new WaitForSeconds(flickerCycleTime * 0.5f);
         }
 
         // Ensure the final color is the original
-        SetAllToOriginal();
+        SetAllOriginal();
     }
 
     /// <summary>
-    /// Sets the color property on all submeshes to the given color.
+    /// Sets the color property on all tracked material slots.
     /// </summary>
     private void SetAllColor(Color color)
     {
-        foreach (var sub in submeshInfos)
+        foreach (var matInfo in materialInfos)
         {
-            sub.mpb.SetColor(colorProperty, color);
-            sub.renderer.SetPropertyBlock(sub.mpb, sub.submeshIndex);
+            matInfo.mpb.SetColor(colorProperty, color);
+            matInfo.renderer.SetPropertyBlock(matInfo.mpb, matInfo.materialIndex);
         }
     }
 
     /// <summary>
-    /// Restores the original color to all submeshes.
+    /// Restores the original color on all tracked material slots.
     /// </summary>
-    private void SetAllToOriginal()
+    private void SetAllOriginal()
     {
-        foreach (var sub in submeshInfos)
+        foreach (var matInfo in materialInfos)
         {
-            sub.mpb.SetColor(colorProperty, sub.originalColor);
-            sub.renderer.SetPropertyBlock(sub.mpb, sub.submeshIndex);
+            matInfo.mpb.SetColor(colorProperty, matInfo.originalColor);
+            matInfo.renderer.SetPropertyBlock(matInfo.mpb, matInfo.materialIndex);
         }
     }
 }

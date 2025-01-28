@@ -1,30 +1,47 @@
+using JG.Tools;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class EffectorController : MonoBehaviour
 {
-    public List<IEffect> effects = new List<IEffect>();
+    public List<EffectBase> effects = new List<EffectBase>();
 
-    IEnumerator PlayEffects()
+
+    private void Start()
     {
         foreach (var effect in effects)
         {
-            yield return StartCoroutine(effect.PlayEffect());
+            effect.InitEffector();
         }
     }
 
-    public void Play() => StartCoroutine(PlayEffects());
+    IEnumerator PlayEffects(bool decoupled = false)
+    {
+        foreach (var effect in effects)
+        {
+            yield return StartCoroutine(effect.PlayEffect(decoupled));
+        }
+    }
 
-    public void AddEffect(IEffect effect)
+    public void Play()
+    {
+        if (gameObject.activeInHierarchy)
+            StartCoroutine(PlayEffects());
+    }
+
+    public void PlayDecoupled()
+    {
+        CoroutineRunner.StartCoroutine(PlayEffects(true));
+    }
+
+    public void AddEffect(EffectBase effect)
     {
         effects.Add(effect);
     }
 
-    public void RemoveEffect(IEffect effect)
+    public void RemoveEffect(EffectBase effect)
     {
         effects.Remove(effect);
     }
-
-
 }
