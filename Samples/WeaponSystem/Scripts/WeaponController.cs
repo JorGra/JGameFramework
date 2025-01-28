@@ -26,15 +26,15 @@ public class WeaponController : MonoBehaviour, IWeaponController
 
         if (Input.GetMouseButtonDown(0))
         {
-            currentState.OnMouseDown(this, transform);
+            currentState?.OnMouseDown(this, transform);
         }
 
         if(Input.GetMouseButtonUp(0))
         {
-            currentState.OnMouseUp(this, transform);
+            currentState?.OnMouseUp(this, transform);
         }
 
-        currentState.OnUpdate(this, transform);
+        currentState?.OnUpdate(this, transform);
         
     }
 

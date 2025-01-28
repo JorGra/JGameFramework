@@ -216,7 +216,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   soundData:
     clip: {fileID: 8300000, guid: 3892a9a4995773d4e92596f0c1dec5f4, type: 3}
-    mixerGroup: {fileID: 0}
+    mixerGroup: {fileID: 302619736032222012, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
     loop: 0
     playOnAwake: 0
     frequent: 1

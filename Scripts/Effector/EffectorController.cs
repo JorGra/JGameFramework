@@ -4,12 +4,7 @@ using UnityEngine;
 
 public class EffectorController : MonoBehaviour
 {
-    public List<IEffect> effects;
-
-    private void Start()
-    {
-        StartCoroutine(PlayEffects());
-    }
+    public List<IEffect> effects = new List<IEffect>();
 
     IEnumerator PlayEffects()
     {

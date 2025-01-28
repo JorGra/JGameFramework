@@ -4,26 +4,39 @@ using UnityEngine;
 
 public class ParticleSystemEffect : EffectBase
 {
-    public ParticleSystem ps;
+    public ParticleSystem particleSystem;
     public Transform spawnTransform;
     /// <summary>
     /// Gets only used if no spawnTransform is assigned
     /// </summary>
     public Vector3 spawnPosition;
+    
+    /// <summary>
+    /// Should the particle system be parented to the spawntransform? 
+    /// useful for moving objects
+    /// </summary>
+    bool parentParticleSystem = false;
+
 
     protected override IEnumerator PlayEffectLogic()
     {
-        if (ps == null)
+        if (particleSystem == null)
         {
             Debug.LogError("ParticleSystemEffect: Particle System is not assigned.");
             yield break;
         }
 
         if (spawnTransform != null)
-            ps.transform.parent = spawnTransform;
+        {
+            particleSystem.transform.position = spawnTransform.position;
+            if (parentParticleSystem)
+            {
+                particleSystem.transform.parent = spawnTransform;
+            }
+        }
         else
-            ps.transform.position = spawnPosition;
+            particleSystem.transform.position = spawnPosition;
 
-        ps.Play();
+        particleSystem.Play();
     }
 }

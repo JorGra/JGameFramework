@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ExampleWeaponConfig 1
   m_EditorClassIdentifier: 
   weaponName: ExampleWeaponTarget
-  weaponDamage: 30
   weaponPrefab: {fileID: 3693375894277063331, guid: dd6a458ade0a97f4eb96ab59700abe0d, type: 3}
-  weaponType: 0
-  attackStrategy: {fileID: 11400000, guid: ba50acd1ce81de445bbc43f1c225f700, type: 2}
+  weaponFireMode: 0
+  StatsModifiers: []
+  weaponData: []
