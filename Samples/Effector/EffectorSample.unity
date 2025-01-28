@@ -5197,8 +5197,8 @@ MonoBehaviour:
   targetRenderers:
   - {fileID: 1986373544}
   colorProperty: _BaseColor
-  flickerCount: 5
-  flickerColor: {r: 1, g: 0, b: 0, a: 1}
+  flickerCount: 3
+  flickerColor: {r: 1, g: 1, b: 1, a: 1}
   flickerCycleTime: 0.1
 --- !u!114 &1015040898
 MonoBehaviour:
