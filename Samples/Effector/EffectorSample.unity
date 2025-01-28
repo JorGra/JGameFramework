@@ -5194,10 +5194,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   <StartDelay>k__BackingField: 0
   <EndDelay>k__BackingField: 0
-  targetRenderer: {fileID: 1986373544}
+  targetRenderers:
+  - {fileID: 1986373544}
+  colorProperty: _BaseColor
   flickerCount: 5
   flickerColor: {r: 1, g: 0, b: 0, a: 1}
-  flickerCycleTime: 0.2
+  flickerCycleTime: 0.1
 --- !u!114 &1015040898
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5411,7 +5413,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   <StartDelay>k__BackingField: 0
   <EndDelay>k__BackingField: 0
-  targetRenderer: {fileID: 0}
+  targetRenderers: []
+  colorProperty: _BaseColor
   flickerCount: 5
   flickerColor: {r: 1, g: 0, b: 0, a: 1}
   flickerCycleTime: 0.2
