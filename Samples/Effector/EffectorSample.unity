@@ -5327,6 +5327,7 @@ GameObject:
   - component: {fileID: 1015040904}
   - component: {fileID: 1015040905}
   - component: {fileID: 1015040906}
+  - component: {fileID: 1015040907}
   m_Layer: 0
   m_Name: HitEffector
   m_TagString: Untagged
@@ -5394,6 +5395,7 @@ MonoBehaviour:
   - {fileID: 1015040904}
   - {fileID: 1015040905}
   - {fileID: 1015040906}
+  - {fileID: 1015040907}
 --- !u!114 &1015040899
 MonoBehaviour:
   m_ObjectHideFlags: 2
@@ -5757,6 +5759,25 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   preserveFirstStartIfInProgress: 1
+--- !u!114 &1015040907
+MonoBehaviour:
+  m_ObjectHideFlags: 2
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1015040895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a9cb443d57cce140b2344c23fe81467, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  <StartDelay>k__BackingField: 0
+  effectName: TimeSlowEffect
+  priority: 50
+  targetTimeScale: 0.2
+  duration: 0.5
+  lerpSpeed: 5
+  autoStopWhenFinished: 1
 --- !u!1 &1448992133
 GameObject:
   m_ObjectHideFlags: 0
