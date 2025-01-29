@@ -1,7 +1,5 @@
 using JG.Tools;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public abstract class EffectBase : MonoBehaviour, IEffect
@@ -9,24 +7,42 @@ public abstract class EffectBase : MonoBehaviour, IEffect
     [field: SerializeField]
     public float StartDelay { get; set; } = 0f;
 
-    [field: SerializeField]
-    public float EndDelay { get; set; } = 0f;
     public virtual void InitEffector()
     {
 
     }
+
+    /// <summary>
+    /// Plays this effect in a coroutine.
+    /// If decoupled = false, the caller can yield on the coroutine as normal.
+    /// If decoupled = true, the effect is scheduled via the CoroutineRunner,
+    /// and returns immediately (caller won't await completion).
+    /// </summary>
     public IEnumerator PlayEffect(bool decoupled = false)
     {
-        yield return new WaitForSeconds(StartDelay);
-
-        if (decoupled)
-            yield return CoroutineRunner.StartCoroutine(PlayEffectLogic());
+        if (!decoupled)
+        {
+            yield return RunEffectSequence();
+        }
         else
-            yield return PlayEffectLogic();
-
-        yield return new WaitForSeconds(EndDelay);
+        {
+            CoroutineRunner.StartCoroutine(RunEffectSequence());
+            yield break;
+        }
     }
 
+    /// <summary>
+    /// The actual effect sequence: start delay -> effect logic -> end delay.
+    /// </summary>
+    private IEnumerator RunEffectSequence()
+    {
+        yield return new WaitForSeconds(StartDelay);
+        yield return PlayEffectLogic();
+    }
+
+    /// <summary>
+    /// Override this in subclasses with specific effect behavior.
+    /// </summary>
     protected virtual IEnumerator PlayEffectLogic()
     {
         yield return null;
