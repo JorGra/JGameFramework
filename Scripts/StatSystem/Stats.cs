@@ -15,6 +15,7 @@ public enum StatType
     MoveSpeed,
     Range,
     InwardsDrag,
+    FireRate,
 }
 
 

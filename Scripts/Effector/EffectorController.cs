@@ -56,7 +56,7 @@ public class EffectorController : MonoBehaviour
     /// </summary>
     public void Play()
     {
-        if (gameObject.activeInHierarchy)
+        if (gameObject != null && gameObject.activeInHierarchy)
             StartCoroutine(PlayEffectsCoroutine(false));
     }
 

@@ -18,7 +18,14 @@ namespace JG.Samples
         // Start is called before the first frame update
         void Start()
         {
+            //Direct:
+            Stats.Mediator.AddModifier(new StatModifier(StatType.MaxHealth, new AddOperation(10), duration: 10f));
+            Debug.Log("Max health: " + Stats.GetStat(StatType.MaxHealth));
 
+            //using ServiceLocator:
+            var modifierFactory = UnityServiceLocator.ServiceLocator.For(this).Get<IStatModifierFactory>();
+            Stats.Mediator.AddModifier(modifierFactory.Create(StatType.MaxHealth, OperatorType.Add, value: 10f, duration: 0f));
+            Debug.Log("Max health: " + Stats.GetStat(StatType.MaxHealth));
         }
 
         // Update is called once per frame
