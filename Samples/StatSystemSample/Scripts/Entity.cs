@@ -1,38 +1,34 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace JG.Samples
 {
-
     public class Entity : MonoBehaviour
     {
-        //[SerializeField] BaseStats baseStats;
-        [SerializeField] StatsDecorator[] stats;
+        [SerializeField] private StatsProfile statsProfile;
         public Stats Stats { get; private set; }
 
         private void Awake()
         {
-            Stats = new Stats(new StatsMediator(), stats);
+            // Construct the Stats object from the assigned UnitStatsProfile.
+            Stats = new Stats(statsProfile);
         }
-        // Start is called before the first frame update
-        void Start()
-        {
-            //Direct:
-            Stats.Mediator.AddModifier(new StatModifier(StatType.MaxHealth, new AddOperation(10), duration: 10f));
-            Debug.Log("Max health: " + Stats.GetStat(StatType.MaxHealth));
 
-            //using ServiceLocator:
+        private void Start()
+        {
+            // Direct usage: add a modifier to the MaxHealth stat.
+            Stats.Mediator.AddModifier(new StatModifier(GameStatDefinitions.MaxHealth, new AddOperation(10), 10f));
+            Debug.Log("Max health after direct modifier: " + Stats.GetStat(GameStatDefinitions.MaxHealth));
+
+            // Using ServiceLocator to get the modifier factory:
             var modifierFactory = UnityServiceLocator.ServiceLocator.For(this).Get<IStatModifierFactory>();
-            Stats.Mediator.AddModifier(modifierFactory.Create(StatType.MaxHealth, OperatorType.Add, value: 10f, duration: 0f));
-            Debug.Log("Max health: " + Stats.GetStat(StatType.MaxHealth));
+            Stats.Mediator.AddModifier(modifierFactory.Create(GameStatDefinitions.MaxHealth, OperatorType.Add, 10f, 0f));
+            Debug.Log("Max health after factory modifier: " + Stats.GetStat(GameStatDefinitions.MaxHealth));
         }
 
-        // Update is called once per frame
-        void Update()
+        private void Update()
         {
+            // Update modifiers each frame.
             Stats.Mediator.Update(Time.deltaTime);
         }
     }
-
 }

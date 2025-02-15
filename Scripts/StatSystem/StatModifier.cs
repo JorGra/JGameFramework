@@ -1,26 +1,22 @@
 ﻿using System;
 
-
 public class StatModifier : IDisposable
 {
-    public StatType StatType { get; set; }
+    public StatDefinition StatDefinition { get; set; }
     public IOperationStrategy Strategy { get; }
-
-
     public bool MarkedForRemoval { get; set; }
 
     public event Action<StatModifier> OnDispose = delegate { };
 
     readonly CountdownTimer timer;
 
-    public StatModifier(StatType statType, IOperationStrategy strategy, float duration)
+    public StatModifier(StatDefinition statDefinition, IOperationStrategy strategy, float duration)
     {
-        this.StatType = statType;
-        this.Strategy = strategy;
+        StatDefinition = statDefinition;
+        Strategy = strategy;
 
         if (duration <= 0f)
             return;
-
 
         timer = new CountdownTimer(duration);
         timer.OnTimerStop += () => MarkedForRemoval = true;
@@ -31,7 +27,7 @@ public class StatModifier : IDisposable
 
     public void Handle(object sender, Query query)
     {
-        if (query.StatType == StatType)
+        if (query.StatDefinition == StatDefinition)
         {
             query.Value = Strategy.Calculate(query.Value);
         }

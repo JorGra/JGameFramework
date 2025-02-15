@@ -9,13 +9,13 @@ public enum OperatorType
 
 public interface IStatModifierFactory
 {
-    StatModifier Create(StatType statType, OperatorType operatorType, float value, float duration);
+    StatModifier Create(StatDefinition statDefinition, OperatorType operatorType, float value, float duration);
     StatModifier Create(StatModifierConfig statModifierConfig);
 }
 
 public class StatModifierFactory : IStatModifierFactory
 {
-    public StatModifier Create(StatType statType, OperatorType operatorType, float value, float duration)
+    public StatModifier Create(StatDefinition statDefinition, OperatorType operatorType, float value, float duration)
     {
         IOperationStrategy strategy = operatorType switch
         {
@@ -25,12 +25,11 @@ public class StatModifierFactory : IStatModifierFactory
             _ => throw new ArgumentOutOfRangeException(nameof(operatorType), operatorType, null),
         };
 
-        return new StatModifier(statType, strategy, duration);
+        return new StatModifier(statDefinition, strategy, duration);
     }
 
     public StatModifier Create(StatModifierConfig statModifierConfig)
     {
-        return Create(statModifierConfig.StatType, statModifierConfig.OperatorType, statModifierConfig.Value, statModifierConfig.Duration);
+        return Create(statModifierConfig.statDefinition, statModifierConfig.OperatorType, statModifierConfig.Value, statModifierConfig.Duration);
     }
 }
-

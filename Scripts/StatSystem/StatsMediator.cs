@@ -3,41 +3,40 @@ using System.Collections.Generic;
 using System.Linq;
 
 
-
 public class StatsMediator
 {
     readonly List<StatModifier> listModifiers = new List<StatModifier>();
-    readonly Dictionary<StatType, IEnumerable<StatModifier>> modifierCache = new();
+    readonly Dictionary<StatDefinition, IEnumerable<StatModifier>> modifierCache = new();
     IStatModifierApplicationOrder order = new NormalStatModifierApplicationOrder();
-
 
     public void PerfromQuery(object sender, Query query)
     {
-        if (!modifierCache.ContainsKey(query.StatType))
+        if (!modifierCache.ContainsKey(query.StatDefinition))
         {
-            modifierCache[query.StatType] = listModifiers.Where(x => x.StatType == query.StatType).ToList();
+            modifierCache[query.StatDefinition] = listModifiers
+                .Where(x => x.StatDefinition == query.StatDefinition)
+                .ToList();
         }
-        query.Value = order.Apply(modifierCache[query.StatType], query.Value);
+        query.Value = order.Apply(modifierCache[query.StatDefinition], query.Value);
     }
 
-    void InvalidateCache(StatType statType)
+    void InvalidateCache(StatDefinition statDefinition)
     {
-        modifierCache.Remove(statType);
+        modifierCache.Remove(statDefinition);
     }
 
     public void AddModifier(StatModifier modifier)
     {
         listModifiers.Add(modifier);
-        InvalidateCache(modifier.StatType);
+        InvalidateCache(modifier.StatDefinition);
         modifier.MarkedForRemoval = false;
 
-        modifier.OnDispose += _ => InvalidateCache(modifier.StatType);
+        modifier.OnDispose += _ => InvalidateCache(modifier.StatDefinition);
         modifier.OnDispose += _ => listModifiers.Remove(modifier);
     }
 
     public void Update(float deltaTime)
     {
-
         foreach (var modifier in listModifiers)
         {
             modifier.Update(deltaTime);
@@ -47,17 +46,16 @@ public class StatsMediator
             modifier.Dispose();
         }
     }
-
 }
 
 public class Query
 {
-    public readonly StatType StatType;
+    public readonly StatDefinition StatDefinition;
     public float Value;
 
-    public Query(StatType statType, float value)
+    public Query(StatDefinition statDefinition, float value)
     {
-        StatType = statType;
+        StatDefinition = statDefinition;
         Value = value;
     }
 }
