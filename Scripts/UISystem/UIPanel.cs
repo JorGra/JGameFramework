@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class UIPanel : MonoBehaviour
 {
-    public bool IsOpen { get; protected set; } = true;
+    public bool IsOpen { get; protected set; } = false;
     public virtual void Open()
     {
         if (!IsOpen)
@@ -21,5 +21,9 @@ public class UIPanel : MonoBehaviour
             gameObject.SetActive(false);
             IsOpen = false;
         }
+    }
+    public virtual void OnDisable()
+    {
+        IsOpen = false;
     }
 }
