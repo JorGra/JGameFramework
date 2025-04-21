@@ -9,7 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67fc4a6ea0153514bbaeb9ac615beea9, type: 3}
-  m_Name: PlayerLivingEntityStats
+  m_Script: {fileID: 11500000, guid: 07e9b8450594dad4cbd93d01c70987a1, type: 3}
+  m_Name: StatProfile
   m_EditorClassIdentifier: 
-  MaxHealth: 30
+  statEntries:
+  - statDefinition: {fileID: 11400000, guid: 089511aa4722c8641995c42098df1005, type: 2}
+    baseValue: 0

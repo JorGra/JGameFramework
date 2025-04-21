@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8207e8aeb03a9742b144b149f03fcab, type: 3}
   m_Name: MaxHealthStatModifier
   m_EditorClassIdentifier: 
-  StatType: 1
+  statDefinition: {fileID: 11400000, guid: 089511aa4722c8641995c42098df1005, type: 2}
   OperatorType: 0
   Value: 10
   Duration: 0
