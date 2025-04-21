@@ -1,24 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-
-
-/// <summary>
-/// List of all stats
-/// </summary>
-public enum StatType
-{
-    MaxHealth,
-    Damage,
-    AttackSpeed,
-    MoveSpeed,
-    Range,
-    InwardsDrag,
-    FireRate,
-}
-
-
 
 public class Stats
 {
