@@ -12,7 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0fd6e26f181c4be47af7c397dcd1e685, type: 3}
   m_Name: StatRegistry
   m_EditorClassIdentifier: 
-  statDefinitions:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  statDefinitions: []

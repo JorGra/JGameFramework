@@ -2,30 +2,47 @@ using UnityEngine;
 
 namespace JG.Samples
 {
+    /// <summary>
+    /// Demo script: reads stats via keys and applies pickup effects at runtime.
+    /// </summary>
     public class TestPickUp : MonoBehaviour
     {
+        [Tooltip("The player Entity to test against.")]
         [SerializeField] private Entity player;
+
+        [Tooltip("Pickup component that applies a stat bump.")]
         [SerializeField] private Pickup pickup;
 
-        // Start is called before the first frame update
-        void Start()
+        private StatDefinition maxHealthDef;
+        private StatDefinition rangeDef;
+
+        void Awake()
         {
-            Debug.Log(player.Stats.GetStat(GameStatDefinitions.MaxHealth));
+            // Cache definitions once
+            maxHealthDef = StatRegistryProvider.Instance.Registry.Get("MaxHealth");
+            rangeDef = StatRegistryProvider.Instance.Registry.Get("Range");
         }
 
-        // Update is called once per frame
+        void Start()
+        {
+            Debug.Log($"Starting MaxHealth: {player.Stats.GetStat(maxHealthDef)}");
+        }
+
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.Space))
             {
+                // Give the player a pickup bump
                 pickup.ApplyPickupEffect(player);
-                Debug.Log(player.Stats.GetStat(GameStatDefinitions.MaxHealth));
+                Debug.Log($"After pickup MaxHealth: {player.Stats.GetStat(maxHealthDef)}");
             }
 
             if (Input.GetKeyDown(KeyCode.E))
             {
-                Debug.Log(player.Stats.GetStat(GameStatDefinitions.Range));
+                // Just query another stat
+                Debug.Log($"Range: {player.Stats.GetStat(rangeDef)}");
             }
         }
     }
+
 }

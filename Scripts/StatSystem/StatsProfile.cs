@@ -6,7 +6,7 @@ using UnityEngine;
 /// A profile that defines the base stat values for a unit.
 /// A unit can have only some of the available stats.
 /// </summary>
-[CreateAssetMenu(menuName = "Gameplay/Stats/Unit Stats Profile", fileName = "NewUnitStatsProfile")]
+[CreateAssetMenu(menuName = "Gameplay/Stats/Stats Profile", fileName = "NewStatsProfile")]
 public class StatsProfile : ScriptableObject
 {
     [Serializable]

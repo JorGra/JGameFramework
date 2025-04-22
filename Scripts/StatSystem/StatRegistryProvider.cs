@@ -1,28 +1,46 @@
-using System.Collections;
-using System.Collections.Generic;
+﻿// StatRegistryProvider.cs
+using JG.Tools;
 using UnityEngine;
 
 /// <summary>
-/// Provides access to the global StatRegistry. The StatRegistry asset must be placed
-/// in a Resources folder and named "StatRegistry".
+/// Singleton loader that initializes the StatRegistry from a Resources JSON.
 /// </summary>
-public static class StatRegistryProvider
+public class StatRegistryProvider : Singleton<StatRegistryProvider>
 {
-    private static StatRegistry instance;
+    [Tooltip("Reference to the StatRegistry ScriptableObject.")]
+    [SerializeField] private StatRegistry registry;
 
-    public static StatRegistry Instance
+    [Tooltip("Path under Resources (without '.json') to StatDefinitions.json. " +
+             "E.g. Resources/StatDefinitions/StatDefinitions.json → 'StatDefinitions/StatDefinitions'.")]
+    [SerializeField] private string jsonResourcePath = "StatDefinitions/StatDefinitions";
+
+    /// <summary>
+    /// Expose the registry instance for runtime lookups.
+    /// </summary>
+    public StatRegistry Registry => registry;
+
+    protected override void Awake()
     {
-        get
+        if (registry == null)
         {
-            if (instance == null)
-            {
-                instance = Resources.Load<StatRegistry>("StatRegistry");
-                if (instance == null)
-                {
-                    Debug.LogError("StatRegistry asset not found in the Resources folder. Please create one and name it 'StatRegistry'.");
-                }
-            }
-            return instance;
+            Debug.LogError("StatRegistryProvider: No StatRegistry assigned.");
+            return;
         }
+
+        // Load the TextAsset from Resources
+        var ta = Resources.Load<TextAsset>(jsonResourcePath);
+        if (ta == null)
+        {
+            Debug.LogError($"StatRegistryProvider: Failed to load Resources/{jsonResourcePath}.json");
+            return;
+        }
+
+        // Parse it into the registry
+        registry.InitializeFromJsonText(ta.text);
     }
+
+    /// <summary>
+    /// Manual re‑initialization (e.g. if you replace the JSON at runtime).
+    /// </summary>
+    public void Init() => Awake();
 }

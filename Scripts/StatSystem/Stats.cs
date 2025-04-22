@@ -1,65 +1,45 @@
+// Stats.cs
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Holds current stats + modifiers for an entity.
-/// Now keys base values by statDefinition.key instead of integer ID.
+/// Holds current stats + modifiers for an entity, using defaults from StatRegistry.
 /// </summary>
 public class Stats
 {
     public StatsMediator Mediator { get; private set; }
-
     // Stores base values keyed by StatDefinition.key
-    readonly Dictionary<string, float> baseStats;
+    private readonly Dictionary<string, float> baseStats;
 
     /// <summary>
-    /// Constructs the Stats object using the provided profile.
-    /// If profile is null, falls back to registry defaults.
+    /// Constructs the Stats object by loading all defaults from the registry.
     /// </summary>
-    public Stats(StatsProfile profile)
+    public Stats()
     {
         Mediator = new StatsMediator();
         baseStats = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
 
-        if (profile != null)
+        var provider = StatRegistryProvider.Instance;
+        if (provider?.Registry != null)
         {
-            foreach (var entry in profile.statEntries)
+            foreach (var def in provider.Registry.StatDefinitions)
             {
-                if (entry.statDefinition != null &&
-                    !string.IsNullOrWhiteSpace(entry.statDefinition.key))
-                {
-                    baseStats[entry.statDefinition.key] = entry.baseValue;
-                }
-                else
-                {
-                    Debug.LogWarning(
-                      $"Stats ctor: missing key on stat definition in profile {profile.name}");
-                }
+                if (!string.IsNullOrWhiteSpace(def.key))
+                    baseStats[def.key] = def.defaultValue;
             }
         }
         else
         {
-            // Fallback: load all defaults from registry
-            var registry = StatRegistryProvider.Instance;
-            if (registry != null)
-            {
-                foreach (var def in registry.statDefinitions)
-                {
-                    if (!string.IsNullOrWhiteSpace(def.key))
-                        baseStats[def.key] = def.defaultValue;
-                }
-            }
-            else
-            {
-                Debug.LogError("Stats ctor: StatRegistry missing—cannot load default stats.");
-            }
+            Debug.LogError("Stats ctor: StatRegistry missing—cannot load default stats.");
         }
     }
 
     /// <summary>
-    /// Retrieves the final value for the given stat.
+    /// Retrieves the final value for the given stat, applying all modifiers.
     /// </summary>
+    /// <param name="statDefinition">The definition of the stat to query.</param>
+    /// <returns>Base value plus modifiers.</returns>
     public float GetStat(StatDefinition statDefinition)
     {
         if (statDefinition == null || string.IsNullOrWhiteSpace(statDefinition.key))
@@ -71,8 +51,8 @@ public class Stats
         if (!baseStats.TryGetValue(statDefinition.key, out var baseValue))
             baseValue = statDefinition.defaultValue;
 
-        var q = new Query(statDefinition, baseValue);
-        Mediator.PerfromQuery(this, q);
-        return q.Value;
+        var query = new Query(statDefinition, baseValue);
+        Mediator.PerfromQuery(this, query);
+        return query.Value;
     }
 }

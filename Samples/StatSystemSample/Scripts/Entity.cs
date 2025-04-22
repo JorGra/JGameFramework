@@ -4,30 +4,40 @@ namespace JG.Samples
 {
     public class Entity : MonoBehaviour
     {
-        [SerializeField] private StatsProfile statsProfile;
+        /// <summary>
+        /// The runtime Stats container (no profile needed).
+        /// </summary>
         public Stats Stats { get; private set; }
 
-        private void Awake()
+        private IStatModifierFactory modifierFactory;
+
+        void Awake()
         {
-            // Construct the Stats object from the assigned UnitStatsProfile.
-            Stats = new Stats(statsProfile);
+            // Construct Stats: pulls all defaults from your master JSON.
+            Stats = new Stats();
+
+            // Create the factory (or resolve via your DI/ServiceLocator)
+            modifierFactory = new StatModifierFactory();
         }
 
-        private void Start()
+        void Start()
         {
-            // Direct usage: add a modifier to the MaxHealth stat.
-            Stats.Mediator.AddModifier(new StatModifier(GameStatDefinitions.MaxHealth, new AddOperation(10), 10f));
-            Debug.Log("Max health after direct modifier: " + Stats.GetStat(GameStatDefinitions.MaxHealth));
+            // 1) Lookup your stat definition by key
+            var powerDef = StatRegistryProvider.Instance.Registry.Get("power");
+            // 2) Direct modifier: +10 for 5 seconds
+            var directMod = new StatModifier(powerDef, new AddOperation(10f), 5f);
+            Stats.Mediator.AddModifier(directMod);
+            Debug.Log($"Power after direct modifier: {Stats.GetStat(powerDef)}");
 
-            // Using ServiceLocator to get the modifier factory:
-            var modifierFactory = UnityServiceLocator.ServiceLocator.For(this).Get<IStatModifierFactory>();
-            Stats.Mediator.AddModifier(modifierFactory.Create(GameStatDefinitions.MaxHealth, OperatorType.Add, 10f, 0f));
-            Debug.Log("Max health after factory modifier: " + Stats.GetStat(GameStatDefinitions.MaxHealth));
+            // 3) Factory modifier: +20 permanently
+            var factoryMod = modifierFactory.Create(powerDef, OperatorType.Add, 20f, 0f);
+            Stats.Mediator.AddModifier(factoryMod);
+            Debug.Log($"Power after factory modifier: {Stats.GetStat(powerDef)}");
         }
 
-        private void Update()
+        void Update()
         {
-            // Update modifiers each frame.
+            // Ticks modifier durations and cleans up expired ones
             Stats.Mediator.Update(Time.deltaTime);
         }
     }
