@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityServiceLocator;
 
 namespace JG.Samples
 {
@@ -17,7 +18,7 @@ namespace JG.Samples
             Stats = new Stats();
 
             // Create the factory (or resolve via your DI/ServiceLocator)
-            modifierFactory = new StatModifierFactory();
+            modifierFactory = ServiceLocator.For(this).Get<IStatModifierFactory>();
         }
 
         void Start()

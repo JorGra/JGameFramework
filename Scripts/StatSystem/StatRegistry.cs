@@ -3,9 +3,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Holds all global StatDefinitions, loading a master JSON file at startup.
-/// </summary>
 [CreateAssetMenu(menuName = "Gameplay/Stats/Stat Registry", fileName = "NewStatRegistry")]
 public class StatRegistry : ScriptableObject
 {
@@ -22,14 +19,20 @@ public class StatRegistry : ScriptableObject
     #endregion
 
     /// <summary>
-    /// Initialize by parsing the given JSON text.
+    /// Initialize by parsing the given JSON text. Clears out any prior dynamic loads.
     /// </summary>
     public void InitializeFromJsonText(string jsonText)
     {
+        // 1) Remove any prior dynamic (and null) entries
+        statDefinitions.RemoveAll(d => d == null ||
+            (d.hideFlags & HideFlags.HideAndDontSave) != 0);
+
+        // 2) Rebuild lookup for any SO-baked definitions
         BuildLookupFromSO();
+
         if (string.IsNullOrWhiteSpace(jsonText))
         {
-            Debug.LogWarning("StatRegistry: empty JSON text; no dynamic stats loaded.");
+            Debug.LogWarning("StatRegistry: empty JSON; no dynamic stats loaded.");
             return;
         }
 
@@ -60,7 +63,9 @@ public class StatRegistry : ScriptableObject
                 continue;
             }
 
+            // 3) Create a transient SO instance
             var so = ScriptableObject.CreateInstance<StatDefinition>();
+            so.hideFlags = HideFlags.HideAndDontSave;
             so.key = dto.key;
             so.statName = dto.statName;
             so.defaultValue = dto.defaultValue;
@@ -86,6 +91,7 @@ public class StatRegistry : ScriptableObject
         {
             if (def == null || string.IsNullOrWhiteSpace(def.key))
                 continue;
+
             if (lookupByKey.ContainsKey(def.key))
             {
                 Debug.LogError($"Duplicate StatDefinition key '{def.key}' in registry.");

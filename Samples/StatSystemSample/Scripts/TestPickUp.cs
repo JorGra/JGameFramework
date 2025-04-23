@@ -14,13 +14,11 @@ namespace JG.Samples
         [SerializeField] private Pickup pickup;
 
         private StatDefinition maxHealthDef;
-        private StatDefinition rangeDef;
 
         void Awake()
         {
             // Cache definitions once
-            maxHealthDef = StatRegistryProvider.Instance.Registry.Get("MaxHealth");
-            rangeDef = StatRegistryProvider.Instance.Registry.Get("Range");
+            maxHealthDef = StatRegistryProvider.Instance.Registry.Get("maxHealth");
         }
 
         void Start()
@@ -35,12 +33,6 @@ namespace JG.Samples
                 // Give the player a pickup bump
                 pickup.ApplyPickupEffect(player);
                 Debug.Log($"After pickup MaxHealth: {player.Stats.GetStat(maxHealthDef)}");
-            }
-
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                // Just query another stat
-                Debug.Log($"Range: {player.Stats.GetStat(rangeDef)}");
             }
         }
     }
