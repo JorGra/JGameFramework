@@ -12,4 +12,6 @@ public class StatDefinition : ScriptableObject
 
     [Tooltip("Default value for the stat.")]
     public float defaultValue;
+
+    public Sprite icon;
 }
