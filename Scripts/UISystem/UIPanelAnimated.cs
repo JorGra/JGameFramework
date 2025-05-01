@@ -39,7 +39,8 @@ public class UIPanelAnimated : UIPanel
 
         // Start the close animation coroutine.
         // The panel will deactivate at the end of the close animation.
-        StartCoroutine(AnimateClose());
+        if (gameObject.activeInHierarchy)
+            StartCoroutine(AnimateClose());
     }
 
     private IEnumerator AnimateOpen()
