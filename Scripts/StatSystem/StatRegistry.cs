@@ -5,7 +5,8 @@ using UnityEngine;
 
 /// <summary>
 /// Holds every <see cref="StatDefinition"/> in the game, supporting
-/// static ScriptableObjects and dynamic JSON loading (including icons).
+/// static ScriptableObjects and dynamic JSON loading (including icons
+/// **and the new <c>hidden</c> flag**).
 /// </summary>
 [CreateAssetMenu(menuName = "Gameplay/Stats/Stat Registry",
                  fileName = "NewStatRegistry")]
@@ -21,24 +22,22 @@ public class StatRegistry : ScriptableObject
     const string ICON_BASE_PATH = "StatDefinitions/Icons/";   // under Resources/
 
     Dictionary<string, StatDefinition> lookupByKey;
+    readonly HashSet<string> hiddenKeys = new();    // NEW
 
-    #region JSON DTOs
+    #region JSON DTOs ---------------------------------------------------------
     [Serializable]
     private class StatDefJson
     {
         public string key;
         public string statName;
         public float defaultValue;
-        public string iconPath;      // NEW
+        public string iconPath;
+        public bool hidden;          // NEW
     }
-
     [Serializable] private class StatDefListJson { public List<StatDefJson> stats; }
     #endregion
 
-    /// <summary>
-    /// Replace/merge dynamic stats by parsing <paramref name="jsonText"/>.
-    /// Any ScriptableObject assets already in <c>statDefinitions</c> remain.
-    /// </summary>
+    /// <summary>Replace/merge dynamic stats by parsing <paramref name="jsonText"/>.</summary>
     public void InitializeFromJsonText(string jsonText)
     {
         /* 1) purge previous runtime-only SOs */
@@ -47,6 +46,7 @@ public class StatRegistry : ScriptableObject
 
         /* 2) rebuild lookup from remaining (asset) definitions */
         BuildLookupFromSO();
+        hiddenKeys.Clear();                           // NEW
 
         if (string.IsNullOrWhiteSpace(jsonText))
         {
@@ -55,16 +55,12 @@ public class StatRegistry : ScriptableObject
         }
 
         StatDefListJson wrapper;
-        try
-        {
-            wrapper = JsonUtility.FromJson<StatDefListJson>(jsonText);
-        }
+        try { wrapper = JsonUtility.FromJson<StatDefListJson>(jsonText); }
         catch (Exception e)
         {
             Debug.LogError($"[StatRegistry] JSON parse error: {e.Message}");
             return;
         }
-
         if (wrapper?.stats == null) return;
 
         /* 3) create transient SOs from DTOs */
@@ -75,7 +71,6 @@ public class StatRegistry : ScriptableObject
                 Debug.LogWarning("[StatRegistry] JSON entry missing key; skipping.");
                 continue;
             }
-
             if (lookupByKey.ContainsKey(dto.key))
             {
                 Debug.LogWarning($"[StatRegistry] Duplicate key '{dto.key}'; skipping.");
@@ -90,20 +85,14 @@ public class StatRegistry : ScriptableObject
 
             if (!string.IsNullOrWhiteSpace(dto.iconPath))
             {
-                string trimmed = dto.iconPath.TrimStart('/', '\\');
-                string resPath = ICON_BASE_PATH + trimmed;
-                so.icon = Resources.Load<Sprite>(resPath);
-
-                if (so.icon == null)
-                {
-                    Debug.LogWarning(
-                        $"[StatRegistry] Sprite '{resPath}' not found for '{dto.key}'.");
-                    so.icon = defaultIcon;
-                }
+                string resPath = ICON_BASE_PATH + dto.iconPath.TrimStart('/', '\\');
+                so.icon = Resources.Load<Sprite>(resPath) ?? defaultIcon;
             }
 
             statDefinitions.Add(so);
             lookupByKey.Add(so.key, so);
+
+            if (dto.hidden) hiddenKeys.Add(dto.key);  // NEW
         }
     }
 
@@ -113,13 +102,15 @@ public class StatRegistry : ScriptableObject
         if (lookupByKey != null && lookupByKey.TryGetValue(key, out var def))
             return def;
 
-        throw new KeyNotFoundException(
-            $"StatDefinition with key '{key}' not found.");
+        throw new KeyNotFoundException($"StatDefinition with key '{key}' not found.");
     }
+
+    /// <summary>True if the stat should **not** be shown in the HUD.</summary>
+    public bool IsHidden(string key) => hiddenKeys.Contains(key);   // NEW
 
     public IReadOnlyList<StatDefinition> StatDefinitions => statDefinitions;
 
-    /* ───────────────────────── helpers ───────────────────────── */
+    /* ───────────────────── helpers ───────────────────── */
 
     void BuildLookupFromSO()
     {
@@ -129,11 +120,9 @@ public class StatRegistry : ScriptableObject
         foreach (var def in statDefinitions)
         {
             if (def == null || string.IsNullOrWhiteSpace(def.key)) continue;
-
             if (lookupByKey.ContainsKey(def.key))
             {
-                Debug.LogError(
-                    $"[StatRegistry] Duplicate key '{def.key}' in baked assets.");
+                Debug.LogError($"[StatRegistry] Duplicate key '{def.key}' in baked assets.");
                 continue;
             }
             lookupByKey.Add(def.key, def);
