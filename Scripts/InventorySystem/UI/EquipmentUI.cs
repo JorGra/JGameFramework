@@ -55,7 +55,8 @@ namespace JG.Inventory.UI
             context.Open(eq,                                             // stack
                          playerInventory.Runtime,                        // inventory
                          b.button.transform as RectTransform,            // anchor
-                         null,                                           // no InventoryUI owner
+                                                                         //TODO: FIX THIS CAUSING ISSUES ON UNEQUIP
+                         playerInventory.GetComponent<PlayerEquipmentBridge>(),                                           // no InventoryUI owner 
                          b.slotComponent);                               // signals "equipped"
         }
 

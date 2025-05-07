@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace JG.Inventory
 {
@@ -28,8 +29,8 @@ namespace JG.Inventory
             if (Equipped != null) Unequip(ctx);                // drop previous
             Equipped = stack;
 
-            foreach (var d in stack.Data.Effects)
-                ItemEffectRegistry.Build(d.effectType, d.effectParams)?.Apply(ctx);
+            //foreach (var d in stack.Data.Effects)
+            //    ItemEffectRegistry.Build(d.effectType, d.effectParams)?.Apply(ctx);
 
             Changed?.Invoke();                                 // notify UI
             return true;
@@ -41,6 +42,7 @@ namespace JG.Inventory
             foreach (var d in Equipped.Data.Effects)
                 ItemEffectRegistry.Build(d.effectType, d.effectParams)?.Remove(ctx);
 
+            Debug.Log("unequipped");
             Equipped = null;
             Changed?.Invoke();                                 // notify UI
         }

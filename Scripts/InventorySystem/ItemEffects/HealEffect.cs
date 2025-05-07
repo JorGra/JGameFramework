@@ -1,36 +1,35 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace JG.Inventory
 {
-    /// <summary>Restores hit points to the player or target entity.</summary>
-    [ItemEffect("Heal")]                       
+    /// <summary>Instantly restores hit points.</summary>
+    [ItemEffect("Heal")]
     public class HealEffect : IItemEffect
     {
-        private readonly int amount;
+        readonly int amount;
 
         public HealEffect(int amount) => this.amount = amount;
 
         public void Apply(InventoryContext ctx)
         {
-            //ctx.TargetStats?.RestoreHealth(amount);
+            if (ctx?.TargetStats == null) return;
+
+            var healthDef = StatRegistryProvider.Instance.Registry.Get("health");
+            var mod = new StatModifier(healthDef, new AddOperation(amount), 0f);
+            ctx.TargetStats.Mediator.AddModifier(mod);
+            // duration 0 → removed next frame by mediator; acts as an “impulse”.
         }
 
-        public void Remove(InventoryContext ctx)
+        public void Remove(InventoryContext ctx) { /* no-op */ }
+
+        public static IItemEffect FromJson(string json)
         {
-            /* no-op: healing is instant */
+            var p = JsonUtility.FromJson<Params>(json);
+            return new HealEffect(p.amount);
         }
 
-        /// <summary>Factory consumed by the registry.</summary>
-        public static IItemEffect FromJson(string json)  
-        {
-            var data = JsonUtility.FromJson<HealParams>(json);
-            return new HealEffect(data.amount);
-        }
+        static HealEffect() => ItemEffectRegistry.Register<HealEffect>(FromJson);
 
-        /* automatic self-registration � runs once when the class is first touched */
-        static HealEffect() =>
-            ItemEffectRegistry.Register<HealEffect>(FromJson);
-
-        [System.Serializable] private struct HealParams { public int amount; }
+        [System.Serializable] struct Params { public int amount; }
     }
 }

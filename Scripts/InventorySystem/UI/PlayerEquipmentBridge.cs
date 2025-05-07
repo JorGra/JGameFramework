@@ -1,74 +1,126 @@
+﻿using System.Collections.Generic;
 using UnityEngine;
+using JG.Inventory;           // for InventoryContext & ItemEffect*
 
 namespace JG.Inventory.UI
 {
     /// <summary>
-    /// Routes items between an <see cref="Inventory"/> and the player�s equipment slots.
+    /// Mediates between an <see cref="Inventory"/> and the player’s equipment +
+    /// Stats container.  All item effects marked for “equip” are applied while
+    /// the item is worn and removed automatically on unequip.
     /// </summary>
     public class PlayerEquipmentBridge : MonoBehaviour
     {
-        [SerializeField] private Transform slotContainer;
-        [SerializeField] private EquipmentSlotComponent[] slots;
+        [Header("Links")]
         [SerializeField] private InventoryComponent inventory;
+        [SerializeField] private Transform slotContainer;
+        private EquipmentSlotComponent[] slots;
+        private Stats targetStats;
+        public Stats TargetStats                                    // NEW – runtime assignment
+        {
+            get => targetStats;
+            set
+            {
+                targetStats = value;
+                if (ctx != null) ctx.TargetStats = value;          // keep context in sync
+            }
+        }
+        readonly Dictionary<EquipmentSlotComponent, List<IItemEffect>> active =
+            new();
 
+        InventoryContext ctx;                                           // reused object
         bool awakeDone;
 
         void Awake()
         {
-            if (slots.Length == 0)
+            if (slots.Length == 0 && slotContainer != null)
                 slots = slotContainer.GetComponentsInChildren<EquipmentSlotComponent>(true);
 
             if (inventory == null)
                 inventory = GetComponentInParent<InventoryComponent>();
 
+            ctx = new InventoryContext { TargetStats = this.targetStats };
+
             awakeDone = true;
         }
 
-        /// <summary>
-        /// Equips a single copy of <paramref name="stack"/> into the first compatible slot.
-        /// Removes that copy from the inventory beforehand to avoid duplication.
-        /// </summary>
-        /// <remarks>
-        /// If equipping fails the item is immediately added back so state stays consistent.
-        /// </remarks>
+        /* ───────────── public API ───────────── */
+
         public bool Equip(ItemStack stack)
         {
             EnsureAwake();
-            if (stack == null || stack.Data == null) return false;
 
-            /* try every slot until one accepts the item */
             foreach (var s in slots)
             {
                 if (!s.Slot.CanEquip(stack.Data)) continue;
 
-                /* take ONE item from the inventory (or the whole stack if non-stackable) */
-                int quantity = 1;                                   // change if you support multi-equip
-                if (!inventory.Runtime.RemoveItem(stack.Data.Id, quantity))
-                    return false;                                   // nothing to take
+                /* remove ONE copy from inventory first */
+                if (!inventory.Runtime.RemoveItem(stack.Data.Id, 1)) return false;
 
-                var equipStack = new ItemStack(stack.Data, quantity);
-                bool equipped = s.Slot.Equip(equipStack, new InventoryContext());
+                var equipStack = new ItemStack(stack.Data, 1);
+                if (!s.Slot.Equip(equipStack, ctx))                     // pass context ↓
+                {                                                       // slot refused
+                    inventory.Runtime.AddItem(stack.Data, 1);
+                    return false;
+                }
 
-                if (!equipped)                                     // roll back if slot refused
-                    inventory.Runtime.AddItem(stack.Data, quantity);
-
-                return equipped;
+                ApplyEquipEffects(s, equipStack);
+                return true;
             }
-            return false;                                          // no compatible slot found
+            return false;
         }
 
-        /// <summary>Transfers an equipped item back into the inventory.</summary>
         public bool Unequip(EquipmentSlotComponent slot)
         {
             EnsureAwake();
 
-            var st = slot.Slot.Equipped;
-            if (st == null) return false;
+            var stack = slot.Slot.Equipped;
+            if (stack == null){
+                Debug.Log("slot null");
+                return false; 
+            }
+            /* 1) Remove *all* modifiers that came from this slot */
+            if (active.TryGetValue(slot, out var list))
+            {
+                foreach (var e in list)
+                    e.Remove(ctx);
+                active.Remove(slot);
+            }
+            else
+            {
+                /* fallback: rebuild effects and remove them */
+                foreach (var def in stack.Data.Effects)
+                    ItemEffectRegistry.Build(def.effectType, def.effectParams)
+                                       ?.Remove(ctx);
+            }
 
-            if (!inventory.Runtime.AddItem(st.Data, st.Count)) return false;
+            /* 2) Give the item back to the inventory */
+            if (!inventory.Runtime.AddItem(stack.Data, stack.Count))
+                return false;                                      // inventory full
 
-            slot.Slot.Unequip(new InventoryContext());
+            /* 3) Visually / logically empty the slot */
+            slot.Slot.Unequip(ctx);
             return true;
+        }
+
+        /// <summary>Consumes one unit, applying “use” effects.</summary>
+        public bool Use(ItemStack stack) =>
+            inventory.Runtime.UseItem(stack.Data.Id, ctx);
+
+        /* ─────────── helpers ─────────── */
+
+        void ApplyEquipEffects(EquipmentSlotComponent slot, ItemStack stack)
+        {
+            var list = new List<IItemEffect>();
+            foreach (var def in stack.Data.Effects)
+            {
+                var e = ItemEffectRegistry.Build(def.effectType, def.effectParams);
+                if (e == null) continue;
+
+                e.Apply(ctx);
+                list.Add(e);
+            }
+            active[slot] = list;
         }
 
         void EnsureAwake() { if (!awakeDone) Awake(); }
