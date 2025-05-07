@@ -1,0 +1,12 @@
+{
+    "items": [
+        {
+            "id": "potion_health_small",
+            "quantity": 5
+        },
+        {
+            "id": "scroll_fireball",
+            "quantity": 2
+        }
+    ]
+}

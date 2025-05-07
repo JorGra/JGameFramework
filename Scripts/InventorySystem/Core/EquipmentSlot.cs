@@ -1,19 +1,16 @@
 using System.Collections.Generic;
-using JG.Inventory;
 
 namespace JG.Inventory
 {
-    /// <summary>
-    /// Stores an equipped item, gated by accepted tags.
-    /// </summary>
+    /// <summary>Stores an equipped item, gated by accepted tags.</summary>
     public class EquipmentSlot
     {
+        public event System.Action Changed;                    // NEW
+
         private readonly HashSet<string> acceptedTags;
 
-        public EquipmentSlot(IEnumerable<string> tags)
-        {
+        public EquipmentSlot(IEnumerable<string> tags) =>
             acceptedTags = new HashSet<string>(tags);
-        }
 
         public ItemStack Equipped { get; private set; }
 
@@ -28,29 +25,24 @@ namespace JG.Inventory
         {
             if (!CanEquip(stack.Data)) return false;
 
-            if (Equipped != null)
-                Unequip(ctx);
-
+            if (Equipped != null) Unequip(ctx);                // drop previous
             Equipped = stack;
 
-            foreach (var def in stack.Data.Effects)
-            {
-                IItemEffect fx = ItemEffectFactory.Build(def);
-                fx?.Apply(ctx);
-            }
+            foreach (var d in stack.Data.Effects)
+                ItemEffectRegistry.Build(d.effectType, d.effectParams)?.Apply(ctx);
+
+            Changed?.Invoke();                                 // notify UI
             return true;
         }
 
         public void Unequip(InventoryContext ctx)
         {
             if (Equipped == null) return;
+            foreach (var d in Equipped.Data.Effects)
+                ItemEffectRegistry.Build(d.effectType, d.effectParams)?.Remove(ctx);
 
-            foreach (var def in Equipped.Data.Effects)
-            {
-                IItemEffect fx = ItemEffectFactory.Build(def);
-                fx?.Remove(ctx);
-            }
             Equipped = null;
+            Changed?.Invoke();                                 // notify UI
         }
     }
 }
