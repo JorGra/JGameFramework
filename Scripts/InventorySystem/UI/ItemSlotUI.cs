@@ -1,33 +1,57 @@
+﻿using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using TMPro;
+using UnityEngine.UI;
 
 namespace JG.Inventory.UI
 {
-    /// <summary>Visual representation of one InventorySlot.</summary>
-    public class ItemSlotUI : MonoBehaviour, IPointerClickHandler
+    /// <summary>
+    /// Visual representation of one inventory stack (icon + quantity).
+    /// </summary>
+    public class ItemSlotUI : MonoBehaviour,
+                              IPointerClickHandler,
+                              IPointerEnterHandler, IPointerExitHandler,
+                              ISelectHandler, IDeselectHandler
     {
         [SerializeField] private Image icon;
         [SerializeField] private TMP_Text qtyText;
 
-        private ItemStack _stack;
-        private InventoryUI _owner;
+        ItemStack stack;
+        InventoryUI owner;
+        ItemDetailPanelUI detailPanel;
 
-        public void Init(ItemStack stack, InventoryUI owner)
+        /// <summary>Initialises the slot.</summary>
+        public void Init(ItemStack s, InventoryUI o, ItemDetailPanelUI panel)
         {
-            _stack = stack;
-            _owner = owner;
+            stack = s;
+            owner = o;
+            detailPanel = panel;
 
+            RefreshVisuals();
+        }
+
+        /* ───────── visuals ───────── */
+
+        void RefreshVisuals()
+        {
             icon.sprite = stack.Data.Icon;
             icon.enabled = icon.sprite != null;
-            qtyText.text = stack.Count > 1 ? stack.Count.ToString() : "";
+            qtyText.text = stack.Count > 1 ? stack.Count.ToString() : string.Empty;
         }
+
+        /* ───────── input ───────── */
 
         public void OnPointerClick(PointerEventData ev)
         {
             if (ev.button != PointerEventData.InputButton.Right) return;
-            _owner.ShowContextMenu(_stack, transform as RectTransform);
+            owner.ShowContextMenu(stack, transform as RectTransform);
         }
+
+        /* ───────── hover / focus ⇒ tooltip ───────── */
+
+        public void OnPointerEnter(PointerEventData _) => detailPanel?.Show(stack);
+        public void OnPointerExit(PointerEventData _) => detailPanel?.Hide();
+        public void OnSelect(BaseEventData _) => detailPanel?.Show(stack);
+        public void OnDeselect(BaseEventData _) => detailPanel?.Hide();
     }
 }

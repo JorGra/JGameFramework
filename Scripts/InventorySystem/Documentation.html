@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>JG Inventory System – Quick Guide</title>
+    <title>JG Inventory System – Quick Guide (v2)</title>
     <style>
         body {
             font-family: system-ui, sans-serif;
@@ -40,45 +40,67 @@
             font-size: .9em;
             color: #666
         }
+
+        table {
+            border-collapse: collapse;
+            margin: .5rem 0
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: .25rem .5rem;
+            text-align: left
+        }
     </style>
 </head>
 
 <body>
-    <h1>JG Inventory System (2022.3 URP)</h1>
+    <h1>JG Inventory System (Unity 2022.3 URP)</h1>
 
-    <p>This document covers:</p>
+    <p>This document supersedes the earlier quick-start guide and adds the new
+        <strong>InventoryComponent</strong>, <strong>EquipmentSlotComponent</strong>,
+        starter-item bundles, and UI-prefab
+        workflow.:contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
+    </p>
+
     <ol>
         <li>Folder layout &amp; load order</li>
-        <li>JSON formats (one-item <em>or</em> multi-item)</li>
+        <li>Item JSON formats (single & multi-item)</li>
+        <li>Starter-item JSON format (single & multi-seed) + InventoryComponent</li>
         <li>Runtime API cheat-sheet</li>
-        <li>New <strong>Item Catalog Browser</strong> window</li>
+        <li>Editor tool – Item Catalog Browser</li>
+        <li>Scene/UI wiring checklist</li>
     </ol>
 
 
 
     <h2>1 · Folder &amp; Load Order</h2>
 
-    <p>The catalog merges <em>three waves</em> of data; later waves override earlier ones if two items share the same
-        <code>id</code>.
+    <p>The catalog merges <em>three waves</em>; later waves override earlier ones on duplicate
+        <code>id</code>s.
     </p>
-
     <ol>
-        <li><strong>Designer assets</strong> – every <code>ItemData</code> ScriptableObject under
+        <li><strong>Designer assets</strong> – every <code>ItemData</code> ScriptableObject in
             <code>Resources/Items/</code>
         </li>
-        <li><strong>Resource JSON files</strong> – list of <em>TextAssets</em> set in the <code>ItemCatalog</code>
-            Inspector (default entry: <code>Resources/Items/items.json</code>)</li>
-        <li><strong>StreamingAssets folders</strong> – all <code>*.json</code> files found in the directories listed in
-            the Inspector (e.g.&nbsp;<code>StreamingAssets/Items</code>, <code>StreamingAssets/Mods/MyMod</code>)</li>
+        <li><strong>Resource JSON files</strong> – list of
+            <em>TextAssets</em> assigned in <code>ItemCatalog</code> Inspector
+            (default entry: <code>Resources/Items/items.json</code>)
+        </li>
+        <li><strong>StreamingAssets folders</strong> – every
+            <code>*.json</code> in the Inspector-listed sub-directories
+            (<code>StreamingAssets/Items</code>, <code>StreamingAssets/Mods/&lt;name&gt;</code>, …)
+        </li>
     </ol>
 
-    <p class="note">At runtime you can inject additional files on the fly:</p>
-    <pre><code>string modPath = Path.Combine(Application.persistentDataPath, "Mods/MyMod/items.json");
-ItemCatalog.Instance.ImportModFile(modPath, canOverride: true);</code></pre>
+    <p class="note">Inject further files at runtime:</p>
+    <pre><code>string mod = Path.Combine(Application.persistentDataPath, "Mods/MyMod/items.json");
+ItemCatalog.Instance.ImportModFile(mod, canOverride:true);</code></pre>
 
 
 
-    <h2>2 · JSON Authoring</h2>
+    <h2>2 · Item JSON Authoring</h2>
 
     <h3>2.1 Single-item file (legacy)</h3>
     <pre><code>{
@@ -99,84 +121,122 @@ ItemCatalog.Instance.ImportModFile(modPath, canOverride: true);</code></pre>
       "displayName":"Minor Healing Potion",
       "maxStack":10,
       "equipTags":[],
-      "effects":[ { "effectType":"Heal", "effectParams":"{ \"amount\":25 }" } ]
+      "effects":[{ "effectType":"Heal", "effectParams":"{ \"amount\":25 }" }]
     },
     {
       "id":"scroll_fireball",
       "displayName":"Scroll of Fireball",
       "maxStack":1,
       "equipTags":[],
-      "effects":[ { "effectType":"CastSpell", "effectParams":"{ \"spell\":\"Fireball\" }" } ]
+      "effects":[{ "effectType":"CastSpell", "effectParams":"{ \"spell\":\"Fireball\" }" }]
     }
   ],
   "modName":"Core Items",
   "formatVersion":1
 }</code></pre>
 
-    <ul>
-        <li><code>effectType</code> must match the identifier in <code>[ItemEffect("Heal")]</code> (not necessarily the
-            class name).</li>
-        <li><code>effectParams</code> is free-form JSON parsed by the effect’s own factory.</li>
-    </ul>
+
+
+    <h2>3 · Starter-Item JSON (InventoryComponent)</h2>
+
+    <p>Add one or more <strong>TextAssets</strong> to <kbd>InventoryComponent ▸ Starter Item Files</kbd>.
+        Each file may contain one seed object or a wrapper with many seeds.</p>
+
+    <table>
+        <tr>
+            <th>Single-seed file</th>
+            <th>Multi-seed file</th>
+        </tr>
+        <tr>
+            <td width="50%">
+                <pre><code>{
+  "id":"potion_health_small",
+  "quantity":5
+}</code></pre>
+            </td>
+            <td width="50%">
+                <pre><code>{
+  "items":[
+    { "id":"potion_health_small", "quantity":5 },
+    { "id":"scroll_fireball",     "quantity":2 },
+    { "id":"gold_coin",           "quantity":100 }
+  ]
+}</code></pre>
+            </td>
+        </tr>
+    </table>
 
 
 
-    <h2>3 · Runtime API Cheat-Sheet</h2>
-    <pre><code>// lookup static data
+    <h2>4 · Runtime API Cheat-Sheet</h2>
+    <pre><code>// static lookup
 ItemData potion = ItemCatalog.Instance.Get("potion_health_small");
 
-// player inventory
-var inv = new Inventory();
+// inventory via wrapper component
+var inv = player.GetComponent&lt;InventoryComponent&gt;().Runtime;
+
+// add 3 potions
 inv.AddItem(potion, 3);
 
-var ctx = new InventoryContext {
-    TargetStats = playerStats,
-    Resources   = playerWallet
-};
-
-inv.UseItem("potion_health_small", ctx); // Heal for 25, remove 1 stack
-
-// resources &amp; currencies
-ctx.Resources.Add("gold", 50);
-bool ok = ctx.Resources.Spend("gold", 30);   // false if insufficient
+// use one potion
+inv.UseItem("potion_health_small", new InventoryContext { TargetStats = playerStats });
 </code></pre>
 
 
 
-    <h2>4 · Editor Tool – Item Catalog Browser</h2>
+    <h2>5 · Editor Tool – Item Catalog Browser</h2>
 
     <ol>
-        <li>Enter <strong>Play Mode</strong> (so JSON items are in memory).</li>
-        <li>Open <code>Window ▸ JG Inventory ▸ Item Catalog Browser</code>.</li>
-        <li>Scroll through the list – click an item to reveal:<br>
-            &nbsp;&nbsp;• Max stack<br>
-            &nbsp;&nbsp;• Equip tags<br>
-            &nbsp;&nbsp;• All effect definitions and their raw parameter JSON
-        </li>
+        <li>Enter <strong>Play Mode</strong> so JSON items are loaded.</li>
+        <li>Open <kbd>Window ▸ JG Inventory ▸ Item Catalog Browser</kbd>.</li>
+        <li>Click any item to view stack limit, equip tags and raw effect definitions.</li>
     </ol>
 
-    <p class="note">Outside Play Mode the browser lists only the ScriptableObjects found in
-        <code>Resources/Items</code>.
+    <p class="note">In Edit Mode only the ScriptableObjects under
+        <code>Resources/Items</code> appear.
     </p>
 
 
 
-    <h2>5 · Adding New Effects</h2>
+    <h2>6 · Scene &amp; UI Wiring (new)</h2>
+
+    <ol>
+        <li>Add <strong>InventoryComponent</strong> to the player root.<br>
+            • Optionally assign starter-item TextAssets.</li>
+        <li>Under a child “Equipment” GameObject create one object per slot
+            (“HeadSlot”, “BodySlot”, …) and attach <strong>EquipmentSlotComponent</strong>.
+            Fill its <kbd>Accepted Tags</kbd> array (e.g. <code>Head</code>).</li>
+        <li>Attach <strong>PlayerEquipmentBridge</strong> to the player root
+            (auto-discovers all <code>EquipmentSlotComponent</code>s on children).</li>
+        <li><strong>InventoryPanel</strong> → assign <kbd>InventoryComponent</kbd> reference
+            in <code>InventoryUI</code> (auto-finds if none).</li>
+        <li><strong>EquipmentPanel</strong> → for every visible slot button create a binding:<br>
+            • <kbd>Button</kbd> reference<br>
+            • corresponding <kbd>EquipmentSlotComponent</kbd><br>
+            • <kbd>Icon Image</kbd> & <kbd>Qty Text</kbd></li>
+    </ol>
+
+    <p>Right-click any inventory slot during play to bring up the context
+        menu (Use / Equip / Drop). Equip is enabled only if the selected
+        <code>ItemData.EquipTags</code> intersects the slot’s accepted tags.
+    </p>
+
+
+
+    <h2>7 · Adding New Effects (recap)</h2>
     <ol>
         <li>Implement <code>IItemEffect</code>.</li>
-        <li>Add an attribute: <code>[ItemEffect("Shield")]</code>.</li>
-        <li>Expose <code>static IItemEffect FromJson(string)</code> and register:</li>
+        <li>Decorate with <code>[ItemEffect("Id")]</code>.</li>
+        <li>Provide <code>static IItemEffect FromJson(string)</code>.</li>
+        <li>Register in a one-liner:<br>
+            <code>static NewFx() => ItemEffectRegistry.Register&lt;NewFx&gt;(FromJson);</code>
+        </li>
     </ol>
-    <pre><code>[ItemEffect("Shield")]
-public class ShieldEffect : IItemEffect {
-    public static IItemEffect FromJson(string j){ … }
-    static ShieldEffect() => ItemEffectRegistry.Register&lt;ShieldEffect&gt;(FromJson);
-}</code></pre>
 
 
 
     <hr>
-    <p class="note">&copy; 2025 JG.Inventory &nbsp;—&nbsp;tested on Unity 2022.3 URP</p>
+    <p class="note">© 2025 JG.Inventory — tested on Unity 2022.3 URP</p>
 </body>
 
 </html>
