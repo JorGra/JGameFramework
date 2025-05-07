@@ -34,6 +34,9 @@ namespace JG.Samples
             var factoryMod = modifierFactory.Create(powerDef, OperatorType.Add, 20f, 0f);
             Stats.Mediator.AddModifier(factoryMod);
             Debug.Log($"Power after factory modifier: {Stats.GetStat(powerDef)}");
+
+            // 4) Remove the direct modifier
+            Stats.Mediator.RemoveModifier(directMod);
         }
 
         void Update()

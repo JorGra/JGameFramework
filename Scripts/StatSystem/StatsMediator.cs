@@ -35,6 +35,14 @@ public class StatsMediator
         modifier.OnDispose += _ => listModifiers.Remove(modifier);
     }
 
+    public void RemoveModifier(StatModifier modifier)
+    {
+        if (listModifiers.Contains(modifier))
+        {
+            modifier.MarkedForRemoval = true;
+        }
+    }
+
     public void Update(float deltaTime)
     {
         foreach (var modifier in listModifiers)
