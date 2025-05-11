@@ -3,32 +3,50 @@
 namespace JG.Inventory
 {
     /// <summary>
-    /// Applies all equip effects when a stack is added and undoes them when
-    /// removed. Stacks *fully*—adding 3 charms → 3× effects.
+    /// Applies equip effects when items enter the passive bag and reverses
+    /// them when they leave. Quantity-aware & duplicate-safe.
     /// </summary>
     public class PassiveEquipHook : IInventoryHook
     {
-        readonly Dictionary<ItemStack, List<IItemEffect>> cache = new();
+        readonly Dictionary<string, List<IItemEffect>> active = new();
 
-        public void OnChanged(ItemStack s, InventoryContext ctx, bool added)
+        public void OnChanged(ItemData data, int qty, InventoryContext ctx)
         {
-            if (added)
+            if (data == null || qty == 0 || ctx?.TargetStats == null) return;
+
+            if (qty > 0) Apply(data, qty, ctx);
+            else Remove(data, -qty, ctx);
+        }
+
+        /* ───────── helpers ───────── */
+
+        void Apply(ItemData data, int qty, InventoryContext ctx)
+        {
+            if (!active.TryGetValue(data.Id, out var list))
+                active[data.Id] = list = new List<IItemEffect>();
+
+            for (int i = 0; i < qty; i++)
+                foreach (var def in data.Effects)
+                {
+                    var fx = ItemEffectRegistry.Build(def.effectType, def.effectParams);
+                    if (fx == null) continue;
+                    fx.Apply(ctx);
+                    list.Add(fx);
+                }
+        }
+
+        void Remove(ItemData data, int qty, InventoryContext ctx)
+        {
+            if (!active.TryGetValue(data.Id, out var list) || list.Count == 0) return;
+
+            /* pop & remove only as many as required */
+            for (int i = 0; i < qty && list.Count > 0; i++)
             {
-                var list = new List<IItemEffect>();
-                for (int i = 0; i < s.Count; i++)
-                    foreach (var def in s.Data.Effects)
-                    {
-                        var fx = ItemEffectRegistry.Build(def.effectType, def.effectParams);
-                        fx?.Apply(ctx);
-                        if (fx != null) list.Add(fx);
-                    }
-                cache[s] = list;        // remember so we can undo
+                list[0].Remove(ctx);
+                list.RemoveAt(0);
             }
-            else if (cache.TryGetValue(s, out var lst))
-            {
-                foreach (var fx in lst) fx.Remove(ctx);
-                cache.Remove(s);
-            }
+
+            if (list.Count == 0) active.Remove(data.Id);
         }
     }
 }

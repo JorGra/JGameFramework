@@ -1198,6 +1198,7 @@ GameObject:
   - component: {fileID: 586895090}
   - component: {fileID: 586895088}
   - component: {fileID: 586895087}
+  - component: {fileID: 586895091}
   m_Layer: 0
   m_Name: Player 2
   m_TagString: Untagged
@@ -1258,6 +1259,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   starterFiles:
   - {fileID: 4900000, guid: 1a538460edaf1d04f84ce35a475cc281, type: 3}
+--- !u!114 &586895091
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 586895085}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e508fab53739f294e86913222ded0644, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  inventory: {fileID: 586895090}
+  itemIds:
+  - iron_helmet
+  - potion_health_small
+  triggerKey: 114
 --- !u!1 &639917511
 GameObject:
   m_ObjectHideFlags: 0

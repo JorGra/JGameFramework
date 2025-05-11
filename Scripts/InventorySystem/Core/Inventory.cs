@@ -20,18 +20,21 @@ namespace JG.Inventory
             hook = hk;
         }
 
+
         public bool AddItem(ItemData item, int amount = 1)
         {
-            if (TryMergeExisting(item, amount)) return true;  // unchanged
+            if (TryMergeExisting(item, amount))           // applies hook internally
+                return true;
 
-            var newSlot = new InventorySlot();
-            if (!newSlot.TryAdd(item, amount)) return false;
+            var slot = new InventorySlot();
+            if (!slot.TryAdd(item, amount)) return false;
 
-            slots.Add(newSlot);
-            FireHook(newSlot.Stack, added: true);
+            slots.Add(slot);
+            FireHook(item, +amount);                      // NEW
             Changed?.Invoke();
             return true;
         }
+
 
 
         public bool RemoveItem(string itemId, int amount = 1)
@@ -41,15 +44,14 @@ namespace JG.Inventory
                 var slot = slots[i];
                 if (slot.IsEmpty || slot.Stack.Data.Id != itemId) continue;
 
-                /* capture before we possibly clear the slot */
-                var capturedData = slot.Stack.Data;
+                /* capture data BEFORE we modify the slot */
+                ItemData capturedData = slot.Stack.Data;
 
                 int removed = slot.Remove(amount);
-                if (slot.IsEmpty) slots.RemoveAt(i);
-
                 if (removed > 0)
                 {
-                    FireHook(new ItemStack(capturedData, removed), added: false);
+                    if (slot.IsEmpty) slots.RemoveAt(i);
+                    FireHook(capturedData, -removed);      // use cached data
                     Changed?.Invoke();
                     return true;
                 }
@@ -76,11 +78,11 @@ namespace JG.Inventory
         }
 
 
-        void FireHook(ItemStack s, bool added)
+        void FireHook(ItemData data, int qtySign)
         {
-            if (hook == null) return;
+            if (hook == null || data == null || qtySign == 0) return;
             var ctx = new InventoryContext { TargetStats = statsProv?.Stats };
-            hook.OnChanged(s, ctx, added);
+            hook.OnChanged(data, qtySign, ctx);
         }
 
         bool TryMergeExisting(ItemData item, int amount)
@@ -88,7 +90,7 @@ namespace JG.Inventory
             foreach (var slot in slots)
                 if (slot.CanMerge(item) && slot.TryAdd(item, amount))
                 {
-                    FireHook(new ItemStack(item, amount), added: true);
+                    FireHook(item, +amount);          
                     Changed?.Invoke();
                     return true;
                 }

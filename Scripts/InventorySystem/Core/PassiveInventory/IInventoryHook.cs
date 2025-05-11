@@ -1,14 +1,13 @@
-namespace JG.Inventory
+ï»¿namespace JG.Inventory
 {
     /// <summary>
-    /// Optional hook that runs whenever items are added to—or removed from—an
-    /// inventory.  Lets us plug extra behaviour without duplicating list logic.
+    /// Notified whenever items are added toâ€”or removed fromâ€”an <see cref="Inventory"/>.
     /// </summary>
     public interface IInventoryHook
     {
-        /// <param name="stack">The stack that entered or left.</param>
-        /// <param name="ctx">Context (stats, world, …) passed through by caller.</param>
-        /// <param name="added">True = stack was added; False = removed.</param>
-        void OnChanged(ItemStack stack, InventoryContext ctx, bool added);
+        /// <param name="data">Item definition.</param>
+        /// <param name="quantity">Number of copies added (+) or removed (âˆ’).</param>
+        /// <param name="ctx">Stat context; may be <c>null</c>.</param>
+        void OnChanged(ItemData data, int quantity, InventoryContext ctx);
     }
 }
