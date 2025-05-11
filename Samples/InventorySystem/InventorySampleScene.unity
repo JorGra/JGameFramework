@@ -3754,7 +3754,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Inventory
+  m_text: Passive Inventory
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -4975,8 +4975,8 @@ SceneRoots:
   - {fileID: 1814959362}
   - {fileID: 907326525}
   - {fileID: 494448823}
-  - {fileID: 52982105}
+  - {fileID: 860097847}
   - {fileID: 904179423}
   - {fileID: 1324627217}
-  - {fileID: 860097847}
   - {fileID: 586895086}
+  - {fileID: 52982105}

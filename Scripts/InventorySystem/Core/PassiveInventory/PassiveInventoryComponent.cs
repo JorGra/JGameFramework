@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 
 namespace JG.Inventory
@@ -23,9 +24,16 @@ namespace JG.Inventory
                             GetComponentInParent<IStatsProvider>();
 
             Runtime = new Inventory(statsProv, new PassiveEquipHook());
+            StartCoroutine(AddStarterItems());
+        }
+
+        public IEnumerator AddStarterItems()
+        {
+            yield return null;
 
             foreach (var (data, qty) in StarterItemParser.ParseMany(starterFiles))
                 Runtime.AddItem(data, qty);
+
         }
     }
 }
