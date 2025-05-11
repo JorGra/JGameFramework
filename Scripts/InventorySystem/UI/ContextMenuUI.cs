@@ -3,29 +3,43 @@ using UnityEngine.UI;
 
 namespace JG.Inventory.UI
 {
+
+    /// <summary>
+    /// Minimal contract so <see cref="ItemSlotUI"/> can call back to whatever
+    /// list owns it (regular or passive inventory) without a hard type-coupling.
+    /// </summary>
+    public interface IContextMenuHost
+    {
+        void ShowContextMenu(ItemStack stack, UnityEngine.RectTransform anchor);
+    }
+
+
     /// <summary>Right-click / pad-button menu for inventory & equipment slots.</summary>
     public class ContextMenuUI : MonoBehaviour
     {
-        [SerializeField] private Button useBtn, equipBtn, unequipBtn, dropBtn;
+        [SerializeField] Button useBtn, equipBtn, unequipBtn, dropBtn;
 
         ItemStack stack;
         Inventory inv;
         EquipmentSlotComponent equipSlot;
         EquipmentSlotRouter bridge;
+        IStatsProvider statsProvider;      // NEW
 
         public void Open(ItemStack s,
                          Inventory i,
                          RectTransform anchor,
                          EquipmentSlotRouter br,
-                         EquipmentSlotComponent slotComponent = null)
+                         EquipmentSlotComponent slotComponent = null,
+                         IStatsProvider provider = null)   // NEW (optional)
         {
             stack = s;
             inv = i;
             equipSlot = slotComponent;
-            bridge = br ?? slotComponent?.GetComponentInParent<EquipmentSlotRouter>();
+            bridge = br;
+            statsProvider = provider;
 
-            /* ---------- button visibility ---------- */
-            bool canEquip = !IsEquipped && stack.Data.EquipTags.Count > 0;
+            /* --- button visibility (unchanged) --- */
+            bool canEquip = !IsEquipped && stack.Data.EquipTags.Count > 0 && bridge != null;
             bool canUse = stack.Data.Effects.Count > 0 && stack.Data.EquipTags.Count == 0;
             bool canUnequip = IsEquipped;
 
@@ -33,7 +47,7 @@ namespace JG.Inventory.UI
             useBtn.gameObject.SetActive(canUse);
             unequipBtn.gameObject.SetActive(canUnequip);
 
-            /* ---------- callbacks ---------- */
+            /* --- callbacks --- */
             useBtn.Set(OnUse);
             equipBtn.Set(OnEquip);
             unequipBtn.Set(OnUnequip);
@@ -47,18 +61,28 @@ namespace JG.Inventory.UI
 
         /* ----- operations ----- */
 
-        void OnUse() { bridge?.Use(stack); Close(); }
-        void OnEquip() { bridge?.Equip(stack); Close(); }
-        void OnUnequip() { 
-            if(bridge == null)
+        void OnUse()
+        {
+            if (bridge != null)
             {
-                Debug.LogError("Bridge null on Unequip");
-                return;
+                bridge.Use(stack);               // classic inventory path
             }
-        
-            bridge.Unequip(equipSlot); 
-            Close(); 
+            else if (inv != null)
+            {
+                inv.UseItem(stack.Data.Id,
+                            new InventoryContext { TargetStats = statsProvider?.Stats });
+            }
+            Close();
         }
+
+        void OnEquip() { bridge?.Equip(stack); Close(); }
+        void OnUnequip()
+        {
+            if (bridge == null) { Debug.LogError("Bridge null on Unequip"); return; }
+            bridge.Unequip(equipSlot);
+            Close();
+        }
+
         void OnDrop()
         {
             inv.RemoveItem(stack.Data.Id, stack.Count);
@@ -75,8 +99,8 @@ namespace JG.Inventory.UI
 
 
 
-/* thin helpers ----------------------------------------------------------- */
-static class BtnExt
+    /* thin helpers ----------------------------------------------------------- */
+    static class BtnExt
 {
     public static void Set(this Button b, UnityEngine.Events.UnityAction cb)
     {

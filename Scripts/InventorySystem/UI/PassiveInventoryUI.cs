@@ -4,14 +4,13 @@ using UnityEngine;
 namespace JG.Inventory.UI
 {
     /// <summary>
-    /// Scroll-view-based inventory list for a single player.
-    /// Keeps item slots and tooltip panel in sync with the runtime inventory.
+    /// Scroll-view list for the “passive-bonus” inventory. Keeps item slots,
+    /// tooltip and context-menu in sync with <see cref="PassiveInventoryComponent"/>.
     /// </summary>
-    public class InventoryUI : MonoBehaviour, IContextMenuHost
+    public class PassiveInventoryUI : MonoBehaviour, IContextMenuHost
     {
         [Header("References")]
-        [SerializeField] private InventoryComponent playerInventory;
-        [SerializeField] private EquipmentSlotRouter playerBridge;
+        [SerializeField] private PassiveInventoryComponent passiveInventory;
         [SerializeField] private RectTransform contentRoot;
         [SerializeField] private ItemSlotUI slotPrefab;
         [Tooltip("Tooltip panel that belongs to THIS inventory window.")]
@@ -23,47 +22,53 @@ namespace JG.Inventory.UI
         readonly List<ItemSlotUI> pool = new();
         ContextMenuUI context;
 
+        /* ───────── initialisation ───────── */
+
         void Awake()
         {
-            if (playerInventory == null)
-                playerInventory = GetComponentInParent<InventoryComponent>();
+            /* auto-assign if left empty */
+            if (passiveInventory == null)
+                passiveInventory = GetComponentInParent<PassiveInventoryComponent>();
 
-            if (playerInventory == null)
+            if (passiveInventory == null)
             {
-                Debug.LogError($"{name}: No InventoryComponent assigned or found.");
-                enabled = false; return;
+                Debug.LogError($"{name}: No PassiveInventoryComponent assigned or found.");
+                enabled = false;
+                return;
             }
-            if (playerBridge == null)
-                playerBridge = GetComponentInParent<EquipmentSlotRouter>();
 
-
-            playerInventory.Runtime.Changed += Rebuild;
+            passiveInventory.Runtime.Changed += Rebuild;
         }
 
         void OnEnable() => Rebuild();
         void OnDisable() => context?.Close();
 
-        /// <summary>Called by <see cref="ItemSlotUI"/> to open the context-menu.</summary>
+        /* ───────── called by ItemSlotUI ───────── */
+
         public void ShowContextMenu(ItemStack stack, RectTransform anchor)
         {
             if (stack == null) return;
 
             context ??= Instantiate(contextPrefab, transform.root);
             context.Open(stack,
-                         playerInventory.Runtime,
-                         anchor,
-                         playerBridge);                     // pass bridge ✔
+                         passiveInventory.Runtime,
+                         (RectTransform)anchor,
+                         null,                                   // no router
+                         null,                                   // no equipSlot
+                         GetComponentInParent<IStatsProvider>()  // supply stats provider
+                        );              
         }
 
         /* ───────── build / refresh ───────── */
 
         void Rebuild()
         {
-            var inv = playerInventory.Runtime;
+            var inv = passiveInventory.Runtime;
             if (inv == null) return;
 
             int needed = inv.Slots.Count;
 
+            /* ensure enough pooled widgets */
             while (pool.Count < needed)
                 pool.Add(Instantiate(slotPrefab, contentRoot));
 

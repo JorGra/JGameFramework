@@ -5,28 +5,24 @@ using UnityEngine.UI;
 
 namespace JG.Inventory.UI
 {
-    /// <summary>
-    /// Visual representation of one inventory stack (icon + quantity).
-    /// </summary>
+    /// <summary>Visual representation of one inventory stack.</summary>
     public class ItemSlotUI : MonoBehaviour,
                               IPointerClickHandler,
                               IPointerEnterHandler, IPointerExitHandler,
                               ISelectHandler, IDeselectHandler
     {
-        [SerializeField] private Image icon;
-        [SerializeField] private TMP_Text qtyText;
+        [SerializeField] Image icon;
+        [SerializeField] TMP_Text qtyText;
 
         ItemStack stack;
-        InventoryUI owner;
+        IContextMenuHost owner;          // ← was InventoryUI
         ItemDetailPanelUI detailPanel;
 
-        /// <summary>Initialises the slot.</summary>
-        public void Init(ItemStack s, InventoryUI o, ItemDetailPanelUI panel)
+        public void Init(ItemStack s, IContextMenuHost o, ItemDetailPanelUI panel)
         {
             stack = s;
             owner = o;
             detailPanel = panel;
-
             RefreshVisuals();
         }
 
@@ -36,7 +32,7 @@ namespace JG.Inventory.UI
         {
             icon.sprite = stack.Data.Icon;
             icon.enabled = icon.sprite != null;
-            qtyText.text = stack.Count > 1 ? stack.Count.ToString() : string.Empty;
+            qtyText.text = stack.Count > 1 ? stack.Count.ToString() : "";
         }
 
         /* ───────── input ───────── */
@@ -44,10 +40,10 @@ namespace JG.Inventory.UI
         public void OnPointerClick(PointerEventData ev)
         {
             if (ev.button != PointerEventData.InputButton.Right) return;
-            owner.ShowContextMenu(stack, transform as RectTransform);
+            owner?.ShowContextMenu(stack, transform as RectTransform);
         }
 
-        /* ───────── hover / focus ⇒ tooltip ───────── */
+        /* ───────── tooltip passthrough ───────── */
 
         public void OnPointerEnter(PointerEventData _) => detailPanel?.Show(stack);
         public void OnPointerExit(PointerEventData _) => detailPanel?.Hide();

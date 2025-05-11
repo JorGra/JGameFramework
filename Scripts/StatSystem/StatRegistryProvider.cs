@@ -5,6 +5,7 @@ using UnityEngine;
 /// <summary>
 /// Singleton loader that initializes the StatRegistry from a Resources JSON.
 /// </summary>
+[DefaultExecutionOrder(-200)]
 public class StatRegistryProvider : Singleton<StatRegistryProvider>
 {
     [Tooltip("Reference to the StatRegistry ScriptableObject.")]
