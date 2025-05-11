@@ -11,9 +11,6 @@ namespace JG.Inventory
         /// <summary>The Stats container that receives modifiers.</summary>
         public Stats TargetStats { get; set; }
 
-        /// <summary>Optional modifier factory (DI friendly).</summary>
-        public IStatModifierFactory ModifierFactory { get; set; }
-
         /// <summary>Shared wallet example, can stay <c>null</c>.</summary>
         public ResourceWallet Resources { get; set; }
     }

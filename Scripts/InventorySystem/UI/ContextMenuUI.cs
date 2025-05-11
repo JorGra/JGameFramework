@@ -11,18 +11,18 @@ namespace JG.Inventory.UI
         ItemStack stack;
         Inventory inv;
         EquipmentSlotComponent equipSlot;
-        PlayerEquipmentBridge bridge;
+        EquipmentSlotRouter bridge;
 
         public void Open(ItemStack s,
                          Inventory i,
                          RectTransform anchor,
-                         PlayerEquipmentBridge br,
+                         EquipmentSlotRouter br,
                          EquipmentSlotComponent slotComponent = null)
         {
             stack = s;
             inv = i;
             equipSlot = slotComponent;
-            bridge = br ?? slotComponent?.GetComponentInParent<PlayerEquipmentBridge>();
+            bridge = br ?? slotComponent?.GetComponentInParent<EquipmentSlotRouter>();
 
             /* ---------- button visibility ---------- */
             bool canEquip = !IsEquipped && stack.Data.EquipTags.Count > 0;

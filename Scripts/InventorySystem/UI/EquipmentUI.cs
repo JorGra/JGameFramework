@@ -5,10 +5,7 @@ using UnityEngine.UI;
 
 namespace JG.Inventory.UI
 {
-    /// <summary>
-    /// Displays all player equipment slots and lets the user open a context-menu
-    /// (right-click or pad “Y/△”) on occupied slots.
-    /// </summary>
+    /// <summary>Displays and refreshes all equipment slots.</summary>
     public class EquipmentUI : MonoBehaviour
     {
         [System.Serializable]
@@ -20,22 +17,24 @@ namespace JG.Inventory.UI
             public TMP_Text qty;
         }
 
-        [Header("Bindings")]
-        [SerializeField] private List<SlotBinding> slots = new();
-
-        [Header("Context-menu setup")]
-        [SerializeField] private ContextMenuUI contextPrefab;
-        [SerializeField] private InventoryComponent playerInventory;      // owner
+        [Header("Bindings")][SerializeField] private List<SlotBinding> slots = new();
+        [Header("Context-menu setup")][SerializeField] private ContextMenuUI contextPrefab;
+        [SerializeField] private InventoryComponent playerInventory;
 
         ContextMenuUI context;
 
         void Awake()
         {
-            foreach (var b in slots)
+            foreach (var raw in slots)
             {
-                if (b.slotComponent == null) { Debug.LogError($"{name}: slot binding missing component"); continue; }
+                var b = raw;                                    // capture!
+                if (b.slotComponent == null)
+                {
+                    Debug.LogError($"{name}: slot binding missing component");
+                    continue;
+                }
 
-                b.button.onClick.AddListener(() => OnSlotClicked(b));     // game-pad / LMB
+                b.button.onClick.AddListener(() => OnSlotClicked(b));
                 b.slotComponent.Slot.Changed += () => Refresh(b);
                 Refresh(b);
             }
@@ -44,23 +43,22 @@ namespace JG.Inventory.UI
                 playerInventory = FindObjectOfType<InventoryComponent>(true);
         }
 
-        /* ───────── click / context ───────── */
+        /* ---------- click / context ---------- */
 
         void OnSlotClicked(SlotBinding b)
         {
             var eq = b.slotComponent.Slot.Equipped;
-            if (eq == null) return;                                      // empty
+            if (eq == null) return;
 
             context ??= Instantiate(contextPrefab, transform.root);
             context.Open(eq,                                             // stack
-                         playerInventory.Runtime,                        // inventory
-                         b.button.transform as RectTransform,            // anchor
-                                                                         //TODO: FIX THIS CAUSING ISSUES ON UNEQUIP
-                         playerInventory.GetComponent<PlayerEquipmentBridge>(),                                           // no InventoryUI owner 
-                         b.slotComponent);                               // signals "equipped"
+                         playerInventory.Runtime,                        // inv
+                         (RectTransform)b.button.transform,              // anchor
+                         playerInventory.GetComponent<EquipmentSlotRouter>(),
+                         b.slotComponent);                               // signals “equipped”
         }
 
-        /* ───────── visual refresh ───────── */
+        /* ---------- visual refresh ---------- */
 
         void Refresh(SlotBinding b)
         {

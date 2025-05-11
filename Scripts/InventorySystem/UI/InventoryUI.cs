@@ -11,7 +11,7 @@ namespace JG.Inventory.UI
     {
         [Header("References")]
         [SerializeField] private InventoryComponent playerInventory;
-        [SerializeField] private PlayerEquipmentBridge playerBridge;
+        [SerializeField] private EquipmentSlotRouter playerBridge;
         [SerializeField] private RectTransform contentRoot;
         [SerializeField] private ItemSlotUI slotPrefab;
         [Tooltip("Tooltip panel that belongs to THIS inventory window.")]
@@ -34,7 +34,7 @@ namespace JG.Inventory.UI
                 enabled = false; return;
             }
             if (playerBridge == null)
-                playerBridge = GetComponentInParent<PlayerEquipmentBridge>();
+                playerBridge = GetComponentInParent<EquipmentSlotRouter>();
 
 
             playerInventory.Runtime.Changed += Rebuild;

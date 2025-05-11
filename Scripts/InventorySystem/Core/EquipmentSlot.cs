@@ -1,50 +1,108 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+
 
 namespace JG.Inventory
 {
-    /// <summary>Stores an equipped item, gated by accepted tags.</summary>
+    /// <summary>
+    /// Holds one equipped item, validates tags, and moves stacks in/out of an
+    /// <see cref="Inventory"/>.  Raises global events for other systems.
+    /// </summary>
     public class EquipmentSlot
     {
-        public event System.Action Changed;                    // NEW
+        public event System.Action Changed;
 
         private readonly HashSet<string> acceptedTags;
+        public ItemStack Equipped { get; private set; }
 
         public EquipmentSlot(IEnumerable<string> tags) =>
             acceptedTags = new HashSet<string>(tags);
 
-        public ItemStack Equipped { get; private set; }
+        /// <returns>True if the item owns at least one accepted tag.</returns>
+        public bool CanEquip(ItemData data) =>
+            data != null &&
+            (acceptedTags.Count == 0 || data.EquipTags.Any(acceptedTags.Contains));
 
-        public bool CanEquip(ItemData item)
+        public bool Equip(ItemStack stack,
+                          Inventory inventory,
+                          InventoryContext ctx = null)
         {
-            foreach (string tag in item.EquipTags)
-                if (acceptedTags.Contains(tag)) return true;
-            return false;
-        }
+            if (stack == null || !CanEquip(stack.Data)) return false;
+            if (inventory != null &&
+                !inventory.RemoveItem(stack.Data.Id, 1))       // pop 1 from inv
+                return false;
 
-        public bool Equip(ItemStack stack, InventoryContext ctx)
-        {
-            if (!CanEquip(stack.Data)) return false;
+            // hand back any previously equipped item
+            if (Equipped != null && inventory != null)
+                inventory.AddItem(Equipped.Data, Equipped.Count);
 
-            if (Equipped != null) Unequip(ctx);                // drop previous
-            Equipped = stack;
+            Equipped = new ItemStack(stack.Data, 1);
 
-            //foreach (var d in stack.Data.Effects)
-            //    ItemEffectRegistry.Build(d.effectType, d.effectParams)?.Apply(ctx);
+            EventBus<ItemEquippedEvent>
+                .Raise(new ItemEquippedEvent(this, Equipped, ctx));
 
-            Changed?.Invoke();                                 // notify UI
+            Changed?.Invoke();
             return true;
         }
 
-        public void Unequip(InventoryContext ctx)
+        public bool Unequip(Inventory inventory, InventoryContext ctx = null)
         {
-            if (Equipped == null) return;
-            foreach (var d in Equipped.Data.Effects)
-                ItemEffectRegistry.Build(d.effectType, d.effectParams)?.Remove(ctx);
+            if (Equipped == null) return false;
 
-            Debug.Log("unequipped");
+            if (inventory != null)
+                inventory.AddItem(Equipped.Data, Equipped.Count);
+
+            EventBus<ItemUnequippedEvent>
+                .Raise(new ItemUnequippedEvent(this, Equipped, ctx));
+
             Equipped = null;
-            Changed?.Invoke();                                 // notify UI
+            Changed?.Invoke();
+            return true;
+        }
+    }
+}
+
+namespace JG.Inventory
+{
+    /// <summary>
+    /// Raised globally when any <see cref="EquipmentSlot"/> equips an item.
+    /// </summary>
+    public class ItemEquippedEvent : IEvent
+    {
+        public EquipmentSlot Slot { get; }
+        public ItemStack Stack { get; }
+        public InventoryContext Context { get; }
+
+        public ItemEquippedEvent(EquipmentSlot slot,
+                                 ItemStack stack,
+                                 InventoryContext context)
+        {
+            Slot = slot;
+            Stack = stack;
+            Context = context;
+        }
+    }
+}
+
+namespace JG.Inventory
+{
+    /// <summary>
+    /// Raised globally when an item is removed from an <see cref="EquipmentSlot"/>.
+    /// </summary>
+    public class ItemUnequippedEvent : IEvent
+    {
+        public EquipmentSlot Slot { get; }
+        public ItemStack Stack { get; }
+        public InventoryContext Context { get; }
+
+        public ItemUnequippedEvent(EquipmentSlot slot,
+                                   ItemStack stack,
+                                   InventoryContext context)
+        {
+            Slot = slot;
+            Stack = stack;
+            Context = context;
         }
     }
 }
