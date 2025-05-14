@@ -35,5 +35,13 @@ namespace JG.Inventory
                 Runtime.AddItem(data, qty);
 
         }
+        [ContextMenu("Print All Items")]
+        void PrintAllItems()
+        {
+            foreach (var slot in Runtime.Slots)
+            {
+                Debug.Log($"Slot: {slot.Stack.Data.name}");
+            }
+        }
     }
 }

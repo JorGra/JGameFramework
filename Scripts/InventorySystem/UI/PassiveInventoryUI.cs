@@ -19,24 +19,34 @@ namespace JG.Inventory.UI
         [Header("Context Menu")]
         [SerializeField] private ContextMenuUI contextPrefab;
 
+        [SerializeField] bool autoSetup = true; // if true, will try to find PassiveInventoryComponent in parent hierarchy
+        
         readonly List<ItemSlotUI> pool = new();
         ContextMenuUI context;
-
         /* ───────── initialisation ───────── */
 
         void Awake()
         {
-            /* auto-assign if left empty */
+            if (autoSetup)
+                Setup();
+        }
+
+        public void Setup()
+        {
             if (passiveInventory == null)
                 passiveInventory = GetComponentInParent<PassiveInventoryComponent>();
-
             if (passiveInventory == null)
             {
                 Debug.LogError($"{name}: No PassiveInventoryComponent assigned or found.");
                 enabled = false;
                 return;
             }
+            passiveInventory.Runtime.Changed += Rebuild;
+        }
 
+        public void Setup(PassiveInventoryComponent passiveInventory)
+        {
+            this.passiveInventory = passiveInventory;
             passiveInventory.Runtime.Changed += Rebuild;
         }
 
@@ -63,7 +73,7 @@ namespace JG.Inventory.UI
 
         void Rebuild()
         {
-            var inv = passiveInventory.Runtime;
+            var inv = passiveInventory?.Runtime;
             if (inv == null) return;
 
             int needed = inv.Slots.Count;
