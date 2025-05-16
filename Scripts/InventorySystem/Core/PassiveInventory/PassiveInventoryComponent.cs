@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace JG.Inventory
@@ -24,6 +24,7 @@ namespace JG.Inventory
                             GetComponentInParent<IStatsProvider>();
 
             Runtime = new Inventory(statsProv, new PassiveEquipHook());
+
             StartCoroutine(AddStarterItems());
         }
 
@@ -40,7 +41,7 @@ namespace JG.Inventory
         {
             foreach (var slot in Runtime.Slots)
             {
-                Debug.Log($"Slot: {slot.Stack.Data.name}");
+                Debug.Log($"Slot: {slot.Stack.Data.DisplayName}");
             }
         }
     }
