@@ -77,6 +77,18 @@ namespace JG.Inventory
             return false;
         }
 
+        /// <summary>How many of <paramref name="itemId"/> are currently stored?</summary>
+        public int CountItem(string itemId)
+        {
+            int total = 0;
+            foreach (var s in slots)
+                if (!s.IsEmpty && s.Stack.Data.Id == itemId)
+                    total += s.Stack.Count;
+            return total;
+        }
+
+        /// <summary>True when at least <paramref name="amount"/> copies are present.</summary>
+        public bool HasItem(string itemId, int amount = 1) => CountItem(itemId) >= amount;
 
         void FireHook(ItemData data, int qtySign)
         {
@@ -90,7 +102,7 @@ namespace JG.Inventory
             foreach (var slot in slots)
                 if (slot.CanMerge(item) && slot.TryAdd(item, amount))
                 {
-                    FireHook(item, +amount);          
+                    FireHook(item, +amount);
                     Changed?.Invoke();
                     return true;
                 }
