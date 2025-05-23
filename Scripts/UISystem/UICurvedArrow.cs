@@ -12,14 +12,28 @@ namespace JG.UI
     /// </summary>
     public class UICurvedArrow : MonoBehaviour
     {
-        #region Inspector ---------------------------------------------------
+        #region Enums
+
+        public enum BendDirection
+        {
+            Auto,      // Automatically choose based on positions
+            Up,        // Bend upward
+            Down,      // Bend downward
+            Left,      // Bend left
+            Right,     // Bend right
+            Custom     // Use custom angle
+        }
+
+        #endregion
+
+        #region Inspector Fields
 
         [Header("Endpoints")]
         [SerializeField] private RectTransform startRect;
         [SerializeField] private RectTransform endRect;
 
-        [Header("Arrow Head (optional)")]
-        [Tooltip("Sprite placed at the arrow’s end. Author it pointing +X if offset = 0°.")]
+        [Header("Arrow Head")]
+        [Tooltip("Sprite placed at the arrow's end. Author it pointing +X if offset = 0°.")]
         [SerializeField] private Image headImage;
 
         [Tooltip("Extra rotation (degrees) applied after tangent alignment.")]
@@ -30,8 +44,11 @@ namespace JG.UI
         [Tooltip("Prefab of a simple UI Image used for each dot of the trail.")]
         [SerializeField] private Image dotPrefab;
 
-        [Min(1f)][SerializeField] private float dotSpacing = 40f;
-        [Min(1)][SerializeField] private int initialPoolSize = 32;
+        [Min(1f)]
+        [SerializeField] private float dotSpacing = 40f;
+
+        [Min(1)]
+        [SerializeField] private int initialPoolSize = 32;
 
         [Tooltip("Keep the last dot at least this far (units) from the head.")]
         [Min(0f)]
@@ -39,53 +56,78 @@ namespace JG.UI
 
         [Header("Curve Shape")]
         [SerializeField] private Curves.CurveType curveType = Curves.CurveType.CatmullRomAlpha;
-        [Range(0f, 1f)][SerializeField] private float catmullAlpha = 0.5f;
-        [Range(0f, 1f)][SerializeField] private float bendStrength = 0.15f;
-        [Range(0f, 1f)][SerializeField] private float controlPointAlong = 0.25f;
-        [Min(4)][SerializeField] private int samplesPerSeg = 10;
+
+        [Range(0f, 1f)]
+        [SerializeField] private float catmullAlpha = 0.5f;
+
+        [Range(0f, 1f)]
+        [SerializeField] private float bendStrength = 0.15f;
+
+        [Range(0f, 1f)]
+        [SerializeField] private float controlPointAlong = 0.25f;
+
+        [Min(4)]
+        [SerializeField] private int samplesPerSeg = 10;
+
+        [Header("Bend Direction")]
+        [SerializeField] private BendDirection bendDirection = BendDirection.Auto;
+
+        [Tooltip("Custom bend angle in degrees (only used when Bend Direction is Custom)")]
+        [Range(-180f, 180f)]
+        [SerializeField] private float customBendAngle = 90f;
+
+        [Tooltip("Flip the bend direction")]
+        [SerializeField] private bool flipBend = false;
 
         [Header("Appearance")]
         [SerializeField] private Color arrowColor = Color.white;
 
         #endregion
 
-        readonly List<Image> activeDots = new();
-        ObjectPool<Image> dotPool;
-        Curves workCurve;
+        #region Private Fields
 
-        // ------------------------------------------------------------------
+        private readonly List<Image> activeDots = new();
+        private ObjectPool<Image> dotPool;
+        private Curves workCurve;
+        private bool isInitialized;
 
-        void Awake()
+        #endregion
+
+        #region Unity Lifecycle
+
+        private void Awake()
         {
-            if (!dotPrefab)
-            {
-                Debug.LogError($"{name} ➜ Dot Prefab is missing.", this);
-                enabled = false;
-                return;
-            }
-
-            dotPool = new ObjectPool<Image>(
-                CreateDot,
-                img => img.gameObject.SetActive(true),
-                img => img.gameObject.SetActive(false),
-                img => Destroy(img.gameObject),
-                collectionCheck: false,
-                defaultCapacity: initialPoolSize,
-                maxSize: 256);
-
-            for (int i = 0; i < initialPoolSize; i++)
-                dotPool.Release(dotPool.Get());
-
-            workCurve = gameObject.AddComponent<Curves>();
-            workCurve.hideFlags = HideFlags.HideAndDontSave;
-            workCurve.enabled = false;
-            workCurve.isLoop = false;
+            Initialize();
         }
 
-        void LateUpdate() => Refresh();
+        private void OnEnable()
+        {
+            if (isInitialized)
+            {
+                Refresh();
+            }
+        }
 
-        // ----------------------------- API --------------------------------
+        private void LateUpdate()
+        {
+            if (isInitialized && startRect && endRect)
+            {
+                Refresh();
+            }
+        }
 
+        private void OnDestroy()
+        {
+            dotPool?.Dispose();
+        }
+
+        #endregion
+
+        #region Public API
+
+        /// <summary>
+        /// Sets the start and end points for the arrow.
+        /// </summary>
         public void SetEndpoints(RectTransform start, RectTransform end)
         {
             startRect = start;
@@ -93,91 +135,258 @@ namespace JG.UI
             Refresh();
         }
 
+        /// <summary>
+        /// Sets the color of the arrow (dots and head).
+        /// </summary>
         public void SetColor(Color color)
         {
             arrowColor = color;
-            foreach (var dot in activeDots) dot.color = arrowColor;
-            if (headImage) headImage.color = arrowColor;
+            ApplyColor();
         }
 
+        /// <summary>
+        /// Sets the bend direction for the arrow.
+        /// </summary>
+        public void SetBendDirection(BendDirection direction, float customAngle = 90f)
+        {
+            bendDirection = direction;
+            customBendAngle = customAngle;
+            Refresh();
+        }
+
+        /// <summary>
+        /// Toggles the bend direction flip.
+        /// </summary>
+        public void SetFlipBend(bool flip)
+        {
+            flipBend = flip;
+            Refresh();
+        }
+
+        /// <summary>
+        /// Forces a refresh of the arrow.
+        /// </summary>
         public void Refresh()
         {
-            if (!startRect || !endRect) return;
+            if (!isInitialized || !startRect || !endRect) return;
 
+            BuildCurve();
+            UpdateDots();
+            UpdateArrowHead();
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private void Initialize()
+        {
+            if (!ValidateComponents()) return;
+
+            InitializeDotPool();
+            InitializeCurve();
+
+            isInitialized = true;
+        }
+
+        private bool ValidateComponents()
+        {
+            if (!dotPrefab)
+            {
+                Debug.LogError($"[{name}] Dot Prefab is missing.", this);
+                enabled = false;
+                return false;
+            }
+            return true;
+        }
+
+        private void InitializeDotPool()
+        {
+            dotPool = new ObjectPool<Image>(
+                createFunc: CreateDot,
+                actionOnGet: img => img.gameObject.SetActive(true),
+                actionOnRelease: img => img.gameObject.SetActive(false),
+                actionOnDestroy: img => Destroy(img.gameObject),
+                collectionCheck: false,
+                defaultCapacity: initialPoolSize,
+                maxSize: 256
+            );
+
+            // Pre-warm the pool
+            var tempDots = new List<Image>();
+            for (int i = 0; i < initialPoolSize; i++)
+            {
+                tempDots.Add(dotPool.Get());
+            }
+            foreach (var dot in tempDots)
+            {
+                dotPool.Release(dot);
+            }
+        }
+
+        private void InitializeCurve()
+        {
+            workCurve = gameObject.AddComponent<Curves>();
+            workCurve.hideFlags = HideFlags.HideAndDontSave;
+            workCurve.enabled = false;
+            workCurve.isLoop = false;
+        }
+
+        private void BuildCurve()
+        {
             Vector3 p0 = startRect.position;
             Vector3 p3 = endRect.position;
             Vector3 dir = p3 - p0;
+
             if (dir.sqrMagnitude < 1e-4f) return;
 
-            // -------- build curve
-            Vector3 perp = Vector3.Cross(dir.normalized, Vector3.forward);
-            float bend = dir.magnitude * bendStrength;
-            float cpL = Mathf.Clamp01(controlPointAlong);
+            // Calculate bend direction
+            Vector3 bendVector = CalculateBendVector(dir);
+            float bendMagnitude = dir.magnitude * bendStrength;
 
+            // Apply flip if needed
+            if (flipBend)
+            {
+                bendVector = -bendVector;
+            }
+
+            // Configure curve
             workCurve.Clear();
             workCurve.curveType = curveType;
             workCurve.catmullAlpha = catmullAlpha;
             workCurve.segmentsPerCurve = samplesPerSeg;
 
+            // Add control points
+            float cpOffset = Mathf.Clamp01(controlPointAlong);
             workCurve.AddControlPoint(p0);
-            workCurve.AddControlPoint(p0 + dir * cpL + perp * bend);
-            workCurve.AddControlPoint(p3 - dir * cpL + perp * bend);
+            workCurve.AddControlPoint(p0 + dir * cpOffset + bendVector * bendMagnitude);
+            workCurve.AddControlPoint(p3 - dir * cpOffset + bendVector * bendMagnitude);
             workCurve.AddControlPoint(p3);
+        }
 
-            // -------- recycle previous dots
-            foreach (var d in activeDots) dotPool.Release(d);
-            activeDots.Clear();
+        private Vector3 CalculateBendVector(Vector3 direction)
+        {
+            Vector3 bendVector = Vector3.zero;
 
-            // -------- spawn dots along the curve
-            float travelled = 0f;
-            Vector3 prev = p0;
-            SpawnDot(prev);
-
-            int segCount = workCurve.SegmentCount;
-            List<Vector3> samples = new();
-
-            for (int seg = 0; seg < segCount; seg++)
+            switch (bendDirection)
             {
-                for (int s = 1; s <= samplesPerSeg; s++)
-                {
-                    Vector3 p = CurvesUtils.EvaluateCurve(workCurve, seg, s / (float)samplesPerSeg);
-                    samples.Add(p);
-
-                    travelled += Vector3.Distance(prev, p);
-
-                    if (travelled >= dotSpacing)
+                case BendDirection.Auto:
+                    // Default perpendicular bend
+                    bendVector = Vector3.Cross(direction.normalized, Vector3.forward).normalized;
+                    if (bendVector.sqrMagnitude < 0.01f)
                     {
-                        // Skip if we’re too close to the head
-                        if (Vector3.Distance(p, p3) > headDotGap)
+                        bendVector = Vector3.up;
+                    }
+                    break;
+
+                case BendDirection.Up:
+                    bendVector = Vector3.up;
+                    break;
+
+                case BendDirection.Down:
+                    bendVector = Vector3.down;
+                    break;
+
+                case BendDirection.Left:
+                    bendVector = Vector3.left;
+                    break;
+
+                case BendDirection.Right:
+                    bendVector = Vector3.right;
+                    break;
+
+                case BendDirection.Custom:
+                    float angleRad = customBendAngle * Mathf.Deg2Rad;
+                    bendVector = new Vector3(Mathf.Cos(angleRad), Mathf.Sin(angleRad), 0f).normalized;
+                    break;
+            }
+
+            return bendVector;
+        }
+
+        private void UpdateDots()
+        {
+            // Clear existing dots
+            ReleaseDots();
+
+            // Generate curve samples and place dots
+            float distanceTravelled = 0f;
+            Vector3 previousPoint = startRect.position;
+            Vector3 endPoint = endRect.position;
+
+            SpawnDot(previousPoint);
+
+            int segmentCount = workCurve.SegmentCount;
+
+            for (int seg = 0; seg < segmentCount; seg++)
+            {
+                for (int sample = 1; sample <= samplesPerSeg; sample++)
+                {
+                    float t = sample / (float)samplesPerSeg;
+                    Vector3 point = CurvesUtils.EvaluateCurve(workCurve, seg, t);
+
+                    distanceTravelled += Vector3.Distance(previousPoint, point);
+
+                    if (distanceTravelled >= dotSpacing)
+                    {
+                        float distanceToEnd = Vector3.Distance(point, endPoint);
+                        if (distanceToEnd > headDotGap)
                         {
-                            SpawnDot(p);
-                            travelled = 0f;
+                            SpawnDot(point);
+                            distanceTravelled = 0f;
                         }
                     }
 
-                    prev = p;
+                    previousPoint = point;
                 }
-            }
-
-            // -------- arrow head
-            if (headImage)
-            {
-                Vector3 tangent = samples.Count >= 2 ? samples[^1] - samples[^2] : dir;
-                float angle = Mathf.Atan2(tangent.y, tangent.x) * Mathf.Rad2Deg + headRotationOffset;
-
-                RectTransform h = headImage.rectTransform;
-                h.position = p3;
-                h.rotation = Quaternion.Euler(0, 0, angle);
-                headImage.color = arrowColor;
-
-                if (!headImage.gameObject.activeSelf)
-                    headImage.gameObject.SetActive(true);
             }
         }
 
-        // --------------------------- helpers ------------------------------
+        private void UpdateArrowHead()
+        {
+            if (!headImage) return;
 
-        Image CreateDot()
+            Vector3 endPoint = endRect.position;
+
+            // Calculate tangent at the end of the curve
+            Vector3 tangent = CalculateEndTangent();
+            float angle = Mathf.Atan2(tangent.y, tangent.x) * Mathf.Rad2Deg + headRotationOffset;
+
+            // Update head transform
+            RectTransform headTransform = headImage.rectTransform;
+            headTransform.position = endPoint;
+            headTransform.rotation = Quaternion.Euler(0, 0, angle);
+
+            // Update appearance
+            headImage.color = arrowColor;
+            if (!headImage.gameObject.activeSelf)
+            {
+                headImage.gameObject.SetActive(true);
+            }
+        }
+
+        private Vector3 CalculateEndTangent()
+        {
+            int lastSeg = workCurve.SegmentCount - 1;
+            if (lastSeg < 0) return Vector3.right;
+
+            Vector3 beforeLast = CurvesUtils.EvaluateCurve(workCurve, lastSeg, 0.98f);
+            Vector3 last = CurvesUtils.EvaluateCurve(workCurve, lastSeg, 1f);
+
+            Vector3 tangent = last - beforeLast;
+            return tangent.sqrMagnitude > 0.001f ? tangent.normalized : Vector3.right;
+        }
+
+        private void ReleaseDots()
+        {
+            foreach (var dot in activeDots)
+            {
+                dotPool.Release(dot);
+            }
+            activeDots.Clear();
+        }
+
+        private Image CreateDot()
         {
             Image img = Instantiate(dotPrefab, transform);
             img.name = $"Dot_{img.GetInstanceID()}";
@@ -186,12 +395,27 @@ namespace JG.UI
             return img;
         }
 
-        void SpawnDot(Vector3 worldPos)
+        private void SpawnDot(Vector3 worldPos)
         {
-            Image d = dotPool.Get();
-            activeDots.Add(d);
-            d.rectTransform.position = worldPos;
-            d.color = arrowColor;
+            Image dot = dotPool.Get();
+            activeDots.Add(dot);
+            dot.rectTransform.position = worldPos;
+            dot.color = arrowColor;
         }
+
+        private void ApplyColor()
+        {
+            foreach (var dot in activeDots)
+            {
+                dot.color = arrowColor;
+            }
+
+            if (headImage)
+            {
+                headImage.color = arrowColor;
+            }
+        }
+
+        #endregion
     }
 }
