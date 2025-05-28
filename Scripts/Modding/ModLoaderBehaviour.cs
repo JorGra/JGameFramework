@@ -26,7 +26,7 @@ namespace JG.Modding
             if (importerBehaviour is not IContentImporter importer)
             {
                 Debug.LogError($"{importerBehaviour.name} must implement IContentImporter");
-                //enabled = false;
+                enabled = false;
                 return;
             }
 
@@ -36,12 +36,19 @@ namespace JG.Modding
                 fullReloadOnChange = fullReloadOnChange
             };
 
-            var source = new FolderModSource(Path.Combine(AppContext.BaseDirectory, cfg.modsRoot));
+            string projectOrBuildRoot =
+                Directory.GetParent(Application.dataPath)!.FullName;   // “.../MyUnityProject” in Editor
+            var source = new FolderModSource(
+                Path.Combine(projectOrBuildRoot, cfg.modsRoot));
+            Debug.Log($"Searching for mods in: {Path.Combine(projectOrBuildRoot, cfg.modsRoot)}");
+
             var manifest = new JsonManifestReader();
             var state = new JsonStateStore(Application.persistentDataPath, cfg.stateFile);
 
             Loader = new ModLoader(cfg, source, manifest, state, importer);
             Loader.OnLoadError += e => Debug.LogError(e.Message);
+
+            Debug.Log($"ModLoader initialised, modsRoot = {modsRoot}");
         }
     }
 }
