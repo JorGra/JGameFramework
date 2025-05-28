@@ -1145,7 +1145,7 @@ MonoBehaviour:
   modLoaderBehaviour: {fileID: 2147344054}
   rowPrefab: {fileID: 4042032079261029965, guid: f921824c7252dd049a066f4d71c6d155,
     type: 3}
-  contentRoot: {fileID: 0}
+  contentRoot: {fileID: 2123362827}
 --- !u!1 &2028026340
 GameObject:
   m_ObjectHideFlags: 0
