@@ -41,6 +41,7 @@ namespace JG.Modding
         {
             _mods.Clear();
             _state = _stateStore.Load() ?? new ModStateTable();
+            ActiveMods = Array.Empty<LoadedMod>();
 
             DiscoverMods();
             if (!ResolveOrder(out var ordered)) return;

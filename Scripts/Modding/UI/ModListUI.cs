@@ -13,7 +13,7 @@ namespace JG.Modding.UI
         readonly List<ModRowUI> rows = new();
         Action<ModLoadError> errorHandler;
 
-        void OnEnable()
+        void Start()
         {
             errorHandler = _ => Refresh();
             modLoaderBehaviour.Loader.OnLoadError += errorHandler;
@@ -34,7 +34,10 @@ namespace JG.Modding.UI
             var loader = modLoaderBehaviour.Loader;
             if (loader == null) return;
 
-            foreach (var lm in loader.ActiveMods)
+            var mods = loader.ActiveMods;
+            if (mods == null || mods.Count == 0) return;
+
+            foreach (var lm in mods)
             {
                 var row = Instantiate(rowPrefab, contentRoot);
                 row.Init(lm, loader, this);
