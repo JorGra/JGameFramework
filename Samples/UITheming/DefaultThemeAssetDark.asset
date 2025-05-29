@@ -16,7 +16,7 @@ MonoBehaviour:
   secondaryColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   backgroundColor: {r: 0, g: 0, b: 0, a: 1}
   textColor: {r: 1, g: 1, b: 1, a: 1}
-  defaultFont: {fileID: 11400000, guid: 0fc84a604d6c28f4ea1abdafdb658580, type: 2}
+  defaultFont: {fileID: 11400000, guid: ffa2366156752cc419d237484529760c, type: 2}
   spriteKeys:
   - Panel
   sprites:

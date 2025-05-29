@@ -535,6 +535,7 @@ GameObject:
   m_Component:
   - component: {fileID: 949765679}
   - component: {fileID: 949765680}
+  - component: {fileID: 949765681}
   m_Layer: 0
   m_Name: ThemeManager
   m_TagString: Untagged
@@ -570,6 +571,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   defaultTheme: {fileID: 11400000, guid: 49a276ffb5e6ce242b6f93f03cfd7fcf, type: 2}
+--- !u!114 &949765681
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 949765678}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15da80ccb32b1a340b1a4284af1aa992, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  themes:
+  - {fileID: 11400000, guid: e5f5c54a9a0d4aa46b6603d9dcd9cb6f, type: 2}
+  - {fileID: 11400000, guid: 49a276ffb5e6ce242b6f93f03cfd7fcf, type: 2}
+  cycleKey: 283
 --- !u!1 &1182934873
 GameObject:
   m_ObjectHideFlags: 0
