@@ -1,81 +1,94 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
+
 namespace UI.Theming
 {
     /// <summary>
-    /// ScriptableObject holding all visual data for a single UI theme.
+    /// Single-file container for every resource a UI theme can expose
+    /// (colours, sprites, fonts and strongly-typed style modules).
     /// </summary>
-    [CreateAssetMenu(menuName = "UI/Theme Asset", fileName = "ThemeAsset")]
-    public class ThemeAsset : ScriptableObject
+    [CreateAssetMenu(menuName = "UI/Theme/Theme Asset", fileName = "Theme")]
+    public sealed class ThemeAsset : ScriptableObject
     {
-        [Header("Color Palette")]
-        [SerializeField] private Color primaryColor = Color.white;
-        [SerializeField] private Color secondaryColor = Color.gray;
-        [SerializeField] private Color backgroundColor = Color.black;
-        [SerializeField] private Color textColor = Color.white;
+        #region – foundations –
 
-        [Header("Font")]
-        [SerializeField] private TMP_FontAsset defaultFont;
+        [Serializable]
+        struct ColorSwatch { public string key; public Color color; }
+
+        [Serializable]
+        struct SpriteEntry { public string key; public Sprite sprite; }
+
+        [Serializable]
+        struct FontEntry { public string key; public TMP_FontAsset font; }
+
+        [Header("Colours")]
+        [SerializeField] private List<ColorSwatch> colors = new();
 
         [Header("Sprites")]
-        [Tooltip("Keys must be unique and the same length as the Sprites array.")]
-        [SerializeField] private string[] spriteKeys;
-        [SerializeField] private Sprite[] sprites;
+        [SerializeField] private List<SpriteEntry> sprites = new();
 
-        // --- Public read-only properties -------------------------------------
+        [Header("Fonts")]
+        [SerializeField] private List<FontEntry> fonts = new();
 
-        public Color PrimaryColor => primaryColor;
-        public Color SecondaryColor => secondaryColor;
-        public Color BackgroundColor => backgroundColor;
-        public Color TextColor => textColor;
-        public TMP_FontAsset DefaultFont => defaultFont;
+        #endregion
 
-        /// <summary>Look-up table generated on first access.</summary>
-        private Dictionary<string, Sprite> spriteLookup;
+        #region – style modules –
+
+        [Header("Styles")]
+        [SerializeReference, SubclassSelector]
+        private List<StyleModuleParameters> styles = new();
+
+        #endregion
+
+        // ------------------------------------------------------------
+        // simple list look-ups (Option 4-3). < 100 entries is fine.
+        // ------------------------------------------------------------
+
+        /// <summary>Return a colour by key. White if missing.</summary>
+        public Color GetColor(string key)
+        {
+            foreach (var c in colors)
+                if (c.key == key) return c.color;
+
+            return Color.white;
+        }
+
+        /// <summary>Return a sprite by key, or <c>null</c>.</summary>
+        public Sprite GetSprite(string key)
+        {
+            foreach (var s in sprites)
+                if (s.key == key) return s.sprite;
+
+            return null;
+        }
+
+        /// <summary>Return a TMP font asset by weight/style key.</summary>
+        public TMP_FontAsset GetFont(string key)
+        {
+            foreach (var f in fonts)
+                if (f.key == key) return f.font;
+
+            return null;
+        }
 
         /// <summary>
-        /// Attempts to fetch a sprite by key defined in the inspector.
+        /// Try to get a <typeparamref name="T"/> style module with
+        /// the requested <paramref name="styleKey"/>.
         /// </summary>
-        /// <param name="key">Unique sprite key.</param>
-        /// <param name="sprite">Returned sprite.</param>
-        /// <returns>True if found.</returns>
-        public bool TryGetSprite(string key, out Sprite sprite)
+        public bool TryGetStyle<T>(string styleKey, out T style)
+            where T : StyleModuleParameters
         {
-            EnsureLookUp();
-            return spriteLookup.TryGetValue(key, out sprite);
-        }
-
-        // ---------------------------------------------------------------------
-
-        void EnsureLookUp()
-        {
-            if (spriteLookup != null) return;
-
-            spriteLookup = new Dictionary<string, Sprite>(StringComparer.Ordinal);
-            int count = Mathf.Min(spriteKeys?.Length ?? 0, sprites?.Length ?? 0);
-
-            for (int i = 0; i < count; i++)
-            {
-                if (!string.IsNullOrEmpty(spriteKeys[i]) && sprites[i] != null)
+            foreach (var s in styles)
+                if (s is T typed && typed.StyleKey == styleKey)
                 {
-                    spriteLookup[spriteKeys[i]] = sprites[i];
+                    style = typed;
+                    return true;
                 }
-            }
-        }
-    }
 
-    /// <summary>
-    /// Identifies which color of the theme a component should use.
-    /// </summary>
-    public enum ColorRole
-    {
-        None,
-        Primary,
-        Secondary,
-        Disabled,
-        Background,
-        Text
+            style = null;
+            return false;
+        }
     }
 }

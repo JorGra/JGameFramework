@@ -12,16 +12,63 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e6dfb9a66a07e624aa63b895c98dfda4, type: 3}
   m_Name: DefaultThemeAsset
   m_EditorClassIdentifier: 
-  primaryColor: {r: 1, g: 1, b: 1, a: 1}
-  secondaryColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-  backgroundColor: {r: 1, g: 1, b: 1, a: 1}
-  textColor: {r: 0, g: 0, b: 0, a: 1}
-  defaultFont: {fileID: 11400000, guid: 8919c41e61f212547a3d78bfe3d3f7ac, type: 2}
-  spriteKeys:
-  - Panel
-  - ToggleBackground
-  - ToggleCheckmark
+  colors:
+  - key: Primary
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - key: Background
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - key: Text
+    color: {r: 0, g: 0, b: 0, a: 1}
+  - key: Disabled
+    color: {r: 0.5518868, g: 0.5518868, b: 0.5518868, a: 0.6156863}
   sprites:
-  - {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
-  - {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
-  - {fileID: 21300000, guid: eec6a117b7f323d4b8969db018b02563, type: 3}
+  - key: Panel
+    sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+  - key: ToggleBackground
+    sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  - key: ToggleCheckmark
+    sprite: {fileID: 10915, guid: 0000000000000000f000000000000000, type: 0}
+  fonts:
+  - key: body
+    font: {fileID: 11400000, guid: 0afed846c8da71d4b8fbfb77e96b208f, type: 2}
+  - key: h1
+    font: {fileID: 11400000, guid: ca43964b1871c5144a821aa832fdff7b, type: 2}
+  styles:
+  - rid: 2125302778683195397
+  - rid: 2125302778683195398
+  - rid: 2125302778683195399
+  - rid: 2125302778683195400
+  references:
+    version: 2
+    RefIds:
+    - rid: 2125302778683195397
+      type: {class: ImageStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styleKey: Panel
+        spriteKey: Panel
+        tintColorKey: Primary
+    - rid: 2125302778683195398
+      type: {class: ToggleStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styleKey: Default
+        backgroundSpriteKey: ToggleBackground
+        checkmarkSpriteKey: ToggleCheckmark
+        onColorKey: Primary
+        offColorKey: Secondary
+        disabledColorKey: Disabled
+    - rid: 2125302778683195399
+      type: {class: TextStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styleKey: body
+        colorKey: Text
+        fontWeightKey: Regular
+        fontSize: 36
+        fontStyle: 0
+    - rid: 2125302778683195400
+      type: {class: TextStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styleKey: h1
+        colorKey: Text
+        fontWeightKey: h1
+        fontSize: 36
+        fontStyle: 0

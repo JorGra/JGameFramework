@@ -1,65 +1,42 @@
-using UnityEngine;
-using TMPro;
 using JG.Tools;
+using TMPro;
+using UnityEngine;
 
 namespace UI.Theming
 {
-    /// <summary>
-    /// Updates a <see cref="TMP_Text"/> component’s color and (optionally) font
-    /// whenever the active theme changes.
-    /// </summary>
+    /// <summary>Applies a <see cref="TextStyleParameters"/> module to a TMP_Text.</summary>
     [RequireComponent(typeof(TMP_Text))]
-    public class ThemeableText : MonoBehaviour, IThemeable
+    public sealed class ThemeableText : MonoBehaviour, IThemeable
     {
-        [SerializeField] private ColorRole colorRole = ColorRole.Text;
-        [SerializeField] private bool overrideFont = true;
+        [SerializeField] private string styleKey = "Body";
 
-        private TMP_Text text;
-        private EventBinding<ThemeChangedEvent> binding;
+        TMP_Text text;
+        EventBinding<ThemeChangedEvent> binding;
 
-        // ---------------------------------------------------------------------
-
-        void Awake()
-        {
-            text = GetComponent<TMP_Text>();
-        }
+        void Awake() => text = GetComponent<TMP_Text>();
 
         void OnEnable()
         {
-            binding = new EventBinding<ThemeChangedEvent>(OnThemeChanged);
+            binding = new EventBinding<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
             EventBus<ThemeChangedEvent>.Register(binding);
-
-            // Apply immediately if a theme is already active.
-            ThemeAsset current = ThemeManager.Instance?.CurrentTheme;
-            if (current != null) ApplyTheme(current);
+            ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
 
-        void OnDisable()
-        {
-            EventBus<ThemeChangedEvent>.Deregister(binding);
-        }
-
-        // ---------------------------------------------------------------------
-
-        void OnThemeChanged(ThemeChangedEvent e) => ApplyTheme(e.Theme);
+        void OnDisable() => EventBus<ThemeChangedEvent>.Deregister(binding);
 
         /// <inheritdoc/>
         public void ApplyTheme(ThemeAsset theme)
         {
-            if (theme == null || text == null) return;
+            if (theme == null ||
+                !theme.TryGetStyle(styleKey, out TextStyleParameters style))
+                return;
 
-            switch (colorRole)
-            {
-                case ColorRole.Primary: text.color = theme.PrimaryColor; break;
-                case ColorRole.Secondary: text.color = theme.SecondaryColor; break;
-                case ColorRole.Background: text.color = theme.BackgroundColor; break;
-                case ColorRole.Text: text.color = theme.TextColor; break;
-            }
+            text.color = theme.GetColor(style.ColorKey);
+            text.fontSize = style.FontSize;
+            text.fontStyle = style.FontStyle;
 
-            if (overrideFont && theme.DefaultFont != null)
-            {
-                text.font = theme.DefaultFont;
-            }
+            var font = theme.GetFont(style.FontWeightKey);
+            if (font) text.font = font;
         }
     }
 }

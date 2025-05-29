@@ -1,66 +1,40 @@
+using JG.Tools;
 using UnityEngine;
 using UnityEngine.UI;
-using JG.Tools;
 
 namespace UI.Theming
 {
-    /// <summary>
-    /// Re-skins a UnityEngine.UI.Image when the active theme changes.
-    /// </summary>
+    /// <summary>Applies an <see cref="ImageStyleParameters"/> module to a UI Image.</summary>
     [RequireComponent(typeof(Image))]
-    public class ThemeableImage : MonoBehaviour, IThemeable
+    public sealed class ThemeableImage : MonoBehaviour, IThemeable
     {
-        [Header("Sprite")]
-        [Tooltip("If set, the sprite with the matching key in ThemeAsset will be used.")]
-        [SerializeField] private string spriteKey;
+        [SerializeField] private string styleKey = "Icon";
 
-        [Header("Color")]
-        [SerializeField] private ColorRole colorRole = ColorRole.None;
+        Image image;
+        EventBinding<ThemeChangedEvent> binding;
 
-        private Image image;
-        private EventBinding<ThemeChangedEvent> binding;
-
-        // ---------------------------------------------------------------------
-
-        void Awake()
-        {
-            image = GetComponent<Image>();
-        }
+        void Awake() => image = GetComponent<Image>();
 
         void OnEnable()
         {
-            binding = new EventBinding<ThemeChangedEvent>(OnThemeChanged);
+            binding = new EventBinding<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
             EventBus<ThemeChangedEvent>.Register(binding);
-
             ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
 
-        void OnDisable()
-        {
-            EventBus<ThemeChangedEvent>.Deregister(binding);
-        }
+        void OnDisable() => EventBus<ThemeChangedEvent>.Deregister(binding);
 
-        // ---------------------------------------------------------------------
-
-        void OnThemeChanged(ThemeChangedEvent e) => ApplyTheme(e.Theme);
-
-        /// <inheritdoc/>
         public void ApplyTheme(ThemeAsset theme)
         {
-            if (theme == null || image == null) return;
+            if (theme == null ||
+                !theme.TryGetStyle(styleKey, out ImageStyleParameters style))
+                return;
 
-            if (!string.IsNullOrEmpty(spriteKey) && theme.TryGetSprite(spriteKey, out Sprite s))
-            {
-                image.sprite = s;
-            }
+            if (!string.IsNullOrEmpty(style.SpriteKey))
+                image.sprite = theme.GetSprite(style.SpriteKey);
 
-            switch (colorRole)
-            {
-                case ColorRole.Primary: image.color = theme.PrimaryColor; break;
-                case ColorRole.Secondary: image.color = theme.SecondaryColor; break;
-                case ColorRole.Background: image.color = theme.BackgroundColor; break;
-                case ColorRole.Text: image.color = theme.TextColor; break;
-            }
+            if (!string.IsNullOrEmpty(style.TintColorKey))
+                image.color = theme.GetColor(style.TintColorKey);
         }
     }
 }

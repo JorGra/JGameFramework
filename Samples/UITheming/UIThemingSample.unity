@@ -269,8 +269,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0434c5f510089b041a37dc87e6340f09, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  colorRole: 5
-  overrideFont: 1
+  styleKey: body
 --- !u!1 &485112906
 GameObject:
   m_ObjectHideFlags: 0
@@ -370,17 +369,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b89a97c3a713df240ba24718f37b64a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bgOnSpriteKey: 
-  bgOffSpriteKey: 
-  bgDisabledSpriteKey: 
-  checkmarkSpriteKey: 
-  onColor: 1
-  offColor: 1
-  disabledColor: 3
-  checkColor: 5
-  background: {fileID: 1852328530}
-  checkmark: {fileID: 512756978}
-  label: {fileID: 206275923}
+  styleKey: Default
 --- !u!1 &512756976
 GameObject:
   m_ObjectHideFlags: 0
@@ -464,13 +453,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 512756976}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e7797a39d0c1222459b0b8c471fb3c49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spriteKey: ToggleCheckmark
-  colorRole: 1
+  styleKey: Panel
 --- !u!1 &528551955
 GameObject:
   m_ObjectHideFlags: 0
@@ -918,8 +906,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7797a39d0c1222459b0b8c471fb3c49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spriteKey: Panel
-  colorRole: 4
+  styleKey: Panel
 --- !u!1 &949765678
 GameObject:
   m_ObjectHideFlags: 0
@@ -965,7 +952,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bf5d2a0ce374b1d4eb7aa899c9fb2725, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  defaultTheme: {fileID: 11400000, guid: 49a276ffb5e6ce242b6f93f03cfd7fcf, type: 2}
+  defaultTheme: {fileID: 11400000, guid: e5f5c54a9a0d4aa46b6603d9dcd9cb6f, type: 2}
 --- !u!114 &949765681
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1198,8 +1185,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0434c5f510089b041a37dc87e6340f09, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  colorRole: 5
-  overrideFont: 1
+  styleKey: h1
 --- !u!1 &1852328528
 GameObject:
   m_ObjectHideFlags: 0
@@ -1284,13 +1270,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1852328528}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e7797a39d0c1222459b0b8c471fb3c49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spriteKey: ToggleBackground
-  colorRole: 1
+  styleKey: Panel
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
