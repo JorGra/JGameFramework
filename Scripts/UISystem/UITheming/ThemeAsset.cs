@@ -74,6 +74,7 @@ namespace UI.Theming
         None,
         Primary,
         Secondary,
+        Disabled,
         Background,
         Text
     }

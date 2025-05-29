@@ -14,10 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   primaryColor: {r: 1, g: 1, b: 1, a: 1}
   secondaryColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-  backgroundColor: {r: 0, g: 0, b: 0, a: 1}
+  backgroundColor: {r: 0.31132078, g: 0.31132078, b: 0.31132078, a: 1}
   textColor: {r: 1, g: 1, b: 1, a: 1}
   defaultFont: {fileID: 11400000, guid: ffa2366156752cc419d237484529760c, type: 2}
   spriteKeys:
   - Panel
+  - ToggleBackground
+  - ToggleCheckmark
   sprites:
-  - {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 21300000, guid: da3e6bbb84c179140bc2ea270b6958bd, type: 3}
+  - {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 21300000, guid: b7c638c32ba2dab4fb987e7932928014, type: 3}

@@ -1,12 +1,12 @@
 using UnityEngine;
-using UnityEngine.UI;
-using JG.Tools;
 using TMPro;
+using JG.Tools;
 
 namespace UI.Theming
 {
     /// <summary>
-    /// Updates a Text component’s color and (optionally) font when the theme changes.
+    /// Updates a <see cref="TMP_Text"/> component’s color and (optionally) font
+    /// whenever the active theme changes.
     /// </summary>
     [RequireComponent(typeof(TMP_Text))]
     public class ThemeableText : MonoBehaviour, IThemeable
@@ -29,7 +29,9 @@ namespace UI.Theming
             binding = new EventBinding<ThemeChangedEvent>(OnThemeChanged);
             EventBus<ThemeChangedEvent>.Register(binding);
 
-            ApplyTheme(ThemeManager.Instance.CurrentTheme);
+            // Apply immediately if a theme is already active.
+            ThemeAsset current = ThemeManager.Instance?.CurrentTheme;
+            if (current != null) ApplyTheme(current);
         }
 
         void OnDisable()
@@ -44,16 +46,14 @@ namespace UI.Theming
         /// <inheritdoc/>
         public void ApplyTheme(ThemeAsset theme)
         {
-            if (!text)
-                return;
+            if (theme == null || text == null) return;
 
             switch (colorRole)
             {
                 case ColorRole.Primary: text.color = theme.PrimaryColor; break;
                 case ColorRole.Secondary: text.color = theme.SecondaryColor; break;
                 case ColorRole.Background: text.color = theme.BackgroundColor; break;
-                case ColorRole.Text: text.color = theme.TextColor; 
-                break;
+                case ColorRole.Text: text.color = theme.TextColor; break;
             }
 
             if (overrideFont && theme.DefaultFont != null)

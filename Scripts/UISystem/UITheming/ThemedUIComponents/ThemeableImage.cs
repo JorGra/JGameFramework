@@ -47,6 +47,8 @@ namespace UI.Theming
         /// <inheritdoc/>
         public void ApplyTheme(ThemeAsset theme)
         {
+            if (theme == null || image == null) return;
+
             if (!string.IsNullOrEmpty(spriteKey) && theme.TryGetSprite(spriteKey, out Sprite s))
             {
                 image.sprite = s;
