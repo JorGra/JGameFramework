@@ -967,8 +967,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   themes:
   - {fileID: 11400000, guid: e5f5c54a9a0d4aa46b6603d9dcd9cb6f, type: 2}
-  - {fileID: 11400000, guid: 49a276ffb5e6ce242b6f93f03cfd7fcf, type: 2}
-  - {fileID: 11400000, guid: 26bb7022f3324b340a4e312c3f98a96d, type: 2}
+  - {fileID: 11400000, guid: 2fae752df829181469eefa8d5fe41b83, type: 2}
   cycleKey: 283
 --- !u!1 &1182934873
 GameObject:

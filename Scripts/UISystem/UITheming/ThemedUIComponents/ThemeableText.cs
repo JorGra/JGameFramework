@@ -8,7 +8,7 @@ namespace UI.Theming
     [RequireComponent(typeof(TMP_Text))]
     public sealed class ThemeableText : MonoBehaviour, IThemeable
     {
-        [SerializeField] private string styleKey = "Body";
+        [SerializeField] private string styleKey = "body";
 
         TMP_Text text;
         EventBinding<ThemeChangedEvent> binding;
@@ -35,7 +35,7 @@ namespace UI.Theming
             text.fontSize = style.FontSize;
             text.fontStyle = style.FontStyle;
 
-            var font = theme.GetFont(style.FontWeightKey);
+            var font = theme.GetFont(style.FontKey);
             if (font) text.font = font;
         }
     }

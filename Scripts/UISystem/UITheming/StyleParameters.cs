@@ -11,14 +11,14 @@ namespace UI.Theming
     {
         [Header("Colour & Font")]
         [SerializeField] private string colorKey = "Text";
-        [SerializeField] private string fontWeightKey = "Regular";
+        [SerializeField] private string fontKey = "Regular";
 
         [Header("Typography")]
         [SerializeField] private int fontSize = 36;
         [SerializeField] private FontStyles fontStyle = FontStyles.Normal;
 
         public string ColorKey => colorKey;
-        public string FontWeightKey => fontWeightKey;
+        public string FontKey => fontKey;
         public int FontSize => fontSize;
         public FontStyles FontStyle => fontStyle;
     }
