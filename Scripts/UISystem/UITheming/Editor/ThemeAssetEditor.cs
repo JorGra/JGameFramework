@@ -41,7 +41,7 @@ namespace UI.Theming.Editor
             fontsList.DoLayoutList();
 
             EditorGUILayout.Space(6);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("styles"), true);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("styleSheets"), true);
 
             serializedObject.ApplyModifiedProperties();
         }
