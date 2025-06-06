@@ -16,6 +16,8 @@ MonoBehaviour:
   colors:
   - key: Primary
     color: {r: 1, g: 1, b: 1, a: 1}
+  - key: Secondary
+    color: {r: 0.8018868, g: 0.8018868, b: 0.8018868, a: 1}
   - key: Background
     color: {r: 1, g: 1, b: 1, a: 1}
   - key: Text
@@ -34,42 +36,28 @@ MonoBehaviour:
     font: {fileID: 11400000, guid: 0afed846c8da71d4b8fbfb77e96b208f, type: 2}
   - key: h1
     font: {fileID: 11400000, guid: ca43964b1871c5144a821aa832fdff7b, type: 2}
-  styles:
-  - rid: 2125302778683195397
-  - rid: 2125302778683195398
-  - rid: 2125302778683195399
-  - rid: 2125302778683195400
+  styleSheets:
+  - rid: 3717238422444441601
+  - rid: 3717238422444441602
   references:
     version: 2
     RefIds:
-    - rid: 2125302778683195397
-      type: {class: ImageStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
+    - rid: 3717238422444441601
+      type: {class: TextStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
       data:
-        styleKey: Panel
-        spriteKey: Panel
-        tintColorKey: Primary
-    - rid: 2125302778683195398
-      type: {class: ToggleStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
+        styles:
+        - styleKey: h1
+          colorKey: Primary
+          fontKey: 
+          fontSize: 32
+          fontStyle: 0
+    - rid: 3717238422444441602
+      type: {class: ToggleStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
       data:
-        styleKey: Default
-        backgroundSpriteKey: ToggleBackground
-        checkmarkSpriteKey: ToggleCheckmark
-        onColorKey: Primary
-        offColorKey: Primary
-        disabledColorKey: Disabled
-    - rid: 2125302778683195399
-      type: {class: TextStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
-      data:
-        styleKey: body
-        colorKey: Text
-        fontWeightKey: Regular
-        fontSize: 36
-        fontStyle: 0
-    - rid: 2125302778683195400
-      type: {class: TextStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
-      data:
-        styleKey: h1
-        colorKey: Text
-        fontWeightKey: h1
-        fontSize: 36
-        fontStyle: 33
+        styles:
+        - styleKey: Default
+          backgroundSpriteKey: 
+          checkmarkSpriteKey: 
+          onColorKey: 
+          offColorKey: 
+          disabledColorKey: 

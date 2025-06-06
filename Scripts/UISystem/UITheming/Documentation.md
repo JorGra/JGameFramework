@@ -1,164 +1,210 @@
-# **Unified Theme System – Developer Reference**
+# Unified Theme System — Complete Guide (Typed-Sheet Architecture)
 
 ---
 
-## 1 · Purpose & Philosophy
+## ➊ System Overview
 
-This system provides **one self-contained `ThemeAsset`** that stores everything a UI theme might need—colours, sprites, fonts, and any number of strongly-typed *style modules*.
-*Goals*:
+A **Theme** is a single `ThemeAsset` that packs every visual resource your UI may need: colour swatches, sprites, fonts and any number of **typed style-sheets**.
+Each sheet is a small inline object that stores a list of *one* concrete style class (for example, `TextStyleParameters`).
+At runtime, **ThemeManager** keeps the active theme and notifies all components that implement **`IThemeable`** so they can refresh their visuals.
 
-* fast authoring (no ScriptableObject clutter)
-* strongly typed look-ups (no error-prone string bags)
-* drop-in extensibility (add new style types without touching existing code)
+Key runtime classes
 
----
-
-## 2 · Core Runtime Types
-
-* **`ThemeAsset`** – single ScriptableObject storing:
-
-  * *ColourSwatch* `List`   `key → Color`
-  * *SpriteEntry* `List`    `key → Sprite`
-  * *FontEntry* `List`      `key → TMP_FontAsset`
-  * *Style modules* `List<StyleModuleParameters>` (polymorphic via `SerializeReference`)
-* **`StyleModuleParameters`** – abstract base: every concrete style derives from this and must expose a **`StyleKey`** string.
-
-  * Stock modules:
-
-    * `TextStyleParameters`
-    * `ImageStyleParameters`
-    * `ToggleStyleParameters`
-* **`ThemeManager`** (singleton) – holds the active `ThemeAsset` and broadcasts `ThemeChangedEvent` through your existing `EventBus`.
-* **`IThemeable`** – interface for any component that wants to react to theme changes.
-
-  * Stock implementations:
-
-    * `ThemeableText` (TMP)
-    * `ThemeableImage` (UGUI Image)
-    * `ThemeableToggle` (UGUI Toggle)
+* **ThemeAsset** — root ScriptableObject. It owns colour / sprite / font lists and an array of `StyleSheetBase` items, plus an optional `baseTheme` for single-level inheritance .
+* **StyleSheetBase** ➜ **StyleSheet<T>** — generic wrappers that hold a typed list (`List<T>`). Unity serialises them inside the asset; no extra files needed.
+* **StyleModuleParameters** — base class for every style entry. It only stores the public `StyleKey` string .
+* **ThemeManager** — lightweight singleton; swaps themes and raises `ThemeChangedEvent` through your existing `EventBus` .
+* **IThemeable** — contract implemented by UI behaviours that react to theme changes .
+* **ThemeOverride** — optional helper that lets a Canvas (or any transform) use a different theme locally .
 
 ---
 
-## 3 · Authoring Workflow (Designer)
+## ➋ Designer Workflow (no code)
 
-1. **Create a ThemeAsset**
+### 1. Create a ThemeAsset
 
-   ```
-   Assets ▸ Create ▸ UI ▸ Theme Asset
-   ```
-2. **Populate colour / sprite / font lists**
-   *Press “+”* to add rows; set the **key** (unique string) and its value.
-3. **Add style modules**
-
-   * In the **Styles** fold-out click **➕ Add**.
-   * A dropdown (from `SubclassSelector`) shows all concrete `StyleModuleParameters`.
-   * After adding, fill out its fields—most reference the keys you defined above.
-4. **Scene wiring**
-
-   * Add **ThemeManager** to a scene and assign this asset as *Default Theme*.
-   * Attach `Themeable…` behaviours to UI elements and type the **Style Key** that should drive them.
-
----
-
-## 4 · Runtime Flow (Programmer)
-
-```mermaid
-graph TD
-    ThemeManager(SetTheme or Awake)
-    ThemeChanged(EventBus<ThemeChangedEvent>)
-    Themeable[T≡ ThemeableText/Image/...]
-    ThemeManager --> ThemeChanged
-    ThemeChanged --> Themeable
-    Themeable -->|ApplyTheme()| UI
+```
+Assets ▸ Create ▸ UI ▸ Theme Asset
 ```
 
-* A call to `ThemeManager.Instance.SetTheme(asset)` swaps the theme.
-* `ThemeManager` raises `ThemeChangedEvent`.
-* Every enabled `Themeable…` receives the event, pulls its style module from the new `ThemeAsset` and applies values.
+Give it a descriptive name such as **“LightTheme”**.
+
+### 2. Fill the base resources
+
+1. Open the asset in the Inspector.
+2. Under **Colours**, **Sprites** and **Fonts** press **+** to add rows.
+3. Type a *unique* **key** (e.g. `Primary`, `Icon/Close`, `Bold`) and assign the value (colour picker, sprite reference, TMP font asset).
+
+### 3. Add typed style-sheets
+
+1. Expand **Style Sheets** and click **Add ▼**.
+2. Pick one of the available sheets, e.g. **Text Style Sheet**.
+3. Inside that sheet click **+** to add individual style entries, then fill their fields.
+
+   * Most fields reference the keys you defined in step 2, making everything fully data-driven.
+4. Repeat for every sheet you need (Toggle, Image, etc.).
+
+   * Only unused sheets are offered in the **Add ▼** menu, so the list stays tidy.
+
+### 4. Inheritance (optional)
+
+If you want a theme that tweaks just a few values:
+
+1. Duplicate your existing theme asset, name it e.g. **“LightTheme\_HighContrast”**.
+2. In the child asset, set **Base Theme** to the original.
+3. Add or edit only the keys you need to override.
+
+   * Overriding entries are marked with a green dot by the custom inspector.
+
+### 5. Scene setup
+
+1. Drop a **ThemeManager** in the first scene that shows UI.
+2. Assign the desired ThemeAsset to **Default Theme**.
+3. Add `Themeable…` components to your UI prefabs (e.g. `ThemeableText`, `ThemeableToggle`).
+4. Set each component’s **Style Key** so it knows which entry to pull from the theme.
+5. Play — the elements will immediately style themselves and will update live if you call `ThemeManager.SetTheme(newAsset)` at runtime.
+
+That’s it — no prefabs, no code editing, just keys and references in the Inspector.
 
 ---
 
-## 5 · Extending the System
+## ➌ Coder Workflow
 
-### 5.1 Add a New Component Type
+### A. Adding a brand-new styleable component
 
-1. **Create a style module**
+Suppose you want to theme a **Slider**.
+
+1. **Create the parameters class** (one per visual style).
 
    ```csharp
+   // SliderStyleParameters.cs
+   using System;
+   using UnityEngine;
+
    [Serializable]
    public sealed class SliderStyleParameters : StyleModuleParameters
    {
-       [SerializeField] string fillSpriteKey = "";
-       [SerializeField] string handleSpriteKey = "";
+       [SerializeField] string fillSpriteKey    = "";
+       [SerializeField] string handleSpriteKey  = "";
        [SerializeField] string backgroundColorKey = "Background";
-       // expose public getters …
+
+       public string FillSpriteKey    => fillSpriteKey;
+       public string HandleSpriteKey  => handleSpriteKey;
+       public string BackgroundColorKey => backgroundColorKey;
    }
    ```
-2. **Create a Themeable behaviour**
+
+2. **Create the sheet** (one line):
+
+   ```csharp
+   [Serializable]
+   public sealed class SliderStyleSheet : StyleSheet<SliderStyleParameters> { }
+   ```
+
+3. **Write the themeable behaviour**:
 
    ```csharp
    [RequireComponent(typeof(Slider))]
    public sealed class ThemeableSlider : MonoBehaviour, IThemeable
    {
        [SerializeField] string styleKey = "Slider";
-       /* cache ports in Awake … */
+
+       Slider slider;
+       Image background;
+       Image fill;
+       Image handle;
+       EventBinding<ThemeChangedEvent> binding;
+
+       void Awake()
+       {
+           slider     = GetComponent<Slider>();
+           background = slider.GetComponent<Image>();
+           fill       = slider.fillRect.GetComponent<Image>();
+           handle     = slider.handleRect.GetComponent<Image>();
+       }
+
+       void OnEnable()
+       {
+           binding = new EventBinding<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
+           EventBus<ThemeChangedEvent>.Register(binding);
+           ApplyTheme(ThemeManager.Instance.CurrentTheme);
+       }
+
+       void OnDisable() => EventBus<ThemeChangedEvent>.Deregister(binding);
 
        public void ApplyTheme(ThemeAsset theme)
        {
            if (!theme.TryGetStyle(styleKey, out SliderStyleParameters s)) return;
-           /* fetch sprites / colours from theme and assign */
+
+           background.color = theme.GetColor(s.BackgroundColorKey);
+           fill.sprite      = theme.GetSprite(s.FillSpriteKey);
+           handle.sprite    = theme.GetSprite(s.HandleSpriteKey);
        }
    }
    ```
-3. **Use in Inspector**: add your new style module to the ThemeAsset, then attach `ThemeableSlider` to UI sliders and set *Style Key*.
 
-### 5.2 Add a New Property to an Existing Module
+4. **Designer actions**
 
-*Open the module class*, add serialised field + getter, then update the matching `Themeable…` script to consume it.
-No asset migrations needed—Unity serialisation preserves unknown fields.
+   * Add **Slider Style Sheet** to the ThemeAsset, create a “Slider” entry and set the sprite/colour keys.
+   * Attach `ThemeableSlider` to UI sliders and set **Style Key** to `Slider`.
+
+No other code needs to change — the new sheet automatically appears in the **Add ▼** menu of every ThemeAsset.
+
+### B. Expanding an existing style type
+
+Need an outline colour for text?
+
+1. Open `TextStyleParameters` and add:
+
+   ```csharp
+   [SerializeField] string outlineColorKey = "Outline";
+   public string OutlineColorKey => outlineColorKey;
+   ```
+
+2. In `ThemeableText.ApplyTheme`:
+
+   ```csharp
+   text.outlineColor = theme.GetColor(style.OutlineColorKey);
+   ```
+
+3. Designers edit existing Text entries in the asset and set the new field. Old assets stay valid because Unity ignores unknown fields until they appear in code.
+
+### C. Performance tweak (optional)
+
+If your lists grow into hundreds of entries, add a dictionary cache in `ThemeAsset.OnEnable()`; all public APIs remain unchanged.
 
 ---
 
-## 6 · Best-practice Keys
+## ➍ Key Naming Tips
 
-* **Swatches** – semantic names (`Primary`, `Secondary`, `Danger`, …).
-* **Fonts** – weight/style keys that match design tokens (`Regular`, `Bold`, `Italic`).
-* **Style Keys** – entity + variant (`Body`, `Title/H1`, `Button/Primary`).
-  Avoid spaces and keep the same casing across the project.
-
----
-
-## 7 · Performance Notes
-
-* Lists are scanned linearly (option 4-3); under \~100 entries each look-up is <0.1 µs.
-* If you exceed that, convert lists to dictionaries in `ThemeAsset.OnEnable()`—no other code changes needed.
+* Use **semantic tokens** (`Primary`, `Error`) for colours.
+* Reference **asset paths** (`Icon/Play`, `UI/CheckboxChecked`) for sprites.
+* Keep **Style Keys** short and consistent (`Body`, `Button/Primary`, `Slider/Volume`).
+* Avoid spaces; stick to PascalCase or slash-separated hierarchies.
 
 ---
 
-## 8 · Common Pitfalls
-
-* **Missing keys** – look-ups silently fall back (`Color.white`, `null` sprite/font).
-  *Tip*: enable *Strict Mode* in `ThemeAsset` by adding debug `Assert` calls when `TryGetStyle` fails.
-* **Duplicate Style Keys** – the first match wins; keep them unique.
-* **Disabled `Themeable` objects** – they register on *Enable*; call `ApplyTheme()` manually if you enable them after a theme swap.
-
----
-
-## 9 · Quick API Cheatsheet
+## ➎ Quick Runtime Snippets
 
 ```csharp
-// look-ups
-Color            c = theme.GetColor("Primary");
-Sprite           s = theme.GetSprite("IconClose");
-TMP_FontAsset    f = theme.GetFont("Bold");
+// Colour, sprite, font
+Color  c = theme.GetColor ("Primary");
+Sprite s = theme.GetSprite("Icon/Close");
+var    f = theme.GetFont  ("Bold");
 
-// style retrieval
-if (theme.TryGetStyle("Body", out TextStyleParameters body)) { … }
+// Style look-up
+if (theme.TryGetStyle("Body", out TextStyleParameters body))
+{
+    label.color    = theme.GetColor(body.ColorKey);
+    label.fontSize = body.FontSize;
+}
 
-// switch theme at runtime
-ThemeManager.Instance.SetTheme(nightThemeAsset);
+// Hot-swap theme at runtime
+ThemeManager.Instance.SetTheme(nightTheme);
 ```
 
 ---
 
-**You now have everything required** to create, apply, and extend themes in a single asset without clutter, while keeping the door open for future modules or performance tweaks. Happy theming!
+### You’re ready
+
+With typed style-sheets, one `ThemeAsset` carries your entire look-and-feel, is trivial to extend, and stays organised even as the project grows. Designers focus on keys and asset references; coders add clear, modular classes when new UI elements appear. Happy theming!

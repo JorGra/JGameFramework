@@ -16,6 +16,8 @@ MonoBehaviour:
   colors:
   - key: Primary
     color: {r: 0, g: 0, b: 0, a: 1}
+  - key: Secondary
+    color: {r: 0.16981131, g: 0.16981131, b: 0.16981131, a: 1}
   - key: Background
     color: {r: 1, g: 1, b: 1, a: 1}
   - key: Text
@@ -29,47 +31,8 @@ MonoBehaviour:
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
   - key: ToggleCheckmark
     sprite: {fileID: 10915, guid: 0000000000000000f000000000000000, type: 0}
-  fonts:
-  - key: body
-    font: {fileID: 11400000, guid: 0afed846c8da71d4b8fbfb77e96b208f, type: 2}
-  - key: h1
-    font: {fileID: 11400000, guid: ca43964b1871c5144a821aa832fdff7b, type: 2}
-  styles:
-  - rid: 2125302778683195397
-  - rid: 2125302778683195398
-  - rid: 2125302778683195399
-  - rid: 2125302778683195400
+  fonts: []
+  styleSheets: []
   references:
     version: 2
-    RefIds:
-    - rid: 2125302778683195397
-      type: {class: ImageStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
-      data:
-        styleKey: Panel
-        spriteKey: Panel
-        tintColorKey: Primary
-    - rid: 2125302778683195398
-      type: {class: ToggleStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
-      data:
-        styleKey: Default
-        backgroundSpriteKey: ToggleBackground
-        checkmarkSpriteKey: ToggleCheckmark
-        onColorKey: Primary
-        offColorKey: Secondary
-        disabledColorKey: Disabled
-    - rid: 2125302778683195399
-      type: {class: TextStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
-      data:
-        styleKey: body
-        colorKey: Text
-        fontWeightKey: Regular
-        fontSize: 36
-        fontStyle: 0
-    - rid: 2125302778683195400
-      type: {class: TextStyleParameters, ns: UI.Theming, asm: Assembly-CSharp}
-      data:
-        styleKey: h1
-        colorKey: Text
-        fontWeightKey: h1
-        fontSize: 36
-        fontStyle: 33
+    RefIds: []
