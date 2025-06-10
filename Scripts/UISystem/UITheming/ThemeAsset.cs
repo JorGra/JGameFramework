@@ -80,36 +80,45 @@ namespace UI.Theming
         }
 
         // ─────────────────────────────────────────────── internal linear look-ups ──
-        bool TryGetColor(string key, out Color color) => ScanList(colors, key, c => c.color, out color);
-        bool TryGetSprite(string key, out Sprite spr) => ScanList(sprites, key, s => s.sprite, out spr);
-        bool TryGetFont(string key, out TMP_FontAsset f) => ScanList(fonts, key, v => v.font, out f);
+        bool TryGetColor(string key, out Color c) =>
+            ScanList(this, t => t.colors, key, e => e.key, e => e.color, out c);
 
-        // generic helper to cut duplication
-        bool ScanList<TEntry, TValue>(List<TEntry> list, string key,
-                                      Func<TEntry, TValue> valueGetter, out TValue value)
-            where TEntry : struct
+        bool TryGetSprite(string key, out Sprite s) =>
+            ScanList(this, t => t.sprites, key, e => e.key, e => e.sprite, out s);
+
+        bool TryGetFont(string key, out TMP_FontAsset f) =>
+            ScanList(this, t => t.fonts, key, e => e.key, e => e.font, out f);
+
+        // Generic walker ----------------------------------------------------
+        static bool ScanList<TEntry, TValue>(
+                ThemeAsset start,
+                Func<ThemeAsset, List<TEntry>> listSelector,
+                string key,
+                Func<TEntry, string> keyGetter,
+                Func<TEntry, TValue> valueGetter,
+                out TValue value)
         {
-            ThemeAsset current = this;
+            ThemeAsset current = start;
             HashSet<ThemeAsset> visited = null;
 
             while (current != null)
             {
-                foreach (var entry in list)
+                var list = listSelector(current);
+                if (list != null)
                 {
-                    var k = entry.GetType().GetField("key")?.GetValue(entry) as string;
-                    if (k == key)
+                    for (int i = 0; i < list.Count; i++)
                     {
-                        value = valueGetter(entry);
-                        return true;
+                        if (keyGetter(list[i]) == key)
+                        {
+                            value = valueGetter(list[i]);
+                            return true;
+                        }
                     }
                 }
 
                 visited ??= new HashSet<ThemeAsset>(4);
-                if (!visited.Add(current)) break;
-                current = current.baseTheme;
-                list = current != null ? (List<TEntry>)typeof(ThemeAsset)
-                        .GetField(list.GetType().Name.ToLower(), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                        ?.GetValue(current) : null;
+                if (!visited.Add(current)) break;          // cycle guard
+                current = current.baseTheme;               // walk up
             }
 
             value = default;

@@ -25,7 +25,9 @@ MonoBehaviour:
   - key: Disabled
     color: {r: 0.5518868, g: 0.5518868, b: 0.5518868, a: 0.6156863}
   sprites:
-  - key: Panel
+  - key: PanelLarge
+    sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+  - key: PanelLargeHeader
     sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
   - key: ToggleBackground
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
@@ -39,6 +41,7 @@ MonoBehaviour:
   styleSheets:
   - rid: 3717238422444441601
   - rid: 3717238422444441602
+  - rid: 7121754752505610240
   references:
     version: 2
     RefIds:
@@ -61,3 +64,13 @@ MonoBehaviour:
           onColorKey: 
           offColorKey: 
           disabledColorKey: 
+    - rid: 7121754752505610240
+      type: {class: ImageStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styles:
+        - styleKey: PanelLarge
+          spriteKey: PanelLarge
+          tintColorKey: 
+        - styleKey: PanelLargeHeader
+          spriteKey: PanelLargeHeader
+          tintColorKey: 
