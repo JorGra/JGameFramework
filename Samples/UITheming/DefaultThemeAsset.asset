@@ -24,24 +24,47 @@ MonoBehaviour:
     color: {r: 0, g: 0, b: 0, a: 1}
   - key: Disabled
     color: {r: 0.5518868, g: 0.5518868, b: 0.5518868, a: 0.6156863}
+  - key: PanelDefault
+    color: {r: 1, g: 1, b: 1, a: 0.39215687}
   sprites:
   - key: PanelLarge
     sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 2
   - key: PanelLargeHeader
     sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 2
+  - key: Card
+    sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 2
   - key: ToggleBackground
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 2
   - key: ToggleCheckmark
     sprite: {fileID: 10915, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 2
+  - key: SliderNormal
+    sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 2
+  - key: SliderHighlighted
+    sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 2
+  - key: SliderDisabled
+    sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 2
+  - key: Button
+    sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 1
   fonts:
   - key: body
     font: {fileID: 11400000, guid: 0afed846c8da71d4b8fbfb77e96b208f, type: 2}
   - key: h1
-    font: {fileID: 11400000, guid: ca43964b1871c5144a821aa832fdff7b, type: 2}
+    font: {fileID: 11400000, guid: ffa2366156752cc419d237484529760c, type: 2}
   styleSheets:
   - rid: 3717238422444441601
   - rid: 3717238422444441602
   - rid: 7121754752505610240
+  - rid: 7121754752505610242
+  - rid: 7121754762306387968
   references:
     version: 2
     RefIds:
@@ -50,9 +73,9 @@ MonoBehaviour:
       data:
         styles:
         - styleKey: h1
-          colorKey: Primary
-          fontKey: 
-          fontSize: 32
+          colorKey: Text
+          fontKey: h1
+          fontSize: 28
           fontStyle: 0
     - rid: 3717238422444441602
       type: {class: ToggleStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
@@ -74,3 +97,42 @@ MonoBehaviour:
         - styleKey: PanelLargeHeader
           spriteKey: PanelLargeHeader
           tintColorKey: 
+        - styleKey: Card
+          spriteKey: Card
+          tintColorKey: Primary
+    - rid: 7121754752505610242
+      type: {class: ScrollRectStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styles:
+        - styleKey: Default
+          panelSpriteKey: PanelLarge
+          panelColorKey: PanelDefault
+          hBackgroundSpriteKey: 
+          hHandleSpriteKey: 
+          vBackgroundSpriteKey: 
+          vHandleSpriteKey: 
+          scrollbarTransition: 1
+          normalColorKey: 
+          highlightedColorKey: 
+          pressedColorKey: 
+          selectedColorKey: 
+          disabledColorKey: 
+          colorMultiplier: 1
+          fadeDuration: 0.1
+          highlightedHandleSpriteKey: SliderNormal
+          pressedHandleSpriteKey: SliderNormal
+          selectedHandleSpriteKey: SliderNormal
+          disabledHandleSpriteKey: SliderNormal
+    - rid: 7121754762306387968
+      type: {class: ButtonStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styles:
+        - styleKey: Default
+          backgroundSpriteKey: Button
+          backgroundColorKey: Primary
+          transition: 1
+          spriteSwap:
+            highlightedSpriteKey: 
+            pressedSpriteKey: 
+            selectedSpriteKey: 
+            disabledSpriteKey: 

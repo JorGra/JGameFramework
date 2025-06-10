@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace UI.Theming
 {
@@ -17,7 +18,13 @@ namespace UI.Theming
     {
         // ───────────────────────────────────────────────────────────── foundations ─
         [Serializable] struct ColorSwatch { public string key; public Color color; }
-        [Serializable] struct SpriteEntry { public string key; public Sprite sprite; }
+        [Serializable]
+        struct SpriteEntry
+        {
+            public string key;
+            public Sprite sprite;
+            public Image.Type imageType;
+        }
         [Serializable] struct FontEntry { public string key; public TMP_FontAsset font; }
 
         [Tooltip("Optional base theme. Look-ups walk up this chain until the key is found.")]
@@ -79,6 +86,10 @@ namespace UI.Theming
             return false;
         }
 
+        /// <summary>Return how the sprite should be drawn (Simple, Sliced…).</summary>
+        public Image.Type GetSpriteType(string key) =>
+            TryGetSpriteType(key, out var t) ? t : Image.Type.Simple;
+
         // ─────────────────────────────────────────────── internal linear look-ups ──
         bool TryGetColor(string key, out Color c) =>
             ScanList(this, t => t.colors, key, e => e.key, e => e.color, out c);
@@ -88,6 +99,14 @@ namespace UI.Theming
 
         bool TryGetFont(string key, out TMP_FontAsset f) =>
             ScanList(this, t => t.fonts, key, e => e.key, e => e.font, out f);
+
+        bool TryGetSpriteType(string key, out Image.Type type) =>
+            ScanList(this,               // start ThemeAsset
+                     t => t.sprites,     // pick the sprite list on every hop
+                     key,                // key we are looking for
+                     e => e.key,         // how to read the key from a SpriteEntry
+                     e => e.imageType,   // how to read the value we want
+                     out type);          // out-parameter
 
         // Generic walker ----------------------------------------------------
         static bool ScanList<TEntry, TValue>(

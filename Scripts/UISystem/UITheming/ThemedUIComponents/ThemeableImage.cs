@@ -1,4 +1,4 @@
-using JG.Tools;
+﻿using JG.Tools;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,7 +8,7 @@ namespace UI.Theming
     [RequireComponent(typeof(Image))]
     public sealed class ThemeableImage : MonoBehaviour, IThemeable
     {
-        [SerializeField] private string styleKey = "Icon";
+        [SerializeField] string styleKey = "Icon";
 
         Image image;
         EventBinding<ThemeChangedEvent> binding;
@@ -31,7 +31,10 @@ namespace UI.Theming
                 return;
 
             if (!string.IsNullOrEmpty(style.SpriteKey))
+            {
                 image.sprite = theme.GetSprite(style.SpriteKey);
+                image.type = theme.GetSpriteType(style.SpriteKey);
+            }
 
             if (!string.IsNullOrEmpty(style.TintColorKey))
                 image.color = theme.GetColor(style.TintColorKey);

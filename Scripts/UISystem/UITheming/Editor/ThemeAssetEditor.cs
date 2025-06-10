@@ -32,11 +32,11 @@ namespace UI.Theming.Editor
         // ───────────────────────────────────────── state ─────────────────────────
         ReorderableList colorsList, spritesList, fontsList;
         SerializedProperty? styleSheetsProp;
-
+        readonly Dictionary<string, bool> spriteFoldouts = new();
         void OnEnable()
         {
             colorsList = BuildList("colors", "Colours");
-            spritesList = BuildList("sprites", "Sprites");
+            spritesList = BuildSpriteList();
             fontsList = BuildList("fonts", "Fonts");
 
             styleSheetsProp = serializedObject.FindProperty("styleSheets");
@@ -238,6 +238,88 @@ namespace UI.Theming.Editor
                     listProp.DeleteArrayElementAtIndex(index);
                     serializedObject.ApplyModifiedProperties();
                     GUIUtility.ExitGUI();
+                }
+            };
+
+            rl.onRemoveCallback = l =>
+            {
+                l.serializedProperty.DeleteArrayElementAtIndex(l.index);
+                serializedObject.ApplyModifiedProperties();
+            };
+
+            return rl;
+        }
+
+        ReorderableList BuildSpriteList()
+        {
+            var listProp = serializedObject.FindProperty("sprites");
+
+            var rl = new ReorderableList(serializedObject, listProp, true, true, true, true)
+            {
+                // variable height – 1 or 2 rows
+                elementHeightCallback = i =>
+                {
+                    var key = listProp.GetArrayElementAtIndex(i).FindPropertyRelative("key").stringValue;
+                    return (spriteFoldouts.TryGetValue(key, out var open) && open)
+                           ? EditorGUIUtility.singleLineHeight * 2 + 8
+                           : EditorGUIUtility.singleLineHeight + 4;
+                }
+            };
+
+            rl.drawHeaderCallback = rect =>
+            {
+                const float addWidth = 55f;
+                var labelRect = new Rect(rect.x, rect.y, rect.width - addWidth, rect.height);
+                EditorGUI.LabelField(labelRect, "Sprites", EditorStyles.boldLabel);
+
+                var addRect = new Rect(rect.x + rect.width - addWidth, rect.y + 1,
+                                       addWidth - 4f, rect.height - 2f);
+                if (GUI.Button(addRect, "Add ▼", EditorStyles.miniButton))
+                    ShowAddMenu(listProp, "sprites");
+            };
+
+            rl.drawElementCallback = (rect, index, _, _) =>
+            {
+                var element = listProp.GetArrayElementAtIndex(index);
+                var keyProp = element.FindPropertyRelative("key");
+                var spriteProp = element.FindPropertyRelative("sprite");
+                var typeProp = element.FindPropertyRelative("imageType");
+
+                var key = keyProp.stringValue;
+                spriteFoldouts.TryGetValue(key, out var open);
+
+                // fold-out triangle
+                var foldRect = new Rect(rect.x, rect.y + 2f, 12f, EditorGUIUtility.singleLineHeight);
+                open = EditorGUI.Foldout(foldRect, open, GUIContent.none);
+                spriteFoldouts[key] = open;
+
+                // key field
+                float keyW = rect.width * 0.3f;
+                var keyRect = new Rect(foldRect.xMax + 2f, rect.y + 2f, keyW, EditorGUIUtility.singleLineHeight);
+                EditorGUI.PropertyField(keyRect, keyProp, GUIContent.none);
+
+                // sprite field
+                float sprW = rect.width - keyW - 12f - 20f; // leave room for ×
+                var sprRect = new Rect(keyRect.xMax + 2f, rect.y + 2f, sprW,
+                                       EditorGUIUtility.singleLineHeight);
+                EditorGUI.PropertyField(sprRect, spriteProp, GUIContent.none);
+
+                // delete button
+                var btnRect = new Rect(rect.x + rect.width - 18f, rect.y + 2f, 18f,
+                                       EditorGUIUtility.singleLineHeight);
+                if (GUI.Button(btnRect, "✕"))
+                {
+                    listProp.DeleteArrayElementAtIndex(index);
+                    serializedObject.ApplyModifiedProperties();
+                    GUIUtility.ExitGUI();
+                }
+
+                // second row – Image Type
+                if (open)
+                {
+                    var typeRect = new Rect(rect.x + 16f, rect.y + EditorGUIUtility.singleLineHeight + 6f,
+                                            rect.width - 16f, EditorGUIUtility.singleLineHeight);
+                    EditorGUI.PropertyField(typeRect, typeProp, new GUIContent("Image Type"));
                 }
             };
 

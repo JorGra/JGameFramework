@@ -72,4 +72,10 @@ namespace UI.Theming
 
     /// <summary>Sheet that stores <see cref="ToggleStyleParameters"/> items.</summary>
     [Serializable] public sealed class ToggleStyleSheet : StyleSheet<ToggleStyleParameters> { }
+    /// <summary>Sheet that stores <see cref="ScrollRectStyleParameters"/> items.</summary>
+    [Serializable]
+    public sealed class ScrollRectStyleSheet : StyleSheet<ScrollRectStyleParameters> { }
+
+    /// <summary>Sheet that stores <see cref="ButtonStyleParameters"/> items.</summary>
+    [Serializable] public sealed class ButtonStyleSheet : StyleSheet<ButtonStyleParameters> { }
 }
