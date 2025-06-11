@@ -39,20 +39,58 @@ namespace UI.Theming
     [Serializable]
     public sealed class ToggleStyleParameters : StyleModuleParameters
     {
-        [Header("Sprites")]
-        [SerializeField] private string backgroundSpriteKey = "";
-        [SerializeField] private string checkmarkSpriteKey = "";
+        // ─── Static visuals ────────────────────────────────────────────────────
+        [Header("Background")]
+        [SerializeField] string backgroundSpriteKey = "";
+        [SerializeField] string backgroundColorKey = "";     // NEW
 
-        [Header("Colours")]
-        [SerializeField] private string onColorKey = "Primary";
-        [SerializeField] private string offColorKey = "Secondary";
-        [SerializeField] private string disabledColorKey = "Disabled";
+        [Header("Fill / Check-mark")]
+        [SerializeField] string checkmarkSpriteKey = "";
+        [SerializeField] string checkmarkColorKey = "";      // NEW
 
+        // ─── Interaction -------------------------------------------------------
+        [Header("Interaction")]
+        [SerializeField]
+        Selectable.Transition transition =
+            Selectable.Transition.ColorTint;
+
+        // Used when transition == ColorTint
+        [SerializeField] ColorTintBlock colorTint = new();    // NEW
+
+        // Used when transition == SpriteSwap
+        [SerializeField] SpriteSwapBlock spriteSwap = new();
+
+        // ─── Public accessors ──────────────────────────────────────────────────
         public string BackgroundSpriteKey => backgroundSpriteKey;
+        public string BackgroundColorKey => backgroundColorKey;
         public string CheckmarkSpriteKey => checkmarkSpriteKey;
-        public string OnColorKey => onColorKey;
-        public string OffColorKey => offColorKey;
-        public string DisabledColorKey => disabledColorKey;
+        public string CheckmarkColorKey => checkmarkColorKey;
+
+        public Selectable.Transition Transition => transition;
+        public ColorTintBlock ColorTint => colorTint;
+        public SpriteSwapBlock SpriteSwap => spriteSwap;
+
+        // ─── Helper structs ────────────────────────────────────────────────────
+        [Serializable]
+        public struct ColorTintBlock
+        {
+            public string normalColorKey;
+            public string highlightedColorKey;
+            public string pressedColorKey;
+            public string selectedColorKey;
+            public string disabledColorKey;
+            public float colorMultiplier;   // default 1
+            public float fadeDuration;      // default 0.1
+        }
+
+        [Serializable]
+        public struct SpriteSwapBlock
+        {
+            public string highlightedSpriteKey;
+            public string pressedSpriteKey;
+            public string selectedSpriteKey;
+            public string disabledSpriteKey;
+        }
     }
 
     /// <summary>Style definition for a <see cref="UnityEngine.UI.Button"/>.</summary>

@@ -82,11 +82,24 @@ MonoBehaviour:
       data:
         styles:
         - styleKey: Default
-          backgroundSpriteKey: 
-          checkmarkSpriteKey: 
-          onColorKey: Primary
-          offColorKey: Secondary
-          disabledColorKey: Disabled
+          backgroundSpriteKey: ToggleBackground
+          backgroundColorKey: 
+          checkmarkSpriteKey: ToggleCheckmark
+          checkmarkColorKey: 
+          transition: 1
+          colorTint:
+            normalColorKey: 
+            highlightedColorKey: 
+            pressedColorKey: 
+            selectedColorKey: 
+            disabledColorKey: 
+            colorMultiplier: 0
+            fadeDuration: 0
+          spriteSwap:
+            highlightedSpriteKey: 
+            pressedSpriteKey: 
+            selectedSpriteKey: 
+            disabledSpriteKey: 
     - rid: 7121754752505610240
       type: {class: ImageStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
       data:
