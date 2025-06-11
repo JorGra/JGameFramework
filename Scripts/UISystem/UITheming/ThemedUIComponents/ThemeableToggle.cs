@@ -8,7 +8,7 @@ namespace UI.Theming
     [RequireComponent(typeof(Toggle))]
     public sealed class ThemeableToggle : MonoBehaviour, IThemeable
     {
-        [SerializeField] private string styleKey = "Toggle";
+        [SerializeField] private string styleKey = "Default";
 
         Toggle toggle;
         Image background;

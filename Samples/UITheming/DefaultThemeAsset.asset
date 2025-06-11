@@ -84,9 +84,9 @@ MonoBehaviour:
         - styleKey: Default
           backgroundSpriteKey: 
           checkmarkSpriteKey: 
-          onColorKey: 
-          offColorKey: 
-          disabledColorKey: 
+          onColorKey: Primary
+          offColorKey: Secondary
+          disabledColorKey: Disabled
     - rid: 7121754752505610240
       type: {class: ImageStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
       data:

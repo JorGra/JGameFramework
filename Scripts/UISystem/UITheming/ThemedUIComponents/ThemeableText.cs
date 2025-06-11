@@ -9,6 +9,7 @@ namespace UI.Theming
     public sealed class ThemeableText : MonoBehaviour, IThemeable
     {
         [SerializeField] private string styleKey = "body";
+        [SerializeField] bool CustomFontSize = false;
 
         TMP_Text text;
         EventBinding<ThemeChangedEvent> binding;
@@ -32,7 +33,8 @@ namespace UI.Theming
                 return;
 
             text.color = theme.GetColor(style.ColorKey);
-            text.fontSize = style.FontSize;
+            if (!CustomFontSize)
+                text.fontSize = style.FontSize;
             text.fontStyle = style.FontStyle;
 
             var font = theme.GetFont(style.FontKey);
