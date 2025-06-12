@@ -69,5 +69,32 @@ MonoBehaviour:
         rolloffMode: 0
       RandomPitch: 1
       RandomPitchRange: {x: 0.95, y: 1.1}
+    - Action: 1
+      SoundData:
+        clip: {fileID: 8300000, guid: 908531e7fe23f2447b8fbc10fc781e77, type: 3}
+        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e,
+          type: 2}
+        loop: 0
+        playOnAwake: 0
+        frequent: 0
+        mute: 0
+        bypassEffects: 0
+        bypassListenerEffects: 0
+        bypassReverbZones: 0
+        priority: 128
+        volume: 1
+        pitch: 1
+        panStereo: 0
+        spatialBlend: 0
+        reverbZoneMix: 1
+        dopplerLevel: 1
+        spread: 0
+        minDistance: 1
+        maxDistance: 500
+        ignoreListenerVolume: 0
+        ignoreListenerPause: 0
+        rolloffMode: 0
+      RandomPitch: 1
+      RandomPitchRange: {x: 0.95, y: 1.1}
   - ProfileName: ButtonPrimary
     Sounds: []
