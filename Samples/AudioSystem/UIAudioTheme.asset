@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e17f01d43fc5c204c9547c6986ce08d4, type: 3}
+  m_Name: UIAudioTheme
+  m_EditorClassIdentifier: 
+  profiles:
+  - ProfileName: Default
+    Sounds:
+    - Action: 0
+      SoundData:
+        clip: {fileID: 8300000, guid: 7a5eacbb6f0864a4187b72af12df8cd0, type: 3}
+        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e,
+          type: 2}
+        loop: 0
+        playOnAwake: 0
+        frequent: 0
+        mute: 0
+        bypassEffects: 0
+        bypassListenerEffects: 0
+        bypassReverbZones: 0
+        priority: 128
+        volume: 1
+        pitch: 1
+        panStereo: 0
+        spatialBlend: 0
+        reverbZoneMix: 1
+        dopplerLevel: 1
+        spread: 0
+        minDistance: 1
+        maxDistance: 500
+        ignoreListenerVolume: 0
+        ignoreListenerPause: 0
+        rolloffMode: 0
+      RandomPitch: 1
+      RandomPitchRange: {x: 0.95, y: 1.1}
+    - Action: 2
+      SoundData:
+        clip: {fileID: 8300000, guid: 908531e7fe23f2447b8fbc10fc781e77, type: 3}
+        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e,
+          type: 2}
+        loop: 0
+        playOnAwake: 0
+        frequent: 0
+        mute: 0
+        bypassEffects: 0
+        bypassListenerEffects: 0
+        bypassReverbZones: 0
+        priority: 128
+        volume: 1
+        pitch: 1
+        panStereo: 0
+        spatialBlend: 0
+        reverbZoneMix: 1
+        dopplerLevel: 1
+        spread: 0
+        minDistance: 1
+        maxDistance: 500
+        ignoreListenerVolume: 0
+        ignoreListenerPause: 0
+        rolloffMode: 0
+      RandomPitch: 1
+      RandomPitchRange: {x: 0.95, y: 1.1}
+  - ProfileName: ButtonPrimary
+    Sounds: []
