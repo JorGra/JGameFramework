@@ -1,109 +1,135 @@
-using System;
+﻿using System;
 using System.Collections;
 using UnityEngine;
 
 
 namespace JG.Tools.SceneManagement
 {
+    /// <summary>
+    /// Loads and unloads <see cref="SceneGroup"/>s, manages a loading screen,
+    /// and coordinates screen-fades by emitting <see cref="FadeRequestEvent"/>.
+    /// </summary>
     public class SceneLoader : Singleton<SceneLoader>
     {
 
-        [SerializeField] LoadingIndicator loadingIndicator;
-        [SerializeField] ScreenFadeController screenFadeController;
-        [SerializeField] float minLoadingScreenTime = 1f;
+        [Header("UI")]
+        [SerializeField] private LoadingIndicator loadingIndicator;
 
         [Header("Scene Groups")]
-        [SerializeField] SceneGroup[] sceneGroups;
+        [SerializeField] private SceneGroup[] sceneGroups;
+
+        [Header("Fade Settings")]
+        [Tooltip("Seconds used as duration for all fade requests.")]
+        [SerializeField] private float fadeDuration = 1f;
+
+        [Tooltip("Ensures loading screen is visible for at least this time.")]
+        [SerializeField] private float minLoadingScreenTime = 1f;
 
         public readonly SceneGroupManager sceneGroupManagement = new SceneGroupManager();
-        
-        float targetProgress;
-        
-        public bool IsLoading { get; private set; } = false;
 
-        // Start is called before the first frame update
-        IEnumerator Start()
+        private float targetProgress;
+        public bool IsLoading { get; private set; }
+
+
+        private IEnumerator Start()
         {
-            //screenFadeController = Camera.main.GetComponent<ScreenFadeController>();
-            //loadingIndicator = Camera.main.GetComponentInChildren<LoadingIndicator>(true);
-
-            yield return LoadSceneGroupAsync(0, false);
+            // Load first group (index 0) without fades on startup
+            yield return LoadSceneGroupAsync(0, fadeIn: false, fadeOut: true);
         }
 
 
-        public void LoadSceneGroup(string name, bool fadeIn = true, bool fadeOut = true)
-        {
-            StartCoroutine(LoadSceneGroupAsync(name, fadeIn, fadeOut));
-        }
+        /// <summary>Begin loading a <see cref="SceneGroup"/> by name.</summary>
+        public void LoadSceneGroup(string groupName,
+                                   bool fadeIn = true,
+                                   bool fadeOut = true) =>
+            StartCoroutine(LoadSceneGroupAsync(groupName, fadeIn, fadeOut));
 
-        public IEnumerator LoadSceneGroupAsync(string name, bool fadeIn = true, bool fadeOut = true)
+        /// <summary>Coroutine variant—load group by name.</summary>
+        public IEnumerator LoadSceneGroupAsync(string groupName,
+                                               bool fadeIn = true,
+                                               bool fadeOut = true)
         {
-            int index = Array.FindIndex(sceneGroups, group => group.GroupName == name);
-
+            int index = Array.FindIndex(sceneGroups, g => g.GroupName == groupName);
             if (index == -1)
             {
-                Logger.LogError("Scene group not found.");
+                Logger.LogError($"Scene group \"{groupName}\" not found.");
                 yield break;
             }
-
 
             yield return LoadSceneGroupAsync(index, fadeIn, fadeOut);
         }
 
-        public IEnumerator LoadSceneGroupAsync(int index, bool fadeIn = true, bool fadeOut = true)
+        /// <summary>Coroutine variant—load group by index.</summary>
+        public IEnumerator LoadSceneGroupAsync(int index,
+                                               bool fadeIn = true,
+                                               bool fadeOut = true)
         {
-            if(index < 0 || index >= sceneGroups.Length)
+            if (index < 0 || index >= sceneGroups.Length)
             {
                 Logger.LogError("Scene group index out of range.");
                 yield break;
             }
-            targetProgress = 0;
-            
-            
+
+            /* ── Fade-in (opaque → clear) before unloading ───────── */
             if (fadeIn)
             {
-                screenFadeController.FadeIn();
-                yield return new WaitForSeconds(screenFadeController.defaultFadeDuration);
+                RequestFade(fadeIn: true);
+                yield return new WaitForSeconds(fadeDuration);
             }
-            EnableLoadingBar(true);
-            yield return sceneGroupManagement.UnloadUnneededScenesCoroutine(sceneGroups[index]);
-            
-            LoadingProgress progress = new LoadingProgress();
-            progress.OnProgress += target => targetProgress = Mathf.Max(target, targetProgress);
 
+            /* ── Loading workflow ───────────────────────────────── */
+            targetProgress = 0f;
+            EnableLoadingBar(true);
+
+            // Unload everything not needed by the target group
+            yield return sceneGroupManagement.UnloadUnneededScenesCoroutine(sceneGroups[index]);
+
+            // Track progress for loading indicator
+            LoadingProgress progress = new LoadingProgress();
+            progress.OnProgress += p => targetProgress = Mathf.Max(p, targetProgress);
+
+            // Load all scenes in the group
             yield return sceneGroupManagement.LoadScenesCoroutine(sceneGroups[index], progress);
+
+            // Maintain loading screen for a minimum time
             yield return new WaitForSeconds(minLoadingScreenTime);
 
+            EnableLoadingBar(false);
 
-            if (fadeOut)
-            {
-                EnableLoadingBar(false);
-                screenFadeController.FadeOut();
-
-            }
-
+            /* ── Fade-out (clear → opaque) after load completes ─── */
+            if (fadeOut) RequestFade(fadeIn: false);
         }
 
         private void EnableLoadingBar(bool enable)
         {
             IsLoading = enable;
 
-            if (loadingIndicator != null)
+            // Lazy lookup if reference lost
+            if (loadingIndicator == null)
             {
-                loadingIndicator.ToggleLoadingScreen(enable);
-                loadingIndicator.SetLoadingIndicator(targetProgress);
+                loadingIndicator = Camera.main?.GetComponentInChildren<LoadingIndicator>(true);
+                if (loadingIndicator == null)
+                {
+                    Logger.LogWarning("LoadingIndicator not found in camera hierarchy.");
+                    return;
+                }
             }
-            else
-            {
-                loadingIndicator = Camera.main.GetComponentInChildren<LoadingIndicator>(true);
-                Logger.LogWarning("Loading Indicator not found.");
-            }
+
+            loadingIndicator.ToggleLoadingScreen(enable);
+            loadingIndicator.SetLoadingIndicator(targetProgress);
         }
 
+        /// <summary>True if the active group is named "GenerationScene".</summary>
+        public bool GenerationSceneLoaded() =>
+            sceneGroupManagement.ActiveSceneGroup.GroupName == "GenerationScene";
 
-        public bool GenerationSceneLoaded()
+        private void RequestFade(bool fadeIn)
         {
-            return sceneGroupManagement.ActiveSceneGroup.GroupName == "GenerationScene";
+            EventBus<FadeRequestEvent>.Raise(
+                new FadeRequestEvent(fadeIn: fadeIn,
+                                     duration: fadeDuration,
+                                     colorOverride: null,
+                                     forceReset: true));   // Always cancel any ongoing fade
         }
     }
 }

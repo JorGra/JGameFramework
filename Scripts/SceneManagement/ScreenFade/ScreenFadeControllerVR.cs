@@ -186,9 +186,12 @@ public class ScreenFadeControllerVR : MonoBehaviour
 
     private void CreateFadeMesh()
     {
-        gradientMaterial = new Material(Shader.Find("PXR_SDK/PXR_Fade"));
+        gradientMaterial = new Material(Shader.Find("JG/ScreenFade"));
         gradientMeshFilter = gameObject.AddComponent<MeshFilter>();
         gradientMeshRenderer = gameObject.AddComponent<MeshRenderer>();
+
+        if(LayerMask.NameToLayer("ScreenFade") == -1)
+            Debug.LogError("Layer 'ScreenFade' not found.");
         gradientMeshRenderer.gameObject.layer = LayerMask.NameToLayer("ScreenFade");
 
         CreateModel();
