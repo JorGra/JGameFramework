@@ -119,10 +119,6 @@ namespace JG.Tools.SceneManagement
             loadingIndicator.SetLoadingIndicator(targetProgress);
         }
 
-        /// <summary>True if the active group is named "GenerationScene".</summary>
-        public bool GenerationSceneLoaded() =>
-            sceneGroupManagement.ActiveSceneGroup.GroupName == "GenerationScene";
-
         private void RequestFade(bool fadeIn)
         {
             EventBus<FadeRequestEvent>.Raise(
