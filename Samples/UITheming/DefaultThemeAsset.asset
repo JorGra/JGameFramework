@@ -71,6 +71,10 @@ MonoBehaviour:
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 1
     pixelPerUnit: 1
+  - key: ButtonSecondary
+    sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 1
+    pixelPerUnit: 1
   fonts:
   - key: body
     font: {fileID: 11400000, guid: 0afed846c8da71d4b8fbfb77e96b208f, type: 2}
@@ -165,6 +169,15 @@ MonoBehaviour:
         styles:
         - styleKey: Default
           backgroundSpriteKey: Button
+          backgroundColorKey: Primary
+          transition: 1
+          spriteSwap:
+            highlightedSpriteKey: 
+            pressedSpriteKey: 
+            selectedSpriteKey: 
+            disabledSpriteKey: 
+        - styleKey: Secondary
+          backgroundSpriteKey: ButtonSecondary
           backgroundColorKey: Primary
           transition: 1
           spriteSwap:

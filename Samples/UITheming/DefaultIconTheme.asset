@@ -15,7 +15,7 @@ MonoBehaviour:
   baseTheme: {fileID: 11400000, guid: e5f5c54a9a0d4aa46b6603d9dcd9cb6f, type: 2}
   colors:
   - key: IconTint
-    color: {r: 1, g: 0.9647059, b: 0.84705883, a: 0.34117648}
+    color: {r: 0, g: 0, b: 0, a: 0.34117648}
   sprites:
   - key: IconArrow
     sprite: {fileID: 21300000, guid: 7d2dba39c6a054641a9109ec98ee219f, type: 3}
