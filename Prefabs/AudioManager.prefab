@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 163002560019277613}
   - component: {fileID: 6722770837914080590}
+  - component: {fileID: 1719112269533875886}
   m_Layer: 0
   m_Name: AudioManager
   m_TagString: Untagged
@@ -48,6 +49,19 @@ MonoBehaviour:
   soundEmitterPrefab: {fileID: 4482855701002851912, guid: b8cc16ad389e9ad428026739501ba254,
     type: 3}
   collecitonCheck: 1
-  defaultCapacity: 10
+  defaultCapacity: 20
   maxPoolSize: 100
-  maxSoundInstances: 30
+  maxSoundInstances: 40
+--- !u!114 &1719112269533875886
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6304967543015151268}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4d59c6a0f23b1347afae44de7b1999c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  theme: {fileID: 11400000, guid: 4d3959c90820b3a4f8553e89398ed5ac, type: 2}

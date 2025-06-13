@@ -17,18 +17,18 @@ MonoBehaviour:
     Sounds:
     - Action: 0
       SoundData:
-        clip: {fileID: 8300000, guid: 2daa3d1d9bcd0d241aa3dd05ddc13614, type: 3}
+        clip: {fileID: 8300000, guid: 507d4ce88d0f5b3448da9240aff4fdb0, type: 3}
         mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e,
           type: 2}
         loop: 0
         playOnAwake: 0
-        frequent: 0
+        frequent: 1
         mute: 0
         bypassEffects: 0
         bypassListenerEffects: 0
         bypassReverbZones: 0
         priority: 128
-        volume: 1
+        volume: 100
         pitch: 1
         panStereo: 0
         spatialBlend: 0
@@ -49,7 +49,7 @@ MonoBehaviour:
           type: 2}
         loop: 0
         playOnAwake: 0
-        frequent: 0
+        frequent: 1
         mute: 0
         bypassEffects: 0
         bypassListenerEffects: 0
@@ -76,7 +76,7 @@ MonoBehaviour:
           type: 2}
         loop: 0
         playOnAwake: 0
-        frequent: 0
+        frequent: 1
         mute: 0
         bypassEffects: 0
         bypassListenerEffects: 0
@@ -96,5 +96,3 @@ MonoBehaviour:
         rolloffMode: 0
       RandomPitch: 1
       RandomPitchRange: {x: 0.95, y: 1.1}
-  - ProfileName: ButtonPrimary
-    Sounds: []

@@ -58,7 +58,7 @@ namespace JG.Audio
                 }
                 catch
                 {
-                    Debug.Log("SoundEmitter is already released");
+                    //Debug.Log("SoundEmitter is already released");
                 }
 
                 return false;
