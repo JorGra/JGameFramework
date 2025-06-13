@@ -13,7 +13,9 @@ public class UIAudioBinder :
     IPointerEnterHandler,
     IPointerDownHandler,
     IPointerClickHandler,
-    IPointerUpHandler
+    IPointerUpHandler,
+    ISelectHandler,
+    ISubmitHandler
 {
     [Tooltip("Name of the sound profile defined in the UIAudioTheme. "
            + "Leave empty or \"Default\" to use the default profile.")]
@@ -30,5 +32,15 @@ public class UIAudioBinder :
     {
         EventBus<PlayUISoundEvent>.Raise(
             new PlayUISoundEvent(profile, action, transform.position));
+    }
+
+    public void OnSelect(BaseEventData eventData)
+    {
+        Play(UIAudioAction.Hover);
+    }
+
+    public void OnSubmit(BaseEventData eventData)
+    {
+        Play(UIAudioAction.Click);
     }
 }
