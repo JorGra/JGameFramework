@@ -911,6 +911,7 @@ GameObject:
   - component: {fileID: 456588297}
   - component: {fileID: 456588299}
   - component: {fileID: 456588298}
+  - component: {fileID: 456588300}
   m_Layer: 5
   m_Name: Background
   m_TagString: Untagged
@@ -932,8 +933,8 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1757762637}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.25}
-  m_AnchorMax: {x: 1, y: 0.75}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -975,6 +976,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 456588296}
   m_CullTransparentMesh: 1
+--- !u!114 &456588300
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 456588296}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7797a39d0c1222459b0b8c471fb3c49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  styleKey: SliderBackground
 --- !u!1 &485112906
 GameObject:
   m_ObjectHideFlags: 0
@@ -2718,6 +2732,7 @@ GameObject:
   - component: {fileID: 1105588647}
   - component: {fileID: 1105588649}
   - component: {fileID: 1105588648}
+  - component: {fileID: 1105588650}
   m_Layer: 5
   m_Name: Handle
   m_TagString: Untagged
@@ -2782,6 +2797,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1105588646}
   m_CullTransparentMesh: 1
+--- !u!114 &1105588650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1105588646}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7797a39d0c1222459b0b8c471fb3c49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  styleKey: SliderKnob
 --- !u!1 &1137321413
 GameObject:
   m_ObjectHideFlags: 0
@@ -2920,6 +2948,7 @@ GameObject:
   - component: {fileID: 1151620453}
   - component: {fileID: 1151620454}
   - component: {fileID: 1151620455}
+  - component: {fileID: 1151620456}
   m_Layer: 5
   m_Name: Toggle
   m_TagString: Untagged
@@ -3025,6 +3054,19 @@ MonoBehaviour:
   scaleMultiplier: 1.1
   duration: 0.1
   unscaledTime: 1
+--- !u!114 &1151620456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1151620451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c4cb90f074459a4b824fe2050a89eac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  profile: Default
 --- !u!1 &1156855956
 GameObject:
   m_ObjectHideFlags: 0
@@ -4051,8 +4093,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1392066944}
   m_HandleRect: {fileID: 1392066943}
   m_Direction: 2
-  m_Value: 0.999999
-  m_Size: 0.42409518
+  m_Value: 0.99999917
+  m_Size: 0.4240952
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -5682,7 +5724,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1537333124}
   m_HandleRect: {fileID: 1537333123}
   m_Direction: 0
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -5737,6 +5779,7 @@ GameObject:
   - component: {fileID: 2009017964}
   - component: {fileID: 2009017966}
   - component: {fileID: 2009017965}
+  - component: {fileID: 2009017967}
   m_Layer: 5
   m_Name: Fill
   m_TagString: Untagged
@@ -5801,6 +5844,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2009017963}
   m_CullTransparentMesh: 1
+--- !u!114 &2009017967
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2009017963}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7797a39d0c1222459b0b8c471fb3c49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  styleKey: SliderKnob
 --- !u!1 &2023335472
 GameObject:
   m_ObjectHideFlags: 0

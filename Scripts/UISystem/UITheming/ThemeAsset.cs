@@ -19,11 +19,12 @@ namespace UI.Theming
         // ───────────────────────────────────────────────────────────── foundations ─
         [Serializable] struct ColorSwatch { public string key; public Color color; }
         [Serializable]
-        struct SpriteEntry
+        private class SpriteEntry
         {
             public string key;
             public Sprite sprite;
-            public Image.Type imageType;
+            public Image.Type imageType = Image.Type.Sliced;
+            [Min(1f)] public float pixelPerUnit = 1;
         }
         [Serializable] struct FontEntry { public string key; public TMP_FontAsset font; }
 
@@ -90,6 +91,15 @@ namespace UI.Theming
         public Image.Type GetSpriteType(string key) =>
             TryGetSpriteType(key, out var t) ? t : Image.Type.Simple;
 
+        public float GetSpritePixelPerUnit(string key)
+        {
+            if (TryGetSpritePixelPerUnit(key, out var ppu))
+            {
+                return ppu;
+            }
+            throw new KeyNotFoundException($"[ThemeAsset] Missing sprite key '{key}' in '{name}' and its base chain.");
+        }
+
         // ─────────────────────────────────────────────── internal linear look-ups ──
         bool TryGetColor(string key, out Color c) =>
             ScanList(this, t => t.colors, key, e => e.key, e => e.color, out c);
@@ -107,6 +117,10 @@ namespace UI.Theming
                      e => e.key,         // how to read the key from a SpriteEntry
                      e => e.imageType,   // how to read the value we want
                      out type);          // out-parameter
+
+        bool TryGetSpritePixelPerUnit(string key, out float multiplier) =>
+            ScanList(this, t => t.sprites, key, e => e.key, e => e.pixelPerUnit, out multiplier);
+
 
         // Generic walker ----------------------------------------------------
         static bool ScanList<TEntry, TValue>(

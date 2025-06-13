@@ -30,30 +30,47 @@ MonoBehaviour:
   - key: PanelLarge
     sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 2
+    pixelPerUnit: 1
   - key: PanelLargeHeader
     sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 2
+    pixelPerUnit: 1
   - key: Card
     sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 2
+    pixelPerUnit: 1
   - key: ToggleBackground
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 2
+    pixelPerUnit: 1
   - key: ToggleCheckmark
     sprite: {fileID: 10915, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 2
+    pixelPerUnit: 1
   - key: SliderNormal
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 2
+    pixelPerUnit: 1
   - key: SliderHighlighted
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 2
+    pixelPerUnit: 1
   - key: SliderDisabled
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 2
+    pixelPerUnit: 1
   - key: Button
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 1
+    pixelPerUnit: 1
+  - key: SliderBackground
+    sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: SliderKnob
+    sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 1
+    pixelPerUnit: 1
   fonts:
   - key: body
     font: {fileID: 11400000, guid: 0afed846c8da71d4b8fbfb77e96b208f, type: 2}
@@ -112,6 +129,12 @@ MonoBehaviour:
           tintColorKey: 
         - styleKey: Card
           spriteKey: Card
+          tintColorKey: Primary
+        - styleKey: SliderBackground
+          spriteKey: SliderBackground
+          tintColorKey: Primary
+        - styleKey: SliderKnob
+          spriteKey: SliderKnob
           tintColorKey: Primary
     - rid: 7121754752505610242
       type: {class: ScrollRectStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}

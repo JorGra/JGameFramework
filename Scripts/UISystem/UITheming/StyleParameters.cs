@@ -42,20 +42,20 @@ namespace UI.Theming
         // ─── Static visuals ────────────────────────────────────────────────────
         [Header("Background")]
         [SerializeField] string backgroundSpriteKey = "";
-        [SerializeField] string backgroundColorKey = "";     // NEW
+        [SerializeField] string backgroundColorKey = "";
 
         [Header("Fill / Check-mark")]
         [SerializeField] string checkmarkSpriteKey = "";
-        [SerializeField] string checkmarkColorKey = "";      // NEW
+        [SerializeField] string checkmarkColorKey = "";
 
-        // ─── Interaction -------------------------------------------------------
+        // ─── Interaction -------------------------------
         [Header("Interaction")]
         [SerializeField]
         Selectable.Transition transition =
             Selectable.Transition.ColorTint;
 
         // Used when transition == ColorTint
-        [SerializeField] ColorTintBlock colorTint = new();    // NEW
+        [SerializeField] ColorTintBlock colorTint = new();
 
         // Used when transition == SpriteSwap
         [SerializeField] SpriteSwapBlock spriteSwap = new();

@@ -261,7 +261,7 @@ namespace UI.Theming.Editor
                 {
                     var key = listProp.GetArrayElementAtIndex(i).FindPropertyRelative("key").stringValue;
                     return (spriteFoldouts.TryGetValue(key, out var open) && open)
-                           ? EditorGUIUtility.singleLineHeight * 2 + 8
+                           ? EditorGUIUtility.singleLineHeight * 3 + 8
                            : EditorGUIUtility.singleLineHeight + 4;
                 }
             };
@@ -284,12 +284,13 @@ namespace UI.Theming.Editor
                 var keyProp = element.FindPropertyRelative("key");
                 var spriteProp = element.FindPropertyRelative("sprite");
                 var typeProp = element.FindPropertyRelative("imageType");
+                var ppuProp = element.FindPropertyRelative("pixelPerUnit");
 
                 var key = keyProp.stringValue;
                 spriteFoldouts.TryGetValue(key, out var open);
 
                 // fold-out triangle
-                var foldRect = new Rect(rect.x, rect.y + 2f, 12f, EditorGUIUtility.singleLineHeight);
+                var foldRect = new Rect(rect.x + 10, rect.y + 2f, 5f, EditorGUIUtility.singleLineHeight);
                 open = EditorGUI.Foldout(foldRect, open, GUIContent.none);
                 spriteFoldouts[key] = open;
 
@@ -299,7 +300,7 @@ namespace UI.Theming.Editor
                 EditorGUI.PropertyField(keyRect, keyProp, GUIContent.none);
 
                 // sprite field
-                float sprW = rect.width - keyW - 12f - 20f; // leave room for ×
+                float sprW = rect.width - keyW - 12f - 20f - 10; // leave room for ×
                 var sprRect = new Rect(keyRect.xMax + 2f, rect.y + 2f, sprW,
                                        EditorGUIUtility.singleLineHeight);
                 EditorGUI.PropertyField(sprRect, spriteProp, GUIContent.none);
@@ -317,9 +318,19 @@ namespace UI.Theming.Editor
                 // second row – Image Type
                 if (open)
                 {
-                    var typeRect = new Rect(rect.x + 16f, rect.y + EditorGUIUtility.singleLineHeight + 6f,
-                                            rect.width - 16f, EditorGUIUtility.singleLineHeight);
+                    // line-2:  Image Type
+                    var typeRect = new Rect(rect.x + 16f,
+                                            rect.y + EditorGUIUtility.singleLineHeight + 6f,
+                                            rect.width - 16f,
+                                            EditorGUIUtility.singleLineHeight);
                     EditorGUI.PropertyField(typeRect, typeProp, new GUIContent("Image Type"));
+
+                    // line-3:  Pixel Per Unit (directly underneath)
+                    var ppuRect = new Rect(typeRect.x,
+                                           typeRect.y + EditorGUIUtility.singleLineHeight + 2f,
+                                           typeRect.width,
+                                           EditorGUIUtility.singleLineHeight);
+                    EditorGUI.PropertyField(ppuRect, ppuProp, new GUIContent("Pixels Per Unit"));
                 }
             };
 
