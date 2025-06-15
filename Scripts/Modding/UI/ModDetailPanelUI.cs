@@ -36,6 +36,7 @@ namespace JG.Modding.UI
         public void Show(LoadedMod mod, bool enabled, string errorMsg)
         {
             ContentRect.gameObject.SetActive(true);
+
             textHeader.text = $"{mod.Manifest.name} <size=70%>v{mod.Manifest.version}</size>";
             textAuthor.text = string.IsNullOrEmpty(mod.Manifest.author)
                                  ? "—"
