@@ -75,6 +75,10 @@ MonoBehaviour:
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 1
     pixelPerUnit: 1
+  - key: ImageBorder
+    sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 1
+    pixelPerUnit: 1
   fonts:
   - key: body
     font: {fileID: 11400000, guid: 0afed846c8da71d4b8fbfb77e96b208f, type: 2}
@@ -139,6 +143,9 @@ MonoBehaviour:
           tintColorKey: Primary
         - styleKey: SliderKnob
           spriteKey: SliderKnob
+          tintColorKey: Primary
+        - styleKey: ImageBorder
+          spriteKey: ImageBorder
           tintColorKey: Primary
     - rid: 7121754752505610242
       type: {class: ScrollRectStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
