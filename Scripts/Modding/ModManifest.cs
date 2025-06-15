@@ -13,6 +13,12 @@ namespace JG.Modding
         public string author;
         public string description;
 
+        /// <summary>
+        /// Relative path of a PNG/JPG placed in the mod folder (e.g. "icon.png").  
+        /// If null/empty the UI falls back to a default placeholder.
+        /// </summary>
+        public string icon;
+
         public string[] requires = Array.Empty<string>();
         public string[] loadBefore = Array.Empty<string>();
         public string[] loadAfter = Array.Empty<string>();
