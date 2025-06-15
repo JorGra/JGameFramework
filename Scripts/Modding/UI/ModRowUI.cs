@@ -21,10 +21,11 @@ namespace JG.Modding.UI
         [SerializeField] private Button buttonUp;
         [SerializeField] private Button buttonDown;
         [SerializeField] private Image background;
-        [SerializeField] private Image iconImage;            // NEW: mod icon
+        [SerializeField] private CanvasGroup canvasGroup;
+        [SerializeField] private Image iconImage;
 
         [Header("Colours")]
-        [SerializeField] private Color errorColour = new(1f, .45f, .45f, 1f);
+        [SerializeField] private Color errorColour = new(1f, .45f, .45f, 0.4f);
 
         /* ---------- state ------------------------------------------ */
         ModLoader loader;
@@ -50,6 +51,7 @@ namespace JG.Modding.UI
             bool enabled = loader.IsModEnabled(lm.Manifest.id);
             toggleEnable.isOn = enabled;
             background.canvasRenderer.SetAlpha(enabled ? 1f : .4f);
+            canvasGroup.alpha = enabled ? 1f : .4f;
 
             LoadIcon(lm);
 
@@ -78,6 +80,7 @@ namespace JG.Modding.UI
         {
             loader.Enable(loadedMod.Manifest.id, on);
             background.canvasRenderer.SetAlpha(on ? 1f : .4f);
+            canvasGroup.alpha = on ? 1f : .4f;
         }
 
         void Move(int delta)

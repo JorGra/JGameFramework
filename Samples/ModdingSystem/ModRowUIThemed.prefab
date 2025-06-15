@@ -78,8 +78,9 @@ MonoBehaviour:
   buttonUp: {fileID: 1786677218064527729}
   buttonDown: {fileID: 6655932672017182435}
   background: {fileID: 4363294455684974224}
+  canvasGroup: {fileID: 5536346283186970331}
   iconImage: {fileID: 8463403643596571036}
-  errorColour: {r: 1, g: 0.45, b: 0.45, a: 1}
+  errorColour: {r: 1, g: 0.45, b: 0.45, a: 0.22745098}
 --- !u!225 &5536346283186970331
 CanvasGroup:
   m_ObjectHideFlags: 0
