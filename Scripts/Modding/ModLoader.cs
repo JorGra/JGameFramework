@@ -80,7 +80,14 @@ namespace JG.Modding
             for (int i = 0; i < list.Count; i++) list[i].order = i;
 
             _stateStore.Save(_state);
-            if (_cfg.fullReloadOnChange) Reload();
+            if (_cfg.fullReloadOnChange)
+            {
+                Reload();
+            }
+            else
+            {
+                ActiveMods = _mods.OrderBy(m => list.Find(e => e.id == m.Manifest.id).order).ToList().AsReadOnly();
+            }
         }
 
         /* ---------- internals --------------------------------------- */

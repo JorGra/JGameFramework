@@ -18,6 +18,7 @@ namespace JG.Modding.UI
         [SerializeField] private ModDetailPanelUI detailPanel;   // NEW
 
         readonly List<ModRowUI> rows = new();
+        public int IndexOf(ModRowUI row) => rows.IndexOf(row);
 
         readonly Dictionary<string, string> modErrors = new();
         Action<ModLoadError> errorHandler;

@@ -85,7 +85,8 @@ namespace JG.Modding.UI
 
         void Move(int delta)
         {
-            int rowIndex = transform.GetSiblingIndex();
+            int rowIndex = listUI.IndexOf(this);
+            if (rowIndex == -1) return;
             loader.Move(loadedMod.Manifest.id, rowIndex + delta);
             listUI.Refresh();          // list recreated after reload
             listUI.OnRowMoved();
