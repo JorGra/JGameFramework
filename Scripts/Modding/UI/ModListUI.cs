@@ -1,21 +1,22 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace JG.Modding.UI
 {
-    /// <summary>
-    /// Orchestrates the mod list & detail panel: recreates rows whenever the
-    /// loader reloads or an error occurs, and routes selection to
-    /// <see cref="ModDetailPanelUI"/>.
-    /// </summary>
+    /// <summary>Drives the list & detail panel; now also hosts Apply/Revert.</summary>
     public sealed class ModListUI : MonoBehaviour
     {
         [Header("References")]
         [SerializeField] private ModLoaderBehaviour modLoaderBehaviour;
         [SerializeField] private ModRowUI rowPrefab;
         [SerializeField] private Transform contentRoot;
-        [SerializeField] private ModDetailPanelUI detailPanel;   // NEW
+        [SerializeField] private ModDetailPanelUI detailPanel;
+
+        [Header("Apply / Revert")]
+        [SerializeField] private Button buttonApply;
+        [SerializeField] private Button buttonRevert;
 
         readonly List<ModRowUI> rows = new();
         public int IndexOf(ModRowUI row) => rows.IndexOf(row);
@@ -24,7 +25,6 @@ namespace JG.Modding.UI
         Action<ModLoadError> errorHandler;
         ModRowUI selectedRow;
 
-        /* ---------- lifecycle -------------------------------------- */
         void Start()
         {
             errorHandler = err =>
@@ -36,6 +36,9 @@ namespace JG.Modding.UI
             };
 
             modLoaderBehaviour.Loader.OnLoadError += errorHandler;
+            buttonApply.onClick.AddListener(OnApply);
+            buttonRevert.onClick.AddListener(OnRevert);
+
             Refresh();
         }
 
@@ -45,7 +48,6 @@ namespace JG.Modding.UI
                 modLoaderBehaviour.Loader.OnLoadError -= errorHandler;
         }
 
-        /* ---------- public API for rows ----------------------------- */
         public void OnRowSelected(ModRowUI row)
         {
             selectedRow = row;
@@ -56,7 +58,20 @@ namespace JG.Modding.UI
 
         public void OnRowMoved() => UpdateRowInteractability();
 
-        /* ---------- main refresh ----------------------------------- */
+        void OnApply()
+        {
+            modLoaderBehaviour.Loader.CommitChanges();
+            modErrors.Clear();
+            Refresh();
+        }
+
+        void OnRevert()
+        {
+            modLoaderBehaviour.Loader.RevertChanges();
+            modErrors.Clear();
+            Refresh();
+        }
+
         public void Refresh()
         {
             foreach (var r in rows) Destroy(r.gameObject);
@@ -75,16 +90,14 @@ namespace JG.Modding.UI
 
             UpdateRowInteractability();
 
-            // keep detail panel in sync if the selected row got recreated
             if (selectedRow != null)
             {
-                var id = selectedRow.LoadedMod.Manifest.id;
+                string id = selectedRow.LoadedMod.Manifest.id;
                 var newSel = rows.Find(r => r.LoadedMod.Manifest.id == id);
                 if (newSel != null) OnRowSelected(newSel);
             }
         }
 
-        /* ---------- helpers ---------------------------------------- */
         void UpdateRowInteractability()
         {
             for (int i = 0; i < rows.Count; i++)

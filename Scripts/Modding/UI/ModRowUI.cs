@@ -1,18 +1,13 @@
 using System.IO;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace JG.Modding.UI
 {
-    /// <summary>
-    /// One row in the Mod Manager list – shows basic data, handles enable/disable
-    /// toggles, order buttons and signals selection back to <see cref="ModListUI"/>.
-    /// </summary>
+    /// <summary>One row in the Mod Manager list.</summary>
     public sealed class ModRowUI : MonoBehaviour
     {
-        /* ---------- UI references ---------------------------------- */
         [Header("UI References")]
         [SerializeField] private Toggle toggleEnable;
         [SerializeField] private TextMeshProUGUI textName;
@@ -27,21 +22,16 @@ namespace JG.Modding.UI
         [Header("Colours")]
         [SerializeField] private Color errorColour = new(1f, .45f, .45f, 0.4f);
 
-        /* ---------- state ------------------------------------------ */
         ModLoader loader;
         ModListUI listUI;
         LoadedMod loadedMod;
         string errorMsg;
 
-        /* ---------- initialisation --------------------------------- */
-        public void Init(LoadedMod lm,
-                         ModLoader loader,
-                         ModListUI listUI,
-                         string errorMsg = null)
+        public void Init(LoadedMod lm, ModLoader loader, ModListUI listUI, string errorMsg = null)
         {
             this.loader = loader;
             this.listUI = listUI;
-            this.loadedMod = lm;
+            loadedMod = lm;
             this.errorMsg = errorMsg;
 
             textName.text = lm.Manifest.name;
@@ -62,10 +52,8 @@ namespace JG.Modding.UI
             UpdateErrorVisual();
         }
 
-        public void SelectMod()
-            => listUI.OnRowSelected(this);
+        public void SelectMod() => listUI.OnRowSelected(this);
 
-        /* ---------- external accessors ----------------------------- */
         public LoadedMod LoadedMod => loadedMod;
         public string ErrorMessage => errorMsg;
 
@@ -75,7 +63,6 @@ namespace JG.Modding.UI
             UpdateErrorVisual();
         }
 
-        /* ---------- private helpers -------------------------------- */
         void OnToggle(bool on)
         {
             loader.Enable(loadedMod.Manifest.id, on);
@@ -87,9 +74,12 @@ namespace JG.Modding.UI
         {
             int rowIndex = listUI.IndexOf(this);
             if (rowIndex == -1) return;
-            loader.Move(loadedMod.Manifest.id, rowIndex + delta);
-            listUI.Refresh();          // list recreated after reload
-            listUI.OnRowMoved();
+
+            if (loader.Move(loadedMod.Manifest.id, rowIndex + delta))
+            {
+                listUI.Refresh();
+                listUI.OnRowMoved();
+            }
         }
 
         void UpdateErrorVisual()
@@ -101,8 +91,7 @@ namespace JG.Modding.UI
 
         void LoadIcon(LoadedMod lm)
         {
-            if (string.IsNullOrEmpty(lm.Manifest.icon))
-                return;
+            if (string.IsNullOrEmpty(lm.Manifest.icon)) return;
 
             using var s = lm.Handle.OpenFile(lm.Manifest.icon);
             if (s == null) return;
@@ -117,11 +106,10 @@ namespace JG.Modding.UI
                     new Vector2(.5f, .5f));
         }
 
-        /* ---------- public helpers used by ModListUI --------------- */
-        public void SetMoveButtonsInteractable(bool canMoveUp, bool canMoveDown)
+        public void SetMoveButtonsInteractable(bool up, bool down)
         {
-            buttonUp.interactable = canMoveUp;
-            buttonDown.interactable = canMoveDown;
+            buttonUp.interactable = up;
+            buttonDown.interactable = down;
         }
     }
 }

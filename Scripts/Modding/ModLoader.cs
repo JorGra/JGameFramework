@@ -16,8 +16,10 @@ namespace JG.Modding
         readonly List<LoadedMod> _mods = new();
         ModStateTable _state;
 
-        public IReadOnlyList<LoadedMod> ActiveMods { get; private set; }
+        /// <summary>Current working list in UI order (updated live, not yet imported).</summary>
+        public IReadOnlyList<LoadedMod> ActiveMods { get; private set; } = Array.Empty<LoadedMod>();
 
+        bool _dirty;                                   // true if edits not yet applied
         public event Action<ModLoadError> OnLoadError;
 
         /* ------------------------------------------------------------ */
@@ -33,7 +35,7 @@ namespace JG.Modding
             _stateStore = stateStore;
             _importer = importer;
 
-            Reload();
+            Reload();                                  // prime everything from disk
         }
 
         /* ------------------------------------------------------------ */
@@ -47,48 +49,73 @@ namespace JG.Modding
             if (!ResolveOrder(out var ordered)) return;
 
             BuildStateTable(ordered);
-            _stateStore.Save(_state);
-
             ActiveMods = ordered.AsReadOnly();
 
             foreach (var mod in ordered)
                 if (_state.mods.First(r => r.id == mod.Manifest.id).enabled)
                     _importer.Import(mod.Handle);
+
+            _dirty = false;                            // disk state now matches memory
         }
 
-        /* ---------- UI helpers -------------------------------------- */
+        /* ---------- live editing helpers ---------------------------- */
         public void Enable(string id, bool on)
         {
             var row = _state.mods.FirstOrDefault(e => e.id == id);
             if (row == null) return;
 
             row.enabled = on;
-            _stateStore.Save(_state);
-            if (_cfg.fullReloadOnChange) Reload();
+            _dirty = true;
         }
 
-        public void Move(string id, int newPos)
+        /// <summary>Re-order a mod in the current list, validating constraints.</summary>
+        public bool Move(string id, int newPos)
         {
             var list = _state.mods;
             int idx = list.FindIndex(e => e.id == id);
-            if (idx == -1 || newPos < 0 || newPos >= list.Count) return;
+            if (idx == -1 || newPos < 0 || newPos >= list.Count) return false;
 
             var entry = list[idx];
             list.RemoveAt(idx);
             list.Insert(newPos, entry);
-
             for (int i = 0; i < list.Count; i++) list[i].order = i;
 
-            _stateStore.Save(_state);
-            if (_cfg.fullReloadOnChange)
+            if (!ValidateCurrentOrder(out var err))
             {
-                Reload();
+                // undo move and report
+                list.RemoveAt(newPos);
+                list.Insert(idx, entry);
+                for (int i = 0; i < list.Count; i++) list[i].order = i;
+                Raise(ErrorKind.CircularDependency, err, null);
+                return false;
             }
-            else
-            {
-                ActiveMods = _mods.OrderBy(m => list.Find(e => e.id == m.Manifest.id).order).ToList().AsReadOnly();
-            }
+
+            ActiveMods = _mods
+                .OrderBy(m => list.Find(e => e.id == m.Manifest.id).order)
+                .ToList()
+                .AsReadOnly();
+
+            _dirty = true;
+            return true;
         }
+
+        /// <summary>Write the working state to disk and perform a full import.</summary>
+        public void CommitChanges()
+        {
+            if (!_dirty) return;
+            _stateStore.Save(_state);
+            Reload();
+        }
+
+        /// <summary>Discard all un-saved edits and reload the persisted state.</summary>
+        public void RevertChanges()
+        {
+            if (!_dirty) return;
+            Reload();
+        }
+
+        public bool IsModEnabled(string id)
+            => _state?.mods.FirstOrDefault(e => e.id == id)?.enabled ?? false;
 
         /* ---------- internals --------------------------------------- */
         void DiscoverMods()
@@ -103,8 +130,6 @@ namespace JG.Modding
         bool ResolveOrder(out List<LoadedMod> ordered)
         {
             ordered = null;
-
-            /* 1) hard + soft dependency validation ------------------- */
             var ids = _mods.Select(m => m.Manifest.id).ToHashSet();
 
             foreach (var m in _mods)
@@ -130,13 +155,11 @@ namespace JG.Modding
 
             /* 2) seed order from previous state ---------------------- */
             var id2Mod = _mods.ToDictionary(m => m.Manifest.id);
-
             var list = _state.mods
                              .Where(r => id2Mod.ContainsKey(r.id))
                              .OrderBy(r => r.order)
                              .Select(r => id2Mod[r.id])
                              .ToList();
-
             list.AddRange(_mods.Where(m => list.All(o => o.Manifest.id != m.Manifest.id)));
 
             /* 3) topo-sort ------------------------------------------- */
@@ -150,7 +173,6 @@ namespace JG.Modding
             }
 
             for (int i = 0; i < topo.Count; i++) topo[i].Order = i;
-
             ordered = topo;
             return true;
         }
@@ -158,20 +180,33 @@ namespace JG.Modding
         void BuildStateTable(List<LoadedMod> ordered)
         {
             var prev = _state.mods.ToDictionary(e => e.id);
-
             _state.mods = ordered.Select((m, idx) =>
-            {
-                return prev.TryGetValue(m.Manifest.id, out var old)
-                     ? new ModStateTable.Entry { id = m.Manifest.id, enabled = old.enabled, order = idx }
-                     : new ModStateTable.Entry { id = m.Manifest.id, enabled = true, order = idx };
-            }).ToList();
+                prev.TryGetValue(m.Manifest.id, out var old)
+                    ? new ModStateTable.Entry { id = m.Manifest.id, enabled = old.enabled, order = idx }
+                    : new ModStateTable.Entry { id = m.Manifest.id, enabled = true, order = idx })
+                .ToList();
         }
 
-        /// <summary>Returns the current enabled flag for the given mod ID.</summary>
-        public bool IsModEnabled(string id)
+        bool ValidateCurrentOrder(out string err)
         {
-            var row = _state?.mods.FirstOrDefault(e => e.id == id);
-            return row?.enabled ?? false;
+            var order = _state.mods.ToDictionary(e => e.id, e => e.order);
+            foreach (var m in _mods)
+            {
+                foreach (var b in m.Manifest.loadBefore)
+                    if (order[m.Manifest.id] >= order[b])
+                    {
+                        err = $"{m.Manifest.id} must come before {b}";
+                        return false;
+                    }
+                foreach (var a in m.Manifest.loadAfter)
+                    if (order[a] >= order[m.Manifest.id])
+                    {
+                        err = $"{m.Manifest.id} must come after {a}";
+                        return false;
+                    }
+            }
+            err = null;
+            return true;
         }
 
         void Raise(ErrorKind k, string msg, string[] mods)

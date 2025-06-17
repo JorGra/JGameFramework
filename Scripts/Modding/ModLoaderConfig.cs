@@ -5,6 +5,5 @@ namespace JG.Modding
     {
         public string modsRoot = "Mods";               // discovery root
         public string stateFile = "modstate.json";     // persisted UI state
-        public bool fullReloadOnChange = true;       // always rebuild on Enable/Move
     }
 }

@@ -4,21 +4,17 @@ using UnityEngine;
 
 namespace JG.Modding
 {
-    /// <summary>
-    /// Boots a <see cref="ModLoader"/> at runtime and exposes it to the UI.
-    /// </summary>
+    /// <summary>Boots a <see cref="ModLoader"/> at runtime and exposes it to the UI.</summary>
     [AddComponentMenu("JG/Modding/Mod Loader")]
     public sealed class ModLoaderBehaviour : MonoBehaviour
     {
         [Header("Config")]
         [SerializeField] private string modsRoot = "Mods";
-        [SerializeField] private bool fullReloadOnChange = true;
 
         [Header("Importer")]
         [Tooltip("A MonoBehaviour that implements IContentImporter.")]
         [SerializeField] private MonoBehaviour importerBehaviour;
 
-        /// <summary>The running <see cref="ModLoader"/> instance.</summary>
         public ModLoader Loader { get; private set; }
 
         void Awake()
@@ -30,17 +26,11 @@ namespace JG.Modding
                 return;
             }
 
-            var cfg = new ModLoaderConfig
-            {
-                modsRoot = modsRoot,
-                fullReloadOnChange = fullReloadOnChange
-            };
+            var cfg = new ModLoaderConfig { modsRoot = modsRoot };
 
             string projectOrBuildRoot =
-                Directory.GetParent(Application.dataPath)!.FullName;   // “.../MyUnityProject” in Editor
-            var source = new FolderModSource(
-                Path.Combine(projectOrBuildRoot, cfg.modsRoot));
-            Debug.Log($"Searching for mods in: {Path.Combine(projectOrBuildRoot, cfg.modsRoot)}");
+                Directory.GetParent(Application.dataPath)!.FullName;
+            var source = new FolderModSource(Path.Combine(projectOrBuildRoot, cfg.modsRoot));
 
             var manifest = new JsonManifestReader();
             var state = new JsonStateStore(Application.persistentDataPath, cfg.stateFile);
