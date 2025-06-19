@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -52,8 +52,22 @@ namespace JG.Modding
             ActiveMods = ordered.AsReadOnly();
 
             foreach (var mod in ordered)
-                if (_state.mods.First(r => r.id == mod.Manifest.id).enabled)
+            {
+                var row = _state.mods.First(e => e.id == mod.Manifest.id);
+                if (!row.enabled) continue;
+
+                try
+                {
                     _importer.Import(mod.Handle);
+                }
+                catch (Exception ex)
+                {
+                    Raise(ErrorKind.IoError,
+                          $"Import failed for {mod.Manifest.id}: {ex.Message}",
+                          new[] { mod.Manifest.id });
+                    // keep looping – next mods still load
+                }
+            }
 
             _dirty = false;                            // disk state now matches memory
         }
@@ -129,52 +143,50 @@ namespace JG.Modding
 
         bool ResolveOrder(out List<LoadedMod> ordered)
         {
-            ordered = null;
-            var ids = _mods.Select(m => m.Manifest.id).ToHashSet();
+            // Work on a mutable copy so we can delete broken entries.
+            var work = new List<LoadedMod>(_mods);
+            bool removed;
 
-            foreach (var m in _mods)
+            // ── Pass 1: throw out mods whose *requires* point to something absent ───────
+            do
             {
-                foreach (var req in m.Manifest.requires)
-                    if (!ids.Contains(req))
-                    {
-                        Raise(ErrorKind.MissingDependency,
-                              $"{m.Manifest.id} requires missing mod {req}",
-                              new[] { m.Manifest.id, req });
-                        return false;
-                    }
+                removed = false;
+                var ids = work.Select(m => m.Manifest.id).ToHashSet();
 
-                foreach (var tgt in m.Manifest.loadBefore.Concat(m.Manifest.loadAfter))
-                    if (!ids.Contains(tgt))
+                foreach (var m in work.ToArray())                      // copy because we mutate
+                    if (m.Manifest.requires.Any(r => !ids.Contains(r)))
                     {
                         Raise(ErrorKind.MissingDependency,
-                              $"{m.Manifest.id} references non-existent mod {tgt}",
-                              new[] { m.Manifest.id, tgt });
-                        return false;
+                              $"Skipping {m.Manifest.id}: missing dependency.",
+                              new[] { m.Manifest.id });
+                        work.Remove(m);                                // ► skip, don’t abort
+                        removed = true;
                     }
+            } while (removed);                                         // keep trimming layers
+
+            // ── Pass 2: simply ignore dangling loadBefore / loadAfter edges ────────────
+            var liveIds = work.Select(m => m.Manifest.id).ToHashSet();
+            foreach (var m in work)
+            {
+                m.Manifest.loadBefore = m.Manifest.loadBefore.Where(liveIds.Contains).ToArray();
+                m.Manifest.loadAfter = m.Manifest.loadAfter.Where(liveIds.Contains).ToArray();
             }
 
-            /* 2) seed order from previous state ---------------------- */
-            var id2Mod = _mods.ToDictionary(m => m.Manifest.id);
-            var list = _state.mods
-                             .Where(r => id2Mod.ContainsKey(r.id))
-                             .OrderBy(r => r.order)
-                             .Select(r => id2Mod[r.id])
-                             .ToList();
-            list.AddRange(_mods.Where(m => list.All(o => o.Manifest.id != m.Manifest.id)));
-
-            /* 3) topo-sort ------------------------------------------- */
-            if (!TopologicalSorter.TrySort(list, out var topo, out var cycles))
+            // ── Normal topological sort now succeeds for the surviving mods ────────────
+            if (!TopologicalSorter.TrySort(work, out ordered, out var cycles))
             {
                 Raise(ErrorKind.CircularDependency,
-                      "Cycle in loadBefore/loadAfter: " +
+                      "Cyclic dependency: " +
                       string.Join(", ", cycles.Select(c => $"{c.a}->{c.b}")),
                       cycles.SelectMany(c => new[] { c.a, c.b }).Distinct().ToArray());
-                return false;
+
+                // Remove the entire strongly-connected set and try again
+                work.RemoveAll(m => cycles.Any(c => c.a == m.Manifest.id || c.b == m.Manifest.id));
+                return TopologicalSorter.TrySort(work, out ordered, out _) && ordered.Count > 0;
             }
 
-            for (int i = 0; i < topo.Count; i++) topo[i].Order = i;
-            ordered = topo;
-            return true;
+            for (int i = 0; i < ordered.Count; i++) ordered[i].Order = i;
+            return true;                                               // never stops the loader
         }
 
         void BuildStateTable(List<LoadedMod> ordered)

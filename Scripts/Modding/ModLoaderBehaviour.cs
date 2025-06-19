@@ -28,7 +28,16 @@ namespace JG.Modding
             var state = new JsonStateStore(Application.persistentDataPath, cfg.stateFile);
 
             Loader = new ModLoader(cfg, source, manifest, state, importer.Value);
-            Loader.OnLoadError += e => NotificationSender.Raise(e.Message, NotificationSeverity.Error, "ModLoader");
+            Loader.OnLoadError += e =>
+            {
+                var severity = e.Kind == ErrorKind.CircularDependency
+                               || e.Kind == ErrorKind.MissingDependency
+                               || e.Kind == ErrorKind.ManifestError
+                               ? NotificationSeverity.Warning
+                               : NotificationSeverity.Error;
+
+                NotificationSender.Raise(e.Message, severity, "ModLoader");
+            };
 
             Debug.Log($"ModLoader initialised, modsRoot = {modsRoot}, mods count: {Loader.ActiveMods.Count}");
             NotificationSender.Raise($"ModLoader: {Loader.ActiveMods.Count} Mods loaded.", NotificationSeverity.Info, "ModLoader");
