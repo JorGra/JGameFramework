@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace JG.Modding.UI
 {
     /// <summary>Drives the list & detail panel; now also hosts Apply/Revert.</summary>
-    public sealed class ModListUI : MonoBehaviour
+    public sealed class ModListUI : UIPanelAnimated
     {
         [Header("References")]
         [SerializeField] private ModLoaderBehaviour modLoaderBehaviour;
@@ -27,6 +27,12 @@ namespace JG.Modding.UI
 
         void Start()
         {
+
+            if (modLoaderBehaviour == null)
+            {
+                modLoaderBehaviour = FindObjectOfType<ModLoaderBehaviour>();
+            }
+
             errorHandler = err =>
             {
                 if (err?.InvolvedModIds != null)
@@ -44,7 +50,7 @@ namespace JG.Modding.UI
 
         void OnDisable()
         {
-            if (modLoaderBehaviour.Loader != null)
+            if (modLoaderBehaviour?.Loader != null)
                 modLoaderBehaviour.Loader.OnLoadError -= errorHandler;
         }
 

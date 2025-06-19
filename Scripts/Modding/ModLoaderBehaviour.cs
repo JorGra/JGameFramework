@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using UnityEngine;
 
@@ -13,18 +12,11 @@ namespace JG.Modding
 
         [Header("Importer")]
         [Tooltip("A MonoBehaviour that implements IContentImporter.")]
-        [SerializeField] private MonoBehaviour importerBehaviour;
-
+        [SerializeField] InterfaceReference<IContentImporter> importer;
         public ModLoader Loader { get; private set; }
 
         void Awake()
         {
-            if (importerBehaviour is not IContentImporter importer)
-            {
-                Debug.LogError($"{importerBehaviour.name} must implement IContentImporter");
-                enabled = false;
-                return;
-            }
 
             var cfg = new ModLoaderConfig { modsRoot = modsRoot };
 
@@ -35,10 +27,11 @@ namespace JG.Modding
             var manifest = new JsonManifestReader();
             var state = new JsonStateStore(Application.persistentDataPath, cfg.stateFile);
 
-            Loader = new ModLoader(cfg, source, manifest, state, importer);
+            Loader = new ModLoader(cfg, source, manifest, state, importer.Value);
             Loader.OnLoadError += e => NotificationSender.Raise(e.Message, NotificationSeverity.Error, "ModLoader");
 
-            Debug.Log($"ModLoader initialised, modsRoot = {modsRoot}");
+            Debug.Log($"ModLoader initialised, modsRoot = {modsRoot}, mods count: {Loader.ActiveMods.Count}");
+            NotificationSender.Raise($"ModLoader: {Loader.ActiveMods.Count} Mods loaded.", NotificationSeverity.Info, "ModLoader");
         }
     }
 }
