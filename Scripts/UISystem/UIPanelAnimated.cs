@@ -1,86 +1,111 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class UIPanelAnimated : UIPanel
 {
-    [SerializeField]
-    private float animationDuration = 0.2f; // How long the animation should take
+    [SerializeField] private float animationDuration = 0.2f;   // editor-exposed
+
+    private readonly float canvasSpeedMultiplier = 3f;
 
     private Vector3 initialScale;
+    private CanvasGroup canvasGroup;
 
+    #region Life-cycle
     protected virtual void Awake()
     {
-        // Store the panel�s initial scale so we can scale back to it.
         initialScale = transform.localScale;
+        canvasGroup = GetComponent<CanvasGroup>();
+
+        if (canvasGroup)
+        {
+            canvasGroup.alpha = 0f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+        }
+
         IsOpen = false;
         gameObject.SetActive(false);
     }
+    #endregion
 
+    #region Public API
     public override void Open()
     {
-        if (IsOpen)
-        {
-            return;
-        }
+        if (IsOpen) return;
 
-        // Activate the panel first (so it becomes visible).
         gameObject.SetActive(true);
-
-        // Start the open animation coroutine.
         StartCoroutine(AnimateOpen());
     }
 
     public override void Close()
     {
-        if (!IsOpen)
-        {
-            return;
-        }
+        if (!IsOpen) return;
 
-        // Start the close animation coroutine.
-        // The panel will deactivate at the end of the close animation.
         if (gameObject.activeInHierarchy)
             StartCoroutine(AnimateClose());
     }
+    #endregion
 
+    #region Coroutines
     private IEnumerator AnimateOpen()
     {
-        // Start at scale zero, then animate to the initial scale.
         transform.localScale = Vector3.zero;
-        float elapsedTime = 0f;
+        float elapsed = 0f;
 
-        while (elapsedTime < animationDuration)
+        while (elapsed < animationDuration)
         {
-            float t = elapsedTime / animationDuration;
-            transform.localScale = Vector3.Lerp(Vector3.zero, initialScale, t);
-            elapsedTime += Time.deltaTime;
+            float tScale = elapsed / animationDuration;                     // 0 → 1
+            float tFade = Mathf.Clamp01(tScale * canvasSpeedMultiplier);   // faster/slower
+
+            transform.localScale = Vector3.Lerp(Vector3.zero, initialScale, tScale);
+
+            if (canvasGroup) canvasGroup.alpha = tFade;
+
+            elapsed += Time.deltaTime;
             yield return null;
         }
 
-        // Ensure final scale is set (in case of framerate variations).
         transform.localScale = initialScale;
+
+        if (canvasGroup)
+        {
+            canvasGroup.alpha = 1f;
+            canvasGroup.interactable = true;
+            canvasGroup.blocksRaycasts = true;
+        }
 
         IsOpen = true;
     }
 
     private IEnumerator AnimateClose()
     {
-        // Start from the current (likely initial) scale and animate to zero.
         Vector3 startScale = transform.localScale;
-        float elapsedTime = 0f;
+        float elapsed = 0f;
 
-        while (elapsedTime < animationDuration)
+        if (canvasGroup)
         {
-            float t = elapsedTime / animationDuration;
-            transform.localScale = Vector3.Lerp(startScale, Vector3.zero, t);
-            elapsedTime += Time.deltaTime;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+        }
+
+        while (elapsed < animationDuration)
+        {
+            float tScale = elapsed / animationDuration;                     // 0 → 1
+            float tFade = Mathf.Clamp01(tScale * canvasSpeedMultiplier);   // faster/slower
+
+            transform.localScale = Vector3.Lerp(startScale, Vector3.zero, tScale);
+
+            if (canvasGroup) canvasGroup.alpha = 1f - tFade;
+
+            elapsed += Time.deltaTime;
             yield return null;
         }
 
-        // Ensure final scale is zero, then deactivate the panel.
         transform.localScale = Vector3.zero;
-        gameObject.SetActive(false);
+        if (canvasGroup) canvasGroup.alpha = 0f;
 
+        gameObject.SetActive(false);
         IsOpen = false;
     }
+    #endregion
 }
