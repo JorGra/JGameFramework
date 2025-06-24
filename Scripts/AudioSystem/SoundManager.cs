@@ -91,7 +91,8 @@ namespace JG.Audio
 
         private void OnDestroyPoolObject(SoundEmitter emitter)
         {
-            Destroy(emitter.gameObject);
+            if (emitter != null && emitter.gameObject != null)
+                Destroy(emitter.gameObject);
         }
 
         private void OnReturnFromPool(SoundEmitter emitter)
