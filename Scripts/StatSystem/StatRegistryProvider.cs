@@ -11,6 +11,7 @@ public class StatRegistryProvider : Singleton<StatRegistryProvider>
     [Tooltip("Reference to the StatRegistry ScriptableObject.")]
     [SerializeField] private StatRegistry registry;
 
+    [SerializeField] bool loadFromResources = true;
     [Tooltip("Path under Resources (without '.json') to StatDefinitions.json. " +
              "E.g. Resources/StatDefinitions/StatDefinitions.json → 'StatDefinitions/StatDefinitions'.")]
     [SerializeField] private string jsonResourcePath = "StatDefinitions/StatDefinitions";
@@ -30,14 +31,19 @@ public class StatRegistryProvider : Singleton<StatRegistryProvider>
 
         // Load the TextAsset from Resources
         var ta = Resources.Load<TextAsset>(jsonResourcePath);
-        if (ta == null)
+        if (ta == null && loadFromResources)
         {
             Debug.LogError($"StatRegistryProvider: Failed to load Resources/{jsonResourcePath}.json");
             return;
         }
 
-        // Parse it into the registry
-        registry.InitializeFromJsonText(ta.text);
+        if (loadFromResources)
+        {
+            // Parse it into the registry
+            registry.InitializeFromJsonText(ta.text);
+        }
+        else
+            registry.InitializeFromJsonText("");
     }
 
     /// <summary>

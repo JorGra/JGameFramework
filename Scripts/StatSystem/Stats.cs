@@ -13,7 +13,7 @@ public class Stats
     private readonly Dictionary<string, float> baseStats;
 
     /// <summary>
-    /// Constructs the Stats object by loading all defaults from the registry.
+    /// Constructs the Stats object by loading all defaults from the provider.
     /// </summary>
     public Stats()
     {
@@ -32,6 +32,52 @@ public class Stats
         else
         {
             Debug.LogError("Stats ctor: StatRegistry missing—cannot load default stats.");
+        }
+    }
+
+    public Stats(StatsProfile statsProfile)
+    {
+        Mediator = new StatsMediator();
+        baseStats = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+
+
+        if (statsProfile != null)
+        {
+            foreach (var entry in statsProfile.statEntries)
+            {
+                if (entry.statDefinition != null)
+                {
+                    baseStats[entry.statDefinition.key] = entry.baseValue;
+                }
+                else
+                {
+                    UnityEngine.Debug.LogWarning($"A stat entry in profile '{statsProfile.name}' is missing a StatDefinition.");
+                }
+            }
+        }
+        else
+        {
+            // Fallback: populate baseStats using global definitions.
+            try
+            {
+                var provider = StatRegistryProvider.Instance;
+                if (provider?.Registry != null)
+                {
+                    foreach (var def in provider.Registry.StatDefinitions)
+                    {
+                        if (!string.IsNullOrWhiteSpace(def.key))
+                            baseStats[def.key] = def.defaultValue;
+                    }
+                }
+                else
+                {
+                    Debug.LogError("Stats ctor: StatRegistry missing—cannot load default stats.");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error loading global stat defaults: {ex.Message}");
+            }
         }
     }
 

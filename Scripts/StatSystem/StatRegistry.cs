@@ -13,7 +13,7 @@ using UnityEngine;
 public class StatRegistry : ScriptableObject
 {
     [Tooltip("List of all stat definitions baked into the build.")]
-    [SerializeField] private List<StatDefinition> statDefinitions = new();
+    public List<StatDefinition> statDefinitions = new();
 
     [Header("Runtime")]
     [Tooltip("Fallback sprite used when a JSON-specified icon cannot be found.")]
