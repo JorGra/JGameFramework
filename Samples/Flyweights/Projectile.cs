@@ -1,6 +1,6 @@
-﻿using System.Collections;
+﻿using JG.Flyweights;
+using System.Collections;
 using UnityEngine;
-using JG.Flyweights;
 
 
 namespace JG.Samples
@@ -9,7 +9,6 @@ namespace JG.Samples
     {
         //public new ProjectileSettings settings { get => (ProjectileSettings) base.settings; set => base.settings = value; }
         new ProjectileSettings settings => (ProjectileSettings)base.settings;
-
 
         void Update()
         {
@@ -25,7 +24,7 @@ namespace JG.Samples
 
         private void OnEnable()
         {
-            if(settings == null) return;
+            if (settings == null) return;
             StartCoroutine(DespawnAfterDelay(settings.despawnDelay));
         }
     }

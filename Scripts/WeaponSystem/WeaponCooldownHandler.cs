@@ -7,7 +7,7 @@ public class WeaponCooldownHandler : WeaponHandlerBase, IWeaponUseageHandler
     Cooldown Cooldown;
     public bool CanUse()
     {
-        return Cooldown.CooldownReady();
+        return Cooldown.Ready();
     }
 
     public void Initialize(WeaponConfig config)
@@ -18,7 +18,7 @@ public class WeaponCooldownHandler : WeaponHandlerBase, IWeaponUseageHandler
 
     public void Use()
     {
-        Cooldown.ResetCooldown(1);
+        Cooldown.Reset(1);
     }
 }
 

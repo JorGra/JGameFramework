@@ -15,7 +15,7 @@ public class Cooldown
     /// <summary>
     /// Returns true if the cooldown period has passed.
     /// </summary>
-    public bool CooldownReady()
+    public bool Ready()
     {
         return Time.time >= nextReadyTime;
     }
@@ -23,7 +23,7 @@ public class Cooldown
     /// <summary>
     /// Resets the cooldown using the originally set duration.
     /// </summary>
-    public void ResetCooldown()
+    public void Reset()
     {
         nextReadyTime = Time.time + cooldownDuration;
     }
@@ -31,7 +31,7 @@ public class Cooldown
     /// <summary>
     /// Resets the cooldown to a completely new duration.
     /// </summary>
-    public void ResetCooldown(float newCooldownDuration)
+    public void Reset(float newCooldownDuration)
     {
         cooldownDuration = newCooldownDuration;
         nextReadyTime = Time.time + newCooldownDuration;
@@ -40,7 +40,7 @@ public class Cooldown
     /// <summary>
     /// Returns how much time is left before the cooldown finishes.
     /// </summary>
-    public float CooldownRemaining()
+    public float RemainingTime()
     {
         return Mathf.Max(0f, nextReadyTime - Time.time);
     }
