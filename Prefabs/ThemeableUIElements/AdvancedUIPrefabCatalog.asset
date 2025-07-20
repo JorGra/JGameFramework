@@ -35,7 +35,7 @@ MonoBehaviour:
     orderInCategory: 20
   - category: UI Themeable
     displayName: Panel Large Header
-    prefab: {fileID: 6411501418047691603, guid: f598a3f65ebe996428c46da55024a45a, type: 3}
+    prefab: {fileID: 1852891286478564996, guid: a2b3c1a34c88b6842b5acceb363d5626, type: 3}
     orderInCategory: 20
   - category: UI Themeable
     displayName: Scroll View
@@ -44,6 +44,10 @@ MonoBehaviour:
   - category: UI Themeable
     displayName: Toggle
     prefab: {fileID: 255206012469642833, guid: ef4356af343b5f34cabf138611f572c1, type: 3}
+    orderInCategory: 20
+  - category: UI Themeable
+    displayName: Text
+    prefab: {fileID: 5645264429483227626, guid: 6aa84dba1657bce4198196a094898111, type: 3}
     orderInCategory: 20
   categoryOrders:
   - category: UI Themeable
