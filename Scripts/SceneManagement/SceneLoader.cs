@@ -79,7 +79,8 @@ namespace JG.Tools.SceneManagement
 
             /* ── Loading workflow ───────────────────────────────── */
             targetProgress = 0f;
-            EnableLoadingBar(true);
+            if (fadeIn || fadeOut)
+                EnableLoadingBar(true);
 
             // Unload everything not needed by the target group
             yield return sceneGroupManagement.UnloadUnneededScenesCoroutine(sceneGroups[index]);
