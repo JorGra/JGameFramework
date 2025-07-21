@@ -8,7 +8,7 @@ namespace UI.Theming
     /// Applies an <see cref="ImageStyleParameters"/> module to a UI Image, including
     /// the Pixels-Per-Unit override defined in the theme’s Sprite entry.
     /// </summary>
-    [RequireComponent(typeof(Image))]
+    //[RequireComponent(typeof(Image))]
     public sealed class ThemeableImage : MonoBehaviour, IThemeable
     {
         [SerializeField] private string styleKey = "Icon";

@@ -30,6 +30,13 @@ namespace UI.Theming
             EventBus<ThemeChangedEvent>.Register(binding);
             ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
+
+        void Start()
+        {
+            // Ensure the button is set up with the theme on start
+            ApplyTheme(ThemeManager.Instance.CurrentTheme);
+        }
+
         void OnDisable() => EventBus<ThemeChangedEvent>.Deregister(binding);
 
         // ─────────────────────────────────────────────────────────── theming API
@@ -38,6 +45,8 @@ namespace UI.Theming
             if (theme == null ||
                 !theme.TryGetStyle(styleKey, out ButtonStyleParameters p))
                 return;
+
+            button.transition = p.Transition;
 
             // Background sprite / colour ----------------------------------------
             if (targetImage)
@@ -48,11 +57,13 @@ namespace UI.Theming
                     targetImage.type = theme.GetSpriteType(p.BackgroundSpriteKey);
                 }
                 if (!string.IsNullOrEmpty(p.BackgroundColorKey))
+                {
                     targetImage.color = theme.GetColor(p.BackgroundColorKey);
+                    //Debug.Log($"ThemeableButton of type {p.BackgroundSpriteKey}: Set background color to {targetImage.color} from key '{p.BackgroundColorKey}'");
+                }
             }
 
             // Transition mode & optional sprite swap ----------------------------
-            button.transition = p.Transition;
 
             if (p.Transition == Selectable.Transition.SpriteSwap)
             {
