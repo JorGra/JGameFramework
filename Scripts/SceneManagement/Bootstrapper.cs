@@ -10,7 +10,7 @@ namespace JG.Tools.SceneManagement
 {
     public class Bootstrapper : Singleton<Bootstrapper>
     {
-
+        //Old method, does not work with Unity 6 and above
         //#if !Unity_6
         //        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         //        static IEnumerator Init()
@@ -30,9 +30,6 @@ namespace JG.Tools.SceneManagement
         private static void Init()          // <- static, void, no params
         {
             Debug.Log("Bootstrapper Init...");
-
-            // If you really need it to be async you can still use
-            // LoadSceneAsync, just don’t try to *yield* here.
             if (SceneManager.GetActiveScene().buildIndex != 0)
             {
                 SceneManager.LoadSceneAsync(0, LoadSceneMode.Single);
