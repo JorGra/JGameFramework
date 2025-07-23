@@ -30,7 +30,7 @@ namespace JG.Modding.UI
 
             if (modLoaderBehaviour == null)
             {
-                modLoaderBehaviour = FindObjectOfType<ModLoaderBehaviour>();
+                modLoaderBehaviour = FindFirstObjectByType<ModLoaderBehaviour>();
             }
 
             errorHandler = err =>

@@ -1,0 +1,228 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Unity Mod‑Content Pipeline – Single Source of Truth</title>
+<style>
+/* ---------- look & feel ---------- */
+body{margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;color:#222;background:#fafafa}
+header,section{padding:2rem 3.2rem}
+h1,h2,h3{line-height:1.25;margin:0 0 0.6em;font-weight:600}
+h1{font-size:2.2rem;margin-top:0.4em}
+h2{font-size:1.5rem;border-bottom:2px solid #ddd;padding-bottom:0.2em}
+h3{font-size:1.15rem}
+code,pre{font-family:Consolas,Menlo,monospace;font-size:0.9rem}
+pre{background:#f2f2f2;border:1px solid #e0e0e0;border-radius:4px;padding:1rem;overflow:auto}
+kbd{padding:2px 6px;border:1px solid #ccc;border-radius:4px;background:#fff;font-size:0.85rem}
+table{border-collapse:collapse;margin:1rem 0;width:100%}
+th,td{padding:6px 10px;border:1px solid #ddd;font-size:0.9rem}
+nav{position:fixed;top:0;left:0;right:0;background:#1e1e1e;color:#fff;padding:0.5rem 3.2rem;z-index:10}
+nav a{color:#fff;text-decoration:none;margin-right:1rem;font-size:0.9rem}
+aside{background:#fffbe6;border-left:4px solid #ffdf68;padding:1rem;margin:1.2rem 0;font-size:0.9rem}
+footer{font-size:0.8rem;text-align:center;color:#666;padding:1.5rem}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#overview">Overview</a>
+  <a href="#structure">Folder Structure</a>
+  <a href="#core">Core API</a>
+  <a href="#setup">Project Setup</a>
+  <a href="#editor">Editor Browser</a>
+  <a href="#extend">Extending</a>
+  <a href="#troubleshoot">Troubleshooting</a>
+</nav>
+
+<header id="overview">
+  <h1>Unity Mod‑Content Pipeline</h1>
+  <p>
+    A <strong>reflection‑driven</strong>, <em>one‑click</em> import pipeline that transforms human‑friendly
+    <kbd>.json</kbd> + asset files inside a <em>mod directory</em> into fully‑hydrated
+    <code>ScriptableObject</code> instances, registers them in a thread‑safe catalogue and
+    exposes them to both <u>gameplay</u> and <u>editor</u> tools.
+  </p>
+</header>
+
+<!-- ================================================================ -->
+<section id="structure">
+<h2>1. Folder Structure (Convention over Configuration)</h2>
+
+<pre><code>&lt;GameRoot&gt;
+ ├─ Mods/
+ │   ├─ MyCoolMod/
+ │   │   ├─ Items/
+ │   │   │   ├─ Icons/                 ← all PNG/JPG icons
+ │   │   │   │   ├─ steel_sword.png
+ │   │   │   │   └─ steel_sword_big.png
+ │   │   │   └─ Weapons.json           ← array or single objects
+ │   │   ├─ Skills/
+ │   │   │   ├─ SFX/
+ │   │   │   │   └─ thunder.wav
+ │   │   │   └─ Thunder.json
+ │   │   └─ …any other folders…
+ │   └─ AnotherMod/…
+ └─ Assets/   (usual Unity project)</code></pre>
+
+<p><strong>Key points</strong></p>
+<ul>
+  <li><kbd>Mods/&lt;ModName&gt;</kbd> is scanned recursively at runtime.</li>
+  <li>Each <code>IContentDef</code> subtype declares its own sub‑folder via
+      <code>[ContentFolder("Items")]</code> (or similar).</li>
+  <li>Asset files (textures, audio) live in <em>parallel</em> folders (<kbd>Icons/</kbd>, <kbd>SFX/</kbd>, …) and are linked via attributes (no hard‑coded paths in JSON).</li>
+</ul>
+</section>
+
+<!-- ================================================================ -->
+<section id="core">
+<h2>2. Core API Components</h2>
+
+<h3>2.1 <code>IContentDef</code></h3>
+<pre><code>public interface IContentDef
+{
+    string Id              { get; }
+    string SourceFile      { get; set; }   // set by importer for diagnostics
+}</code></pre>
+
+<h3>2.2 <code>ContentCatalogue</code></h3>
+<ul>
+<li>Singleton storing every imported <code>IContentDef</code> keyed by <em>concrete type</em> + <em>Id</em>.</li>
+<li><code>AddOrReplace(IContentDef def)</code> writes into <code>ConcurrentDictionary&lt;Type,&nbsp;Dictionary&lt;Id, Def&gt;&gt;</code>.</li>
+<li><code>TryGet&lt;T&gt;(id,…)</code>, <code>GetAll&lt;T&gt;()</code>, <code>Clear()</code>.</li>
+</ul>
+
+<h3>2.3 <code>JsonContentImporter : MonoBehaviour, IContentImporter</code></h3>
+<ol>
+  <li>Enumerates every <kbd>*.json</kbd> under each mod's registered folders.</li>
+  <li>Deserialises using a shared <code>JsonSerializer</code> (Newtonsoft) with:<br>
+      <code>MissingMemberHandling.Error</code>, detailed <code>Error</code> callback.</li>
+  <li>Invokes <strong>AssetResolver</strong> (see 2.5).</li>
+  <li>Registers the object via <code>ContentCatalogue.AddOrReplace</code>.</li>
+  <li>Verbose diagnostics: duplicate IDs, malformed JSON, line / col numbers.</li>
+</ol>
+
+<h3>2.4 <code>[ContentFolder]</code> attribute</h3>
+<pre><code>[AttributeUsage(AttributeTargets.Class)]
+public sealed class ContentFolderAttribute : Attribute
+{
+    public string FolderName { get; }
+    public ContentFolderAttribute(string folder) => FolderName = folder;
+}</code></pre>
+
+<h3>2.5 <code>[AssetFromFile]</code> + <code>AssetResolver</code></h3>
+<table>
+<tr><th>Attribute property</th><th>Description</th><th>Example</th></tr>
+<tr><td><code>SubFolder</code></td><td>Relative folder inside mod</td><td><kbd>"Items/Icons"</kbd></td></tr>
+<tr><td><code>Extension</code></td><td>File extension (incl. dot)</td><td><kbd>".png"</kbd></td></tr>
+<tr><td><code>FileNameKey</code></td><td>Name of JSON‑loaded field/property<br> whose value becomes the file name</td><td><code>nameof(IconKey)</code></td></tr>
+<tr><td><code>Optional</code></td><td>True ⇒ absence is warning not error</td><td><code>true</code></td></tr>
+</table>
+
+<pre><code>public sealed class ItemDef : ContentDef
+{
+    public string IconKey;
+    public string LargeIconKey;
+
+    [AssetFromFile("Items/Icons", ".png", fileNameKey: nameof(IconKey))]
+    public Sprite Icon;
+
+    [AssetFromFile("Items/Icons", ".png", fileNameKey: nameof(LargeIconKey))]
+    public Sprite LargeIcon;
+
+    public int Price;
+}</code></pre>
+
+<p>During import <code>AssetResolver.InjectAssets</code>:</p>
+<ul>
+  <li>Reflects over every member with <code>[AssetFromFile]</code>.</li>
+  <li>Builds absolute path: <kbd>&lt;ModRoot&gt;/SubFolder/FileName.Extension</kbd>.</li>
+  <li>Loads asset via per‑type loader (PNG → <code>Sprite</code>, WAV → <code>AudioClip</code>, …).</li>
+  <li>Supports caching &amp; custom loaders (extend the <code>_load</code> dictionary).</li>
+</ul>
+
+</section>
+
+<!-- ================================================================ -->
+<section id="setup">
+<h2>3. Project Setup Steps</h2>
+<ol>
+  <li><strong>Add packages</strong>: Newtonsoft.Json (13.x), <em>optional</em> WAV‑loader.</li>
+  <li><strong>Create folders</strong>: <kbd>Assets/Scripts/Modding/</kbd> and drop the
+      code from this document (<code>ContentCatalogue</code>, <code>JsonContentImporter</code>, …).</li>
+  <li><strong>Attach</strong> <code>JsonContentImporter</code> to a bootstrap GameObject in your first scene
+      (or create it from code before gameplay begins).</li>
+  <li><strong>Place mods</strong> into <kbd>&lt;GameRoot&gt;/Mods/&lt;ModName&gt;</kbd>.</li>
+  <li><strong>Press Play</strong> → importer logs a summary:<br>
+      <code>[CoolMod] ▶ Import completed – added 12, skipped 0, replaced 1</code></li>
+</ol>
+
+<aside><strong>Editor vs Build:</strong> In the Unity Editor the importer runs in play‑mode only.  
+For a standalone build it runs automatically on game start.</aside>
+</section>
+
+<!-- ================================================================ -->
+<section id="editor">
+<h2>4. Content Browser (Editor Window)</h2>
+
+<ul>
+  <li>Shortcut: <kbd>Ctrl + Shift + C</kbd></li>
+  <li>Lists every concrete <code>IContentDef</code> type in a toolbar.</li>
+  <li>Searchable list (powered by <code>SearchField</code>).</li>
+  <li>Inspector pane renders a cached <code>Editor</code> instance.</li>
+  <li>Hooks <code>EditorApplication.playModeStateChanged</code> – clears stale references when leaving Play‑mode (avoids <em>MissingReferenceException</em>).</li>
+</ul>
+</section>
+
+<!-- ================================================================ -->
+<section id="extend">
+<h2>5. Extending the System</h2>
+
+<h3>5.1 Add a new content type</h3>
+<ol>
+  <li>Create a <code>ScriptableObject</code> subclass implementing <code>IContentDef</code>.</li>
+  <li>Decorate with <code>[ContentFolder("MyStuff")]</code>.</li>
+  <li>Add any fields you like; annotate external assets with <code>[AssetFromFile]</code>.</li>
+  <li>Drop JSON into <kbd>Mods/&lt;Mod&gt;/MyStuff/</kbd>. No importer changes required.</li>
+</ol>
+
+<h3>5.2 Support a new asset type (e.g. <code>AnimationClip</code>)</h3>
+<ol>
+  <li>Add a loader to the dictionary in <code>AssetResolver</code>:<br>
+      <code>_load[typeof(AnimationClip)] = path&nbsp;=&gt;&nbsp;/* load clip */;</code></li>
+  <li>Use attribute:<br>
+      <code>[AssetFromFile("Actors/Animations", ".anim")] public AnimationClip Walk;</code></li>
+</ol>
+
+<h3>5.3 Alternate naming conventions</h3>
+<p>Provide a template system:</p>
+<pre><code>[AssetFromFile("FX", ".png", fileNameKey: nameof(IconKey))]
+public Sprite Icon;   // IconKey can contain sub‑folders like "Bosses/Boss1"</code></pre>
+
+<h3>5.4 Hot‑reload during development</h3>
+<ul>
+  <li>Call <code>ContentCatalogue.Clear()</code>, then <code>JsonContentImporter.ImportAll()</code> (static helper) when a mod file changes.</li>
+  <li>Editor tools repopulate automatically.</li>
+</ul>
+
+</section>
+
+<!-- ================================================================ -->
+<section id="troubleshoot">
+<h2>6. Troubleshooting & Best Practices</h2>
+<table>
+<tr><th>Symptom</th><th>Likely Cause</th><th>Fix</th></tr>
+<tr><td><code>GetAll&lt;T&gt;()</code> empty</td><td>Used generic <code>AddOrReplace&lt;IContentDef&gt;</code></td><td>Call non‑generic overload (stores under runtime type)</td></tr>
+<tr><td>Field stays null</td><td>Name collision with Unity builtin (<code>Name ↔ name</code>)</td><td>Rename field or give <code>[JsonProperty]</code> alias</td></tr>
+<tr><td>MissingReferenceException in editor</td><td>Runtime objects destroyed after Play‑mode</td><td>Ensure browser clears &amp; repopulates on <code>playModeStateChanged</code></td></tr>
+<tr><td>Asset not found</td><td>Wrong <code>SubFolder</code> or <code>FileNameKey</code></td><td>Check generated absolute path in importer log</td></tr>
+</table>
+
+</section>
+
+<footer>
+  © 2025 Unity Mod‑Content Pipeline – single source of truth.  
+  Use freely, modify boldly, and happy modding!
+</footer>
+
+</body>
+</html>

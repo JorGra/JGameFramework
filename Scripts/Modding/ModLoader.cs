@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JG.GameContent;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -50,6 +51,8 @@ namespace JG.Modding
 
             BuildStateTable(ordered);
             ActiveMods = ordered.AsReadOnly();
+
+            ContentCatalogue.Instance.Clear(); // clear the catalogue before import
 
             foreach (var mod in ordered)
             {

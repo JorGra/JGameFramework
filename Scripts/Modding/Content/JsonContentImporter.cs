@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -151,6 +150,9 @@ namespace JG.GameContent
                     Debug.LogWarning($"[{modId}] ⚠ Duplicate Id \"{def.Id}\" in {filePath}. "
                                + $"Replacing definition that came from {existing.Id ?? "unknown source"}");
             }
+
+            // Inject assets like sprites, audio clips, etc. from annotated fields
+            AssetResolver.InjectAssets(def, h.Path, modId);
 
             ContentCatalogue.Instance.AddOrReplace(def);
             if (LoggingLevel >= LoggingLevel.Info)

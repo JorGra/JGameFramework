@@ -17,7 +17,7 @@ namespace JG.Modding
 
         void Awake()
         {
-
+            Debug.Log("ModLoaderBehaviour Awake");
             var cfg = new ModLoaderConfig { modsRoot = modsRoot };
 
             string projectOrBuildRoot =

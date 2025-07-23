@@ -33,7 +33,10 @@ namespace JG.Tools.SceneManagement
 
             // If you really need it to be async you can still use
             // LoadSceneAsync, just don’t try to *yield* here.
-            var op = SceneManager.LoadSceneAsync(0, LoadSceneMode.Single);
+            if (SceneManager.GetActiveScene().buildIndex != 0)
+            {
+                SceneManager.LoadSceneAsync(0, LoadSceneMode.Single);
+            }
             // optional: hook a callback instead of yielding
             // op.completed += _ => { /* do something after scene loaded */ };
         }
