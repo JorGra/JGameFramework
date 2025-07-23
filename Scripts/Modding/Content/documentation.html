@@ -1,0 +1,254 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unity Mod Content Import System &nbsp;–&nbsp; Technical Guide</title>
+<style>
+    body{font-family:Segoe UI,Roboto,Arial,sans-serif;margin:0;color:#222;background:#fafafa;line-height:1.6}
+    header{background:#20232a;color:#fff;padding:2.2rem 2rem}
+    h1{margin:0;font-weight:600;font-size:2.1rem}
+    h2,h3{color:#20232a;margin-top:2.4rem}
+    pre,code{font-family:Consolas,ui-monospace,monospace;font-size:.9rem;background:#f1f1f1;padding:.2rem .4rem;border-radius:4px}
+    pre{padding:.9rem;overflow:auto}
+    nav{background:#fff;border-bottom:1px solid #ddd;padding:.8rem 2rem;position:sticky;top:0}
+    nav a{margin-right:1.2rem;color:#0366d6;text-decoration:none;font-weight:500}
+    nav a:hover{text-decoration:underline}
+    section{padding:1rem 2rem}
+    table{border-collapse:collapse;width:100%;margin:1.2rem 0;background:#fff}
+    th,td{padding:.6rem .8rem;border:1px solid #ddd}
+    th{background:#f6f8fa;text-align:left}
+    footer{background:#20232a;color:#bbb;font-size:.85rem;padding:1.4rem 2rem;text-align:center;margin-top:3rem}
+    mark{background:#fffb91}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Unity Mod Content Import System<br><small style="font-size:1.2rem;font-weight:400;">Design‑time ScriptableObjects → Runtime JSON Catalogue</small></h1>
+</header>
+
+<nav>
+  <a href="#overview">Overview</a>
+  <a href="#folder-layout">Mod Folder Layout</a>
+  <a href="#datamodel">Data Model</a>
+  <a href="#importer">JSON Importer Pipeline</a>
+  <a href="#catalogue">Content Catalogue</a>
+  <a href="#override">Override Rules</a>
+  <a href="#runtime-usage">Runtime Usage</a>
+  <a href="#extending">Adding New Content Types</a>
+  <a href="#troubleshooting">Troubleshooting &amp; FAQ</a>
+</nav>
+
+<section id="overview">
+  <h2>1&nbsp;·&nbsp;System Overview</h2>
+  <p>This document describes the complete, production‑ready content import framework used in our
+     hybrid 2D Tower‑Defence &amp; Brotato‑like Unity project.  
+     It lets <strong>designers</strong> work in the Unity Inspector with ScriptableObjects while <strong>modders</strong> ship lightweight
+     <code>*.json</code> files. At runtime every definition is stored in a singleton <em>catalogue</em>; later mods seamlessly
+     override earlier ones without additional conflict‑resolution code.</p>
+
+  <table>
+    <tr><th>Stage</th><th>Key Types / Classes</th><th>Responsibilities</th></tr>
+    <tr>
+      <td><strong>Design‑time</strong></td>
+      <td><code>ContentDef</code> (ScriptableObject subclasses)<br><code>[ContentFolder]</code> Attribute</td>
+      <td>Editable assets, serve as canonical schema reference for JSON.</td>
+    </tr>
+    <tr>
+      <td><strong>Import</strong></td>
+      <td><code>JsonContentImporter</code> (<code>IContentImporter</code>)</td>
+      <td>Scans per‑folder <code>*.json</code>; supports single‑object or array roots; pushes objects into catalogue.</td>
+    </tr>
+    <tr>
+      <td><strong>Runtime</strong></td>
+      <td><code>ContentCatalogue</code></td>
+      <td>Thread‑safe, 1‑instance‑per‑ID store. O(1) retrieval, hot‑reload ready.</td>
+    </tr>
+  </table>
+</section>
+
+<section id="folder-layout">
+  <h2>2&nbsp;·&nbsp;Expected Mod Folder Layout</h2>
+  <pre>
+📂 MyCoolMod
+ ├─ 📜 manifest.json
+ ├─ 📂 Items
+ │    └─ 📜 items.json       ← array with <em>any</em> number of objects
+ ├─ 📂 Enemies
+ │    └─ 📜 crab_and_slime.json
+ └─ (additional content folders…)
+  </pre>
+  <p>Each sub‑folder corresponds to a distinct <em>content type</em> and is dictated by the
+     <code>[ContentFolder]</code> attribute on that ScriptableObject class (see below).</p>
+</section>
+
+<section id="datamodel">
+  <h2>3&nbsp;·&nbsp;Data Model &amp; Contracts</h2>
+
+  <h3>3.1 &nbsp;Universal Interface</h3>
+  <pre><code class="language-csharp">public interface IContentDef
+{
+    string Id { get; }     // globally unique, case‑insensitive
+}</code></pre>
+
+  <h3>3.2 &nbsp;Base ScriptableObject</h3>
+  <pre><code class="language-csharp">public abstract class ContentDef : ScriptableObject, IContentDef
+{
+    [SerializeField] private string id;
+    public string Id => id;
+}</code></pre>
+
+  <h3>3.3 &nbsp;Concrete Example: ItemDef</h3>
+  <pre><code class="language-csharp">[ContentFolder("Items")]
+[CreateAssetMenu(menuName = "Defs/Item")]
+public sealed class ItemDef : ContentDef
+{
+    public Sprite    Icon;
+    public int       Price;
+    public StatMod[] OnPickup;
+}</code></pre>
+
+  <p>The JSON schema follows the <em>exact same</em> field layout:</p>
+  <pre><code class="language-json">[
+  { "id": "SoyMilk",      "Price": 40,
+    "OnPickup": [ { "stat": "AttackSpeed", "op": "Add", "value": 40 } ] },
+
+  { "id": "GentleAlien",  "Price": 60,
+    "OnPickup": [ { "stat": "EnemySpawnRate", "op": "Add", "value": 10 } ] }
+]</code></pre>
+
+  <p>💡 Because the schema is shared, <strong>no mapping layer</strong> is required:  
+     <code>JsonConvert.DeserializeObject&lt;ItemDef&gt;</code> instantiates a fully functional ScriptableObject‑style
+     object at runtime.</p>
+</section>
+
+<section id="importer">
+  <h2>4&nbsp;·&nbsp;JSON Importer Pipeline (<code>JsonContentImporter</code>)</h2>
+
+  <h3>4.1 &nbsp;Execution Context</h3>
+  <ul>
+    <li>Implements your existing <code>IContentImporter</code> interface.</li>
+    <li>Invoked <em>once per mod</em> in the user‑defined load order.</li>
+    <li>Uses <code>Newtonsoft.Json&nbsp;13.0+</code> for robust parsing.</li>
+  </ul>
+
+  <h3>4.2 &nbsp;Algorithm</h3>
+  <ol>
+    <li>Cache all non‑abstract types assignable to <code>IContentDef</code> that carry <code>[ContentFolder]</code>.</li>
+    <li>For each detected type T:
+      <ol>
+        <li>Build <code>&lt;ModRoot&gt;/&lt;FolderName&gt;</code> path.</li>
+        <li><mark>For every <code>*.json</code> in that folder</mark>:
+          <ul>
+            <li>Read root token.</li>
+            <li>If token == <code>Array</code> ⇒ foreach element deserialize to T.</li>
+            <li>Else deserialize token itself.</li>
+            <li>Call <code>ContentCatalogue.Instance.AddOrReplace(def)</code>.</li>
+          </ul>
+        </li>
+      </ol>
+    </li>
+  </ol>
+
+  <h3>4.3 &nbsp;Validation Settings</h3>
+  <pre><code class="language-csharp">new JsonSerializerSettings
+{
+    MissingMemberHandling = MissingMemberHandling.Error, // typos surface!
+    NullValueHandling     = NullValueHandling.Ignore,
+    Formatting            = Formatting.None
+}</code></pre>
+
+  <p><strong>Error Handling</strong>  
+     Any exception in a file logs <code>Debug.LogError</code> with the offending mod ID and
+     continues to the next file so that one bad mod cannot brick the entire load.</p>
+</section>
+
+<section id="catalogue">
+  <h2>5&nbsp;·&nbsp;Content Catalogue</h2>
+  <p><code>ContentCatalogue</code> is a <em>lazy</em>, thread‑safe singleton storing all runtime objects.</p>
+
+  <h3>5.1 &nbsp;Internal Data Structure</h3>
+  <pre><code class="language-csharp">// Dictionary&lt;Type, Dictionary&lt;string, IContentDef&gt;&gt;
+ConcurrentDictionary&lt;Type,
+    ConcurrentDictionary&lt;string, IContentDef&gt;&gt; _tables;
+</code></pre>
+
+  <h3>5.2 &nbsp;Public API</h3>
+  <pre><code class="language-csharp">void   AddOrReplace&lt;T&gt;(T def);
+bool   TryGet&lt;T&gt;(string id, out T def);
+IEnumerable&lt;T&gt; GetAll&lt;T&gt;();
+void   Clear();  // editor hot‑reload
+</code></pre>
+
+  <p>Insertion is O(1) and retrieval is O(1) because both dictionaries use
+     case‑insensitive keys.</p>
+</section>
+
+<section id="override">
+  <h2>6&nbsp;·&nbsp;Override Rules (Last‑Write‑Wins)</h2>
+  <ul>
+    <li>Mods are imported sequentially in the order the <em>player</em> sets via your UI.</li>
+    <li><code>AddOrReplace</code> simply overwrites the existing entry for that <code>Id</code>.</li>
+    <li>Result: “lower” mods in the list beat “higher” ones—straightforward mental model.</li>
+  </ul>
+</section>
+
+<section id="runtime-usage">
+  <h2>7&nbsp;·&nbsp;Runtime Usage & Typical Workflows</h2>
+
+  <h3>7.1 &nbsp;Getting a Single Definition</h3>
+  <pre><code class="language-csharp">if (ContentCatalogue.Instance.TryGet&lt;ItemDef&gt;("SoyMilk", out var soy))
+{
+    player.ApplyStatMods(soy.OnPickup);
+}</code></pre>
+
+  <h3>7.2 &nbsp;Enumerating All of a Type — e.g. for a Compendium</h3>
+  <pre><code class="language-csharp">foreach (var enemy in ContentCatalogue.Instance.GetAll&lt;EnemyDef&gt;())
+    BuildGlossaryCard(enemy);</code></pre>
+
+  <h3>7.3 &nbsp;Hot‑Reload in Play Mode (Editor only)</h3>
+  <ol>
+    <li><code>ContentCatalogue.Instance.Clear();</code></li>
+    <li>Re‑invoke your <code>ModLoader.Reload()</code> routine.</li>
+  </ol>
+  <p>The importer will repopulate the catalogue; existing gameplay systems simply
+     see updated references.</p>
+</section>
+
+<section id="extending">
+  <h2>8&nbsp;·&nbsp;Adding a New Content Type in &lt;60 seconds</h2>
+  <ol>
+    <li>Create <code>MyNewDef.cs</code> inheriting <code>ContentDef</code>.</li>
+    <li>Add <code>[ContentFolder("MyNewStuff")]</code>.</li>
+    <li>Populate Unity assets for designers (optional).</li>
+    <li>Provide JSON docs for modders (array‑or‑single syntax works automatically).</li>
+    <li><strong>No importer changes required</strong> – reflection picks it up on next run.</li>
+  </ol>
+</section>
+
+<section id="troubleshooting">
+  <h2>9&nbsp;·&nbsp;Troubleshooting &amp; FAQ</h2>
+
+  <h3>Unknown JSON Field Throws an Error</h3>
+  <p>Intended. Typos should fail fast.  
+     Either fix the typo or add the missing field to the ScriptableObject schema.</p>
+
+  <h3>Two Mods Both Change <code>Price</code> of “SoyMilk”</h3>
+  <p>Whichever mod appears later in load order dictates the final value.  
+     Players can reorder in UI → immediate resolution.</p>
+
+  <h3>Can Mods Reference External Art or Audio?</h3>
+  <p>Yes. Include the asset file next to the JSON and reference it with a relative path.
+     During import, read the bytes and create a <code>Sprite</code>/<code>AudioClip</code> on the fly.</p>
+
+  <h3>Is the Catalogue Thread‑Safe for Background Loading?</h3>
+  <p>Yes. Both the outer and inner dictionaries are <code>ConcurrentDictionary</code>.
+     You can import on a background thread and then <code>await</code> before using anything on the main thread.</p>
+</section>
+
+<footer>
+  © 2025 JG Studios – Content System Docs &nbsp;|&nbsp; Last update 23 Jul 2025
+</footer>
+
+</body>
+</html>
