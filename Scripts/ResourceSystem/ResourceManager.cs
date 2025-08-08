@@ -1,24 +1,11 @@
-using System;
+using JG.Tools;
 using System.Collections.Generic;
-using UnityEngine;
 
-public class ResourceManager : MonoBehaviour
+public class ResourceManager : Singleton<ResourceManager>
 {
-    public static ResourceManager Instance { get; private set; }
 
-    private Dictionary<int, PlayerResourceInventory> playerInventories = new Dictionary<int, PlayerResourceInventory>();
-
-    public event Action<int, string, int> OnResourceChanged; // playerId, resourceId, newAmount
-
-    private void Awake()
-    {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-    }
+    private readonly Dictionary<int, PlayerResourceInventory> playerInventories
+        = new Dictionary<int, PlayerResourceInventory>();
 
     public void RegisterPlayer(int playerId)
     {
@@ -26,19 +13,39 @@ public class ResourceManager : MonoBehaviour
             playerInventories[playerId] = new PlayerResourceInventory(playerId);
     }
 
-    public void AddResource(int playerId, Resource resource, int amount)
+    public void AddResource(int playerId, string resourceId, int amount)
     {
         EnsurePlayerExists(playerId);
-        playerInventories[playerId].AddResource(resource.id, amount);
-        OnResourceChanged?.Invoke(playerId, resource.id, playerInventories[playerId].GetAmount(resource.id));
+        playerInventories[playerId].AddResource(resourceId, amount);
+
+        EventBus<ResourceChangedEvent>.Raise(
+            new ResourceChangedEvent(playerId, resourceId, playerInventories[playerId].GetAmount(resourceId))
+        );
     }
 
-    public bool RemoveResource(int playerId, Resource resource, int amount)
+    public void AddResourceToAll(string resourceId, int amount)
+    {
+        foreach (var playerId in playerInventories.Keys)
+        {
+            AddResource(playerId, resourceId, amount);
+            EventBus<ResourceChangedEvent>.Raise(
+    new ResourceChangedEvent(playerId, resourceId, playerInventories[playerId].GetAmount(resourceId))
+);
+        }
+    }
+
+    public bool RemoveResource(int playerId, string resourceId, int amount)
     {
         EnsurePlayerExists(playerId);
-        bool success = playerInventories[playerId].RemoveResource(resource.id, amount);
+        bool success = playerInventories[playerId].RemoveResource(resourceId, amount);
+
         if (success)
-            OnResourceChanged?.Invoke(playerId, resource.id, playerInventories[playerId].GetAmount(resource.id));
+        {
+            EventBus<ResourceChangedEvent>.Raise(
+                new ResourceChangedEvent(playerId, resourceId, playerInventories[playerId].GetAmount(resourceId))
+            );
+        }
+
         return success;
     }
 
@@ -55,9 +62,23 @@ public class ResourceManager : MonoBehaviour
     }
 }
 
+public struct ResourceChangedEvent : IEvent
+{
+    public int PlayerId;
+    public string ResourceId;
+    public int NewAmount;
+
+    public ResourceChangedEvent(int playerId, string resourceId, int newAmount)
+    {
+        PlayerId = playerId;
+        ResourceId = resourceId;
+        NewAmount = newAmount;
+    }
+}
+
 //public class ExampleShop : MonoBehaviour
 //{
-//    public Resource coins = new Resource("coins", "Coins");
+//    public ResourceDef coins = new ResourceDef("coins", "Coins");
 
 //    private void Start()
 //    {
