@@ -6,6 +6,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
+using Editor = UnityEditor.Editor;
 
 namespace JG.GameContent.EditorTools
 {
@@ -30,7 +31,7 @@ namespace JG.GameContent.EditorTools
 
         private IContentDef[] _currentDefs = Array.Empty<IContentDef>();
         private UnityEngine.Object _selectedObj;
-        private Editor _cachedEditor;
+        private UnityEditor.Editor _cachedEditor;
         private SearchField _searchField;
 
         // ---------------- Lifetime ------------
@@ -158,7 +159,7 @@ namespace JG.GameContent.EditorTools
                 DestroyImmediate(_cachedEditor);
 
             if (_selectedObj != null)
-                _cachedEditor = Editor.CreateEditor(_selectedObj);
+                _cachedEditor = UnityEditor.Editor.CreateEditor(_selectedObj);
         }
 
         // ----------- Inspector pane -----------

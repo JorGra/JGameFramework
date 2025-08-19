@@ -21,26 +21,27 @@ namespace JG.GameContent
 
         private ContentCatalogue() { } // singleton
 
-        public void AddOrReplace<T>(T def) where T : class, IContentDef
+        // Register under every base type of the object
+        private void RegisterUnder(Type key, IContentDef def)
         {
-            var map = _tables.GetOrAdd(typeof(T),
-                _ => new ConcurrentDictionary<string, IContentDef>(
-                    StringComparer.OrdinalIgnoreCase));
+            var map = _tables.GetOrAdd(key,
+                _ => new ConcurrentDictionary<string, IContentDef>(StringComparer.OrdinalIgnoreCase));
 
-            map[def.Id] = def; // last‑write‑wins
+            map[def.Id] = def; // last-write-wins
             map[def.Id].SourceFile = def.SourceFile; // update source file
         }
+
+        // This method is used for adding content definitions under every type up the inheritance chain.
         public void AddOrReplace(IContentDef def)
         {
-            // Store under the concrete runtime type
             var t = def.GetType();
-            var map = _tables.GetOrAdd(t,
-                _ => new ConcurrentDictionary<string, IContentDef>(
-                         StringComparer.OrdinalIgnoreCase));
-
-            map[def.Id] = def;                    // last‑write‑wins
-            map[def.Id].SourceFile = def.SourceFile;
+            while (t != null && typeof(IContentDef).IsAssignableFrom(t))
+            {
+                RegisterUnder(t, def);
+                t = t.BaseType; // Move up the inheritance chain
+            }
         }
+
 
         public bool TryGet<T>(string id, out T def) where T : class, IContentDef
         {
