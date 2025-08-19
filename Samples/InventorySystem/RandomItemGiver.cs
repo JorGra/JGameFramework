@@ -25,7 +25,7 @@ namespace JG.Inventory.Samples
             if (!Input.GetKeyDown(triggerKey) || itemIds.Count == 0) return;
 
             string id = itemIds[Random.Range(0, itemIds.Count)];
-            IInventoryItem data = ItemCatalog.Instance.Get(id);
+            IInventoryItem data = null;//ItemCatalog.Instance.Get(id); //Replace with your content catalog 
 
             if (data == null)
             {

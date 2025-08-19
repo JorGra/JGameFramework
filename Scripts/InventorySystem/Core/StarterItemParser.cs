@@ -57,7 +57,7 @@ namespace JG.Inventory
         static bool TryResolve(ItemSeed seed, out (ItemData, int) tuple)
         {
             tuple = default;
-            var data = ItemCatalog.Instance.Get(seed.id);
+            ItemData data = null; //TODO: REPLACE WITH NEW SYSTEM //ItemCatalog.Instance.Get(seed.id);
             if (data == null)
             {
                 Debug.LogWarning(

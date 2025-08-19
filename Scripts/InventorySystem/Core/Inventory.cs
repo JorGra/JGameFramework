@@ -1,3 +1,4 @@
+using JG.GameContent;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -34,8 +35,6 @@ namespace JG.Inventory
             Changed?.Invoke();
             return true;
         }
-
-
 
         public bool RemoveItem(string itemId, int amount = 1)
         {
