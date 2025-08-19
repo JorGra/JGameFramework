@@ -4,7 +4,7 @@ using UnityEngine;
 namespace JG.Inventory
 {
     /// <summary>
-    /// POCO used inside <see cref="ItemData"/> to describe an effect and its JSON-serialised parameters.
+    /// POCO used inside <see cref="IInventoryItem"/> to describe an effect and its JSON-serialised parameters.
     /// </summary>
     [Serializable]
     public class ItemEffectDefinition

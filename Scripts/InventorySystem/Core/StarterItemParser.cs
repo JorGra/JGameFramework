@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JG.GameContent;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,7 +21,7 @@ namespace JG.Inventory
     public static class StarterItemParser
     {
         /// <summary>Parses one TextAsset.</summary>
-        public static IEnumerable<(ItemData data, int qty)> Parse(TextAsset ta)
+        public static IEnumerable<(IInventoryItem data, int qty)> Parse(TextAsset ta)
         {
             if (ta == null) yield break;
 
@@ -43,7 +44,7 @@ namespace JG.Inventory
         }
 
         /// <summary>Convenience wrapper to iterate many files at once.</summary>
-        public static IEnumerable<(ItemData data, int qty)>
+        public static IEnumerable<(IInventoryItem data, int qty)>
             ParseMany(IEnumerable<TextAsset> files)
         {
             if (files == null) yield break;
@@ -54,17 +55,17 @@ namespace JG.Inventory
 
         /* ───────── helpers ───────── */
 
-        static bool TryResolve(ItemSeed seed, out (ItemData, int) tuple)
+        static bool TryResolve(ItemSeed seed, out (IInventoryItem, int) tuple)
         {
             tuple = default;
-            ItemData data = null; //TODO: REPLACE WITH NEW SYSTEM //ItemCatalog.Instance.Get(seed.id);
-            if (data == null)
+            ContentCatalogue.Instance.TryGet(seed.id, out IInventoryItem item);
+            if (item == null)
             {
                 Debug.LogWarning(
                     $"[StarterItemParser] Item id '{seed.id}' not found in catalog.");
                 return false;
             }
-            tuple = (data, Math.Max(1, seed.quantity));
+            tuple = (item, Math.Max(1, seed.quantity));
             return true;
         }
 
