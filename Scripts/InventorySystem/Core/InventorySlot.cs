@@ -11,10 +11,10 @@ namespace JG.Inventory
 
         public bool IsEmpty => Stack == null;
 
-        public bool CanMerge(ItemData item) =>
-            !IsEmpty && Stack.Data == item && !Stack.IsFull;
+        public bool CanMerge(IInventoryItem item) =>
+            !IsEmpty && Stack.Data.Id == item.Id && !Stack.IsFull;
 
-        public bool TryAdd(ItemData item, int amount)
+        public bool TryAdd(IInventoryItem item, int amount)
         {
             if (IsEmpty)
             {
@@ -22,7 +22,7 @@ namespace JG.Inventory
                 return true;
             }
 
-            if (Stack.Data != item) return false;
+            if (Stack.Data.Id != item.Id) return false;
             int accepted = Stack.Add(amount);
             return accepted > 0;
         }

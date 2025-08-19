@@ -20,7 +20,7 @@ namespace JG.Inventory
             acceptedTags = new HashSet<string>(tags);
 
         /// <returns>True if the item owns at least one accepted tag.</returns>
-        public bool CanEquip(ItemData data) =>
+        public bool CanEquip(IInventoryItem data) =>
             data != null &&
             (acceptedTags.Count == 0 || data.EquipTags.Any(acceptedTags.Contains));
 

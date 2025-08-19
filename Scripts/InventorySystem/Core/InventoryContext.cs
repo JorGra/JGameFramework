@@ -10,8 +10,5 @@ namespace JG.Inventory
     {
         /// <summary>The Stats container that receives modifiers.</summary>
         public Stats TargetStats { get; set; }
-
-        /// <summary>Shared wallet example, can stay <c>null</c>.</summary>
-        public ResourceWallet Resources { get; set; }
     }
 }

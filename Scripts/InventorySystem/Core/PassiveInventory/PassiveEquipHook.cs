@@ -10,7 +10,7 @@ namespace JG.Inventory
     {
         readonly Dictionary<string, List<IItemEffect>> active = new();
 
-        public void OnChanged(ItemData data, int qty, InventoryContext ctx)
+        public void OnChanged(IInventoryItem data, int qty, InventoryContext ctx)
         {
             if (data == null || qty == 0 || ctx?.TargetStats == null) return;
 
@@ -20,7 +20,7 @@ namespace JG.Inventory
 
         /* ───────── helpers ───────── */
 
-        void Apply(ItemData data, int qty, InventoryContext ctx)
+        void Apply(IInventoryItem data, int qty, InventoryContext ctx)
         {
             if (!active.TryGetValue(data.Id, out var list))
                 active[data.Id] = list = new List<IItemEffect>();
@@ -35,7 +35,7 @@ namespace JG.Inventory
                 }
         }
 
-        void Remove(ItemData data, int qty, InventoryContext ctx)
+        void Remove(IInventoryItem data, int qty, InventoryContext ctx)
         {
             if (!active.TryGetValue(data.Id, out var list) || list.Count == 0) return;
 

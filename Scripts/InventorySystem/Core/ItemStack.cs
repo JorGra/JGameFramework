@@ -8,10 +8,10 @@ namespace JG.Inventory
     /// </summary>
     public class ItemStack
     {
-        public ItemData Data { get; }
+        public IInventoryItem Data { get; }
         public int Count { get; private set; }
 
-        public ItemStack(ItemData data, int count)
+        public ItemStack(IInventoryItem data, int count)
         {
             Data = data;
             Count = Mathf.Clamp(count, 1, data.MaxStack);

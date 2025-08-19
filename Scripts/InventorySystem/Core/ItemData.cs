@@ -8,7 +8,7 @@ namespace JG.Inventory
     /// Icons are loaded lazily from <c>Resources/Icons/Icons/{itemId}.png</c>.
     /// </summary>
     [CreateAssetMenu(menuName = "Gameplay/Inventory/Item")]
-    public class ItemData : ScriptableObject
+    public class ItemData : ScriptableObject, IInventoryItem
     {
         /* ────── static cache ────── */
 
@@ -55,5 +55,7 @@ namespace JG.Inventory
         public int MaxStack => Mathf.Max(1, maxStack);
         public IReadOnlyList<string> EquipTags => equipTags;
         public IReadOnlyList<ItemEffectDefinition> Effects => effects;
+
+        public string SourceFile { get => "Vanilla"; set => SourceFile = value; }
     }
 }

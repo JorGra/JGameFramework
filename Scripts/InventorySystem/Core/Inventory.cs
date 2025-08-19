@@ -21,7 +21,7 @@ namespace JG.Inventory
         }
 
 
-        public bool AddItem(ItemData item, int amount = 1)
+        public bool AddItem(IInventoryItem item, int amount = 1)
         {
             if (TryMergeExisting(item, amount))           // applies hook internally
                 return true;
@@ -45,7 +45,7 @@ namespace JG.Inventory
                 if (slot.IsEmpty || slot.Stack.Data.Id != itemId) continue;
 
                 /* capture data BEFORE we modify the slot */
-                ItemData capturedData = slot.Stack.Data;
+                IInventoryItem capturedData = slot.Stack.Data;
 
                 int removed = slot.Remove(amount);
                 if (removed > 0)
@@ -90,14 +90,14 @@ namespace JG.Inventory
         /// <summary>True when at least <paramref name="amount"/> copies are present.</summary>
         public bool HasItem(string itemId, int amount = 1) => CountItem(itemId) >= amount;
 
-        void FireHook(ItemData data, int qtySign)
+        void FireHook(IInventoryItem data, int qtySign)
         {
             if (hook == null || data == null || qtySign == 0) return;
             var ctx = new InventoryContext { TargetStats = statsProv?.Stats };
             hook.OnChanged(data, qtySign, ctx);
         }
 
-        bool TryMergeExisting(ItemData item, int amount)
+        bool TryMergeExisting(IInventoryItem item, int amount)
         {
             foreach (var slot in slots)
                 if (slot.CanMerge(item) && slot.TryAdd(item, amount))
