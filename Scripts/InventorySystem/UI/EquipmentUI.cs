@@ -19,11 +19,16 @@ namespace JG.Inventory.UI
 
         [Header("Bindings")][SerializeField] private List<SlotBinding> slots = new();
         [Header("Context-menu setup")][SerializeField] private ContextMenuUI contextPrefab;
-        [SerializeField] private InventoryComponent playerInventory;
+        public InventoryComponent playerInventory;
 
         ContextMenuUI context;
 
         void Awake()
+        {
+            Init();
+        }
+
+        public void Init()
         {
             foreach (var raw in slots)
             {
@@ -33,8 +38,9 @@ namespace JG.Inventory.UI
                     Debug.LogError($"{name}: slot binding missing component");
                     continue;
                 }
-
+                b.button.onClick.RemoveAllListeners();
                 b.button.onClick.AddListener(() => OnSlotClicked(b));
+                b.slotComponent.SetSlot();
                 b.slotComponent.Slot.Changed += () => Refresh(b);
                 Refresh(b);
             }

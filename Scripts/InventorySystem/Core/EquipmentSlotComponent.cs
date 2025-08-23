@@ -16,5 +16,7 @@ namespace JG.Inventory
 
         void Awake() =>
             Slot = new EquipmentSlot(acceptedTags);
+
+        public void SetSlot() => Slot = new EquipmentSlot(acceptedTags);
     }
 }
