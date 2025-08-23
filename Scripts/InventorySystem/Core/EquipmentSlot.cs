@@ -33,6 +33,7 @@ namespace JG.Inventory
                 !inventory.RemoveItem(stack.Data.Id, 1))       // pop 1 from inv
                 return false;
 
+
             // hand back any previously equipped item
             if (Equipped != null && inventory != null)
                 inventory.AddItem(Equipped.Data, Equipped.Count);
@@ -43,6 +44,9 @@ namespace JG.Inventory
                 .Raise(new ItemEquippedEvent(this, Equipped, ctx));
 
             Changed?.Invoke();
+
+            Debug.Log($"[EquipmentSlot] Equipped {stack.Data.Id}");
+
             return true;
         }
 

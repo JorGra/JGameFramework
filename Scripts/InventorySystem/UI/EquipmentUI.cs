@@ -5,11 +5,11 @@ using UnityEngine.UI;
 
 namespace JG.Inventory.UI
 {
-    /// <summary>Displays and refreshes all equipment slots.</summary>
+    /// <summary>Displays and refreshes all equipment Slots.</summary>
     public class EquipmentUI : MonoBehaviour
     {
         [System.Serializable]
-        private struct SlotBinding
+        public struct SlotBinding
         {
             public Button button;
             public EquipmentSlotComponent slotComponent;
@@ -17,20 +17,15 @@ namespace JG.Inventory.UI
             public TMP_Text qty;
         }
 
-        [Header("Bindings")][SerializeField] private List<SlotBinding> slots = new();
+        [Header("Bindings")] public List<SlotBinding> Slots = new();
         [Header("Context-menu setup")][SerializeField] private ContextMenuUI contextPrefab;
-        public InventoryComponent playerInventory;
-
+        //public InventoryComponent playerInventory;
+        public EquipmentHub hub;
         ContextMenuUI context;
-
-        void Awake()
-        {
-            Init();
-        }
 
         public void Init()
         {
-            foreach (var raw in slots)
+            foreach (var raw in Slots)
             {
                 var b = raw;                                    // capture!
                 if (b.slotComponent == null)
@@ -40,13 +35,13 @@ namespace JG.Inventory.UI
                 }
                 b.button.onClick.RemoveAllListeners();
                 b.button.onClick.AddListener(() => OnSlotClicked(b));
-                b.slotComponent.SetSlot();
-                b.slotComponent.Slot.Changed += () => Refresh(b);
+                b.slotComponent.EnsureSlot();
+                var slotRef = b.slotComponent.Slot;
+                slotRef.Changed += () => Refresh(b);
                 Refresh(b);
             }
 
-            if (playerInventory == null)
-                playerInventory = FindObjectOfType<InventoryComponent>(true);
+            hub ??= GetComponentInParent<EquipmentHub>(true);
         }
 
         /* ---------- click / context ---------- */
@@ -58,9 +53,9 @@ namespace JG.Inventory.UI
 
             context ??= Instantiate(contextPrefab, transform.root);
             context.Open(eq,                                             // stack
-                         playerInventory.Runtime,                        // inv
+                         hub.Inventory,                        // inv
                          (RectTransform)b.button.transform,              // anchor
-                         playerInventory.GetComponent<EquipmentSlotRouter>(),
+                         hub,
                          b.slotComponent);                               // signals “equipped”
         }
 
@@ -68,6 +63,7 @@ namespace JG.Inventory.UI
 
         void Refresh(SlotBinding b)
         {
+            Debug.Log($"[EquipmentUI] Refresh {b.slotComponent.name}");
             var eq = b.slotComponent.Slot.Equipped;
             bool hasItem = eq != null;
 
@@ -75,5 +71,15 @@ namespace JG.Inventory.UI
             b.icon.sprite = hasItem ? eq.Data.Icon : null;
             b.qty.text = hasItem && eq.Count > 1 ? eq.Count.ToString() : "";
         }
+
+        void OnEnable()
+        {
+            foreach (var raw in Slots)
+            {
+                var b = raw;
+                if (b.slotComponent?.Slot != null) Refresh(b);
+            }
+        }
+
     }
 }

@@ -14,7 +14,7 @@ namespace JG.Inventory.UI
     }
 
 
-    /// <summary>Right-click / pad-button menu for inventory & equipment slots.</summary>
+    /// <summary>Right-click / pad-button menu for inventory & equipment Slots.</summary>
     public class ContextMenuUI : MonoBehaviour
     {
         [SerializeField] Button useBtn, equipBtn, unequipBtn, dropBtn;
@@ -22,24 +22,24 @@ namespace JG.Inventory.UI
         ItemStack stack;
         Inventory inv;
         EquipmentSlotComponent equipSlot;
-        EquipmentSlotRouter bridge;
+        EquipmentHub hub;
         IStatsProvider statsProvider;      // NEW
 
         public void Open(ItemStack s,
                          Inventory i,
                          RectTransform anchor,
-                         EquipmentSlotRouter br,
+                         EquipmentHub hub,
                          EquipmentSlotComponent slotComponent = null,
                          IStatsProvider provider = null)   // NEW (optional)
         {
             stack = s;
             inv = i;
             equipSlot = slotComponent;
-            bridge = br;
+            this.hub = hub;
             statsProvider = provider;
 
             /* --- button visibility (unchanged) --- */
-            bool canEquip = !IsEquipped && stack.Data.EquipTags.Count > 0 && bridge != null;
+            bool canEquip = !IsEquipped && stack.Data.EquipTags.Count > 0 && this.hub != null;
             bool canUse = stack.Data.Effects.Count > 0 && stack.Data.EquipTags.Count == 0;
             bool canUnequip = IsEquipped;
 
@@ -63,9 +63,9 @@ namespace JG.Inventory.UI
 
         void OnUse()
         {
-            if (bridge != null)
+            if (hub != null)
             {
-                bridge.Use(stack);               // classic inventory path
+                hub.Use(stack);               // classic inventory path
             }
             else if (inv != null)
             {
@@ -75,11 +75,11 @@ namespace JG.Inventory.UI
             Close();
         }
 
-        void OnEquip() { bridge?.Equip(stack); Close(); }
+        void OnEquip() { hub?.Equip(stack); Close(); }
         void OnUnequip()
         {
-            if (bridge == null) { Debug.LogError("Bridge null on Unequip"); return; }
-            bridge.Unequip(equipSlot);
+            if (hub == null) { Debug.LogError("Bridge null on Unequip"); return; }
+            hub.Unequip(equipSlot);
             Close();
         }
 
@@ -99,8 +99,8 @@ namespace JG.Inventory.UI
 
 
 
-    /* thin helpers ----------------------------------------------------------- */
-    static class BtnExt
+/* thin helpers ----------------------------------------------------------- */
+static class BtnExt
 {
     public static void Set(this Button b, UnityEngine.Events.UnityAction cb)
     {

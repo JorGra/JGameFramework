@@ -4,7 +4,7 @@ using UnityEngine;
 namespace JG.Inventory.UI
 {
     /// <summary>
-    /// Scroll-view list for the “passive-bonus” inventory. Keeps item slots,
+    /// Scroll-view list for the “passive-bonus” inventory. Keeps item Slots,
     /// tooltip and context-menu in sync with <see cref="PassiveInventoryComponent"/>.
     /// </summary>
     public class PassiveInventoryUI : MonoBehaviour, IContextMenuHost

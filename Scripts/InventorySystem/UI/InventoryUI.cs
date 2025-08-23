@@ -5,13 +5,13 @@ namespace JG.Inventory.UI
 {
     /// <summary>
     /// Scroll-view-based inventory list for a single player.
-    /// Keeps item slots and tooltip panel in sync with the runtime inventory.
+    /// Keeps item Slots and tooltip panel in sync with the runtime inventory.
     /// </summary>
     public class InventoryUI : MonoBehaviour, IContextMenuHost
     {
         [Header("References")]
         [SerializeField] private InventoryComponent playerInventory;
-        [SerializeField] private EquipmentSlotRouter playerBridge;
+        [SerializeField] private EquipmentHub equipmentHub;
         [SerializeField] private RectTransform contentRoot;
         [SerializeField] private ItemSlotUI slotPrefab;
         [Tooltip("Tooltip panel that belongs to THIS inventory window.")]
@@ -33,8 +33,8 @@ namespace JG.Inventory.UI
                 Debug.LogError($"{name}: No InventoryComponent assigned or found.");
                 enabled = false; return;
             }
-            if (playerBridge == null)
-                playerBridge = GetComponentInParent<EquipmentSlotRouter>();
+            if (equipmentHub == null)
+                equipmentHub = GetComponentInParent<EquipmentHub>();
 
 
             playerInventory.Runtime.Changed += Rebuild;
@@ -52,7 +52,7 @@ namespace JG.Inventory.UI
             context.Open(stack,
                          playerInventory.Runtime,
                          anchor,
-                         playerBridge);                     // pass bridge ✔
+                         equipmentHub);
         }
 
         /* ───────── build / refresh ───────── */

@@ -14,9 +14,15 @@ namespace JG.Inventory
 
         public EquipmentSlot Slot { get; private set; }
 
-        void Awake() =>
-            Slot = new EquipmentSlot(acceptedTags);
+        //void Awake() =>
+        //    Slot = new EquipmentSlot(acceptedTags);
 
         public void SetSlot() => Slot = new EquipmentSlot(acceptedTags);
+
+        public void EnsureSlot()
+        {
+            if (Slot == null)
+                Slot = new EquipmentSlot(acceptedTags);
+        }
     }
 }
