@@ -17,59 +17,56 @@ namespace JG.Inventory.UI
             public TMP_Text qty;
         }
 
-        [Header("Bindings")] public List<SlotBinding> Slots = new();
-        [Header("Context-menu setup")][SerializeField] private ContextMenuUI contextPrefab;
-        //public InventoryComponent playerInventory;
+        [Header("Auto-populated")]
+        public List<SlotBinding> Slots = new();
+
+        [Header("Scan these parents for slots (leave empty to use this object)")]
+        [SerializeField] private List<Transform> slotContainers = new();
+
+        [Header("Context-menu setup")]
+        [SerializeField] private ContextMenuUI contextPrefab;
+
         public EquipmentHub hub;
-        ContextMenuUI context;
+        private ContextMenuUI context;
+
+        [ContextMenu("Auto-bind + Init")]
+        private void AutoBindAndInit()
+        {
+            RebuildBindings();
+            Init();
+        }
+
+        [ContextMenu("Auto-bind (no Init)")]
+        private void AutoBindOnly() => RebuildBindings();
 
         public void Init()
         {
+            hub ??= GetComponentInParent<EquipmentHub>(true);
+
+            // if someone forgot to auto-bind in editor, do it now
+            if (Slots.Count == 0) RebuildBindings();
+
             foreach (var raw in Slots)
             {
-                var b = raw;                                    // capture!
+                var b = raw; // capture
+
                 if (b.slotComponent == null)
                 {
-                    Debug.LogError($"{name}: slot binding missing component");
+                    Debug.LogWarning($"{name}: Slot binding missing EquipmentSlotComponent.", this);
                     continue;
                 }
-                b.button.onClick.RemoveAllListeners();
-                b.button.onClick.AddListener(() => OnSlotClicked(b));
+
+                if (b.button != null)
+                {
+                    b.button.onClick.RemoveAllListeners();
+                    b.button.onClick.AddListener(() => OnSlotClicked(b));
+                }
+
                 b.slotComponent.EnsureSlot();
                 var slotRef = b.slotComponent.Slot;
                 slotRef.Changed += () => Refresh(b);
                 Refresh(b);
             }
-
-            hub ??= GetComponentInParent<EquipmentHub>(true);
-        }
-
-        /* ---------- click / context ---------- */
-
-        void OnSlotClicked(SlotBinding b)
-        {
-            var eq = b.slotComponent.Slot.Equipped;
-            if (eq == null) return;
-
-            context ??= Instantiate(contextPrefab, transform.root);
-            context.Open(eq,                                             // stack
-                         hub.Inventory,                        // inv
-                         (RectTransform)b.button.transform,              // anchor
-                         hub,
-                         b.slotComponent);                               // signals “equipped”
-        }
-
-        /* ---------- visual refresh ---------- */
-
-        void Refresh(SlotBinding b)
-        {
-            Debug.Log($"[EquipmentUI] Refresh {b.slotComponent.name}");
-            var eq = b.slotComponent.Slot.Equipped;
-            bool hasItem = eq != null;
-
-            b.icon.enabled = hasItem;
-            b.icon.sprite = hasItem ? eq.Data.Icon : null;
-            b.qty.text = hasItem && eq.Count > 1 ? eq.Count.ToString() : "";
         }
 
         void OnEnable()
@@ -81,5 +78,106 @@ namespace JG.Inventory.UI
             }
         }
 
+        /* ---------- click / context ---------- */
+
+        void OnSlotClicked(SlotBinding b)
+        {
+            var eq = b.slotComponent.Slot.Equipped;
+            if (eq == null || b.button == null) return;
+
+            context ??= Instantiate(contextPrefab, transform.root);
+            context.Open(eq,
+                         hub.Inventory,
+                         (RectTransform)b.button.transform,
+                         hub,
+                         b.slotComponent);
+        }
+
+        /* ---------- visual refresh ---------- */
+
+        void Refresh(SlotBinding b)
+        {
+            var eq = b.slotComponent.Slot.Equipped;
+            bool hasItem = eq != null;
+
+            if (b.icon != null)
+            {
+                b.icon.enabled = hasItem;
+                b.icon.sprite = hasItem ? eq.Data.Icon : null;
+            }
+
+            if (b.qty != null)
+                b.qty.text = hasItem && eq.Count > 1 ? eq.Count.ToString() : "";
+        }
+
+        /* ---------- auto-binding (simple fixed layout) ---------- */
+
+        /// <summary>
+        /// Find all EquipmentSlotComponent under the given containers and bind:
+        /// - Button: first Button under the slot
+        /// - Icon:   Image directly under the slot (not inside the Button)
+        /// - Qty:    TMP_Text under the Button
+        /// </summary>
+        public void RebuildBindings()
+        {
+            Slots.Clear();
+
+            var roots = slotContainers != null && slotContainers.Count > 0
+                ? slotContainers
+                : new List<Transform> { transform };
+
+            foreach (var root in roots)
+            {
+                if (root == null) continue;
+
+                var comps = root.GetComponentsInChildren<EquipmentSlotComponent>(true);
+                foreach (var comp in comps)
+                {
+                    var slotGO = comp.gameObject;
+
+                    // 1) Button: first Button under the slot
+                    var button = slotGO.GetComponentInChildren<Button>(true);
+
+                    // 2) Icon Image: prefer an Image that is a direct child of the slot and NOT under the Button
+                    Image icon = null;
+                    var images = slotGO.GetComponentsInChildren<Image>(true);
+                    foreach (var img in images)
+                    {
+                        if (button != null && img.transform.IsChildOf(button.transform)) continue;
+                        if (img.transform.parent == slotGO.transform) { icon = img; break; }
+                    }
+                    // fallback: if we didn’t find a direct child, allow any image not under the button
+                    if (icon == null)
+                    {
+                        foreach (var img in images)
+                        {
+                            if (button != null && img.transform.IsChildOf(button.transform)) continue;
+                            icon = img;
+                            break;
+                        }
+                    }
+
+                    // 3) Qty text: first TMP_Text under the Button
+                    TMP_Text qty = null;
+                    if (button != null)
+                        qty = button.GetComponentInChildren<TMP_Text>(true);
+
+                    if (button == null)
+                        Debug.LogWarning($"[EquipmentUI] No Button found under '{comp.name}'.", comp);
+                    if (icon == null)
+                        Debug.LogWarning($"[EquipmentUI] No Image (icon) found under '{comp.name}'.", comp);
+                    if (qty == null)
+                        Debug.LogWarning($"[EquipmentUI] No TMP_Text (qty) under the Button in '{comp.name}'.", comp);
+
+                    Slots.Add(new SlotBinding
+                    {
+                        button = button,
+                        slotComponent = comp,
+                        icon = icon,
+                        qty = qty
+                    });
+                }
+            }
+        }
     }
 }

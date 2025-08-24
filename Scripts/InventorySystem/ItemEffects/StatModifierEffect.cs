@@ -14,18 +14,19 @@ namespace JG.Inventory
 
         public StatModifierEffect(List<StatModifier> mods) => modifiers = mods;
 
-        public void Apply(InventoryContext ctx)
+        public void Apply(IInventoryContext ctx)
         {
-            if (ctx?.TargetStats == null) return;
+            if (!ctx.TryGet<Stats>(out var stats)) return;
             foreach (var m in modifiers)
-                ctx.TargetStats.Mediator.AddModifier(m);
+                stats.Mediator.AddModifier(m);
+
+            Debug.Log($"[StatModifierEffect] Applied {modifiers.Count} modifiers");
         }
 
-        public void Remove(InventoryContext ctx)
+        public void Remove(IInventoryContext ctx)
         {
-            if (ctx?.TargetStats == null) return;
-            foreach (var m in modifiers)
-                ctx.TargetStats.Mediator.RemoveModifier(m);
+            if (!ctx.TryGet<Stats>(out var stats)) return;
+            foreach (var m in modifiers) stats.Mediator.RemoveModifier(m);
         }
 
         /* -------- factory called by registry -------- */

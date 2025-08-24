@@ -1,4 +1,5 @@
 using JG.GameContent;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,13 +12,13 @@ namespace JG.Inventory
 
         readonly List<InventorySlot> slots = new();
         readonly IInventoryHook hook;         // NEW
-        readonly IStatsProvider statsProv;    // for ctx
+        public readonly Func<IInventoryContext> ctxFactory;
 
         public IReadOnlyList<InventorySlot> Slots => slots;
 
-        public Inventory(IStatsProvider prov = null, IInventoryHook hk = null)
+        public Inventory(Func<IInventoryContext> contextFactory = null, IInventoryHook hk = null)
         {
-            statsProv = prov;
+            ctxFactory = contextFactory;
             hook = hk;
         }
 
@@ -60,7 +61,7 @@ namespace JG.Inventory
         }
 
 
-        public bool UseItem(string itemId, InventoryContext ctx)
+        public bool UseItem(string itemId, IInventoryContext ctx)
         {
             for (int i = 0; i < slots.Count; i++)
             {
@@ -92,7 +93,7 @@ namespace JG.Inventory
         void FireHook(IInventoryItem data, int qtySign)
         {
             if (hook == null || data == null || qtySign == 0) return;
-            var ctx = new InventoryContext { TargetStats = statsProv?.Stats };
+            var ctx = ctxFactory?.Invoke();
             hook.OnChanged(data, qtySign, ctx);
         }
 

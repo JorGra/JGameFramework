@@ -10,21 +10,16 @@ namespace JG.Inventory
     /// <see cref="PassiveEquipHook"/> to auto-apply equip effects.
     /// </summary>
     [DefaultExecutionOrder(-50)]
-    public class PassiveInventoryComponent : MonoBehaviour
+    public class PassiveInventoryComponent : MonoBehaviour, IInventoryHolder
     {
         /// <summary>Runtime container with auto-equip behaviour.</summary>
-        public Inventory Runtime { get; private set; }
+        private Inventory Runtime { get; set; }
 
         [Header("Starter Item Files (TextAssets)")]
         [SerializeField] List<TextAsset> starterFiles = new();
 
         void Awake()
         {
-            var statsProv = GetComponent<IStatsProvider>() ??
-                            GetComponentInParent<IStatsProvider>();
-
-            Runtime = new Inventory(statsProv, new PassiveEquipHook());
-
             StartCoroutine(AddStarterItems());
         }
 
@@ -33,7 +28,7 @@ namespace JG.Inventory
             yield return null;
 
             foreach (var (data, qty) in StarterItemParser.ParseMany(starterFiles))
-                Runtime.AddItem(data, qty);
+                Get().AddItem(data, qty);
 
         }
         [ContextMenu("Print All Items")]
@@ -43,6 +38,18 @@ namespace JG.Inventory
             {
                 Debug.Log($"Slot: {slot.Stack.Data.DisplayName}");
             }
+        }
+
+        public Inventory Get()
+        {
+            if (Runtime == null)
+            {
+                var statsProv = GetComponent<IStatsProvider>() ??
+                 GetComponentInParent<IStatsProvider>();
+
+                Runtime = new Inventory(null, new PassiveEquipHook());
+            }
+            return Runtime;
         }
     }
 }

@@ -70,7 +70,7 @@ namespace JG.Inventory.UI
             else if (inv != null)
             {
                 inv.UseItem(stack.Data.Id,
-                            new InventoryContext { TargetStats = statsProvider?.Stats });
+                            inv.ctxFactory());
             }
             Close();
         }

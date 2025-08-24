@@ -10,17 +10,19 @@ namespace JG.Inventory
 
         public HealEffect(int amount) => this.amount = amount;
 
-        public void Apply(InventoryContext ctx)
+        public void Apply(IInventoryContext ctx)
         {
-            if (ctx?.TargetStats == null) return;
+            if (!ctx.TryGet<Stats>(out var stats)) return;
+
 
             var healthDef = StatRegistryProvider.Instance.Registry.Get("health");
             var mod = new StatModifier(healthDef, new AddOperation(amount), 0f);
-            ctx.TargetStats.Mediator.AddModifier(mod);
+            stats.Mediator.AddModifier(mod);
             // duration 0 → removed next frame by mediator; acts as an “impulse”.
+
         }
 
-        public void Remove(InventoryContext ctx) { /* no-op */ }
+        public void Remove(IInventoryContext ctx) { /* no-op */ }
 
         public static IItemEffect FromJson(string json)
         {

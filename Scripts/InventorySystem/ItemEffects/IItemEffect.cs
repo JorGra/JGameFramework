@@ -5,7 +5,7 @@ namespace JG.Inventory
     /// </summary>
     public interface IItemEffect
     {
-        void Apply(InventoryContext context);
-        void Remove(InventoryContext context);
+        void Apply(IInventoryContext context);
+        void Remove(IInventoryContext context);
     }
 }

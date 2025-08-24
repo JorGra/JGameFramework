@@ -10,9 +10,9 @@ namespace JG.Inventory
     /// • exactly ONE object  →  { "id":"potion", "quantity":3 }  
     /// • or MANY objects     →  { "items":[ {…}, {…} ] }
     /// </summary>
-    public class InventoryComponent : MonoBehaviour
+    public class InventoryComponent : MonoBehaviour, IInventoryHolder
     {
-        public Inventory Runtime { get; private set; }
+        private Inventory Runtime { get; set; }
 
         [Header("Starter Item Files (TextAssets)")]
         [SerializeField] private List<TextAsset> starterFiles = new();
@@ -23,6 +23,13 @@ namespace JG.Inventory
 
             foreach (var (data, qty) in StarterItemParser.ParseMany(starterFiles))
                 Runtime.AddItem(data, qty);
+        }
+
+        public Inventory Get()
+        {
+            if (Runtime == null)
+                Runtime = new Inventory();
+            return Runtime;
         }
     }
 }

@@ -10,9 +10,10 @@ namespace JG.Inventory
     {
         readonly Dictionary<string, List<IItemEffect>> active = new();
 
-        public void OnChanged(IInventoryItem data, int qty, InventoryContext ctx)
+        public void OnChanged(IInventoryItem data, int qty, IInventoryContext ctx)
         {
-            if (data == null || qty == 0 || ctx?.TargetStats == null) return;
+            if (data == null || qty == 0) return;
+            if (!ctx.TryGet<Stats>(out var _)) return; // require Stats capability
 
             if (qty > 0) Apply(data, qty, ctx);
             else Remove(data, -qty, ctx);
@@ -20,13 +21,16 @@ namespace JG.Inventory
 
         /* ───────── helpers ───────── */
 
-        void Apply(IInventoryItem data, int qty, InventoryContext ctx)
+        void Apply(IInventoryItem data, int qty, IInventoryContext ctx)
         {
+            if (data.Effects == null) return;
+
             if (!active.TryGetValue(data.Id, out var list))
                 active[data.Id] = list = new List<IItemEffect>();
 
+
             for (int i = 0; i < qty; i++)
-                foreach (var def in data.Effects)
+                foreach (var def in data?.Effects)
                 {
                     var fx = ItemEffectRegistry.Build(def.effectType, def.effectParams);
                     if (fx == null) continue;
@@ -35,7 +39,7 @@ namespace JG.Inventory
                 }
         }
 
-        void Remove(IInventoryItem data, int qty, InventoryContext ctx)
+        void Remove(IInventoryItem data, int qty, IInventoryContext ctx)
         {
             if (!active.TryGetValue(data.Id, out var list) || list.Count == 0) return;
 

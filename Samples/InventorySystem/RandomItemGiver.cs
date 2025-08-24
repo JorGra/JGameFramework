@@ -11,7 +11,7 @@ namespace JG.Inventory.Samples
     {
         [Header("Target Inventory (assign in Inspector)")]
         [Tooltip("Any MonoBehaviour that exposes an Inventory via the Runtime property.")]
-        [SerializeField] private PassiveInventoryComponent inventory;   // assign regular bag
+        [SerializeField] private IInventoryHolder inventory;   // assign regular bag
         // To test the passive bag instead, drag a PassiveInventoryComponent here.
 
         [Header("Item Ids (catalog keys)")]
@@ -39,7 +39,7 @@ namespace JG.Inventory.Samples
                 return;
             }
 
-            inventory.Runtime.AddItem(data, 1);
+            inventory.Get().AddItem(data, 1);
         }
     }
 }

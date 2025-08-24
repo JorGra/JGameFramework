@@ -44,7 +44,7 @@ namespace JG.Inventory
 
         void OnEquipped(ItemEquippedEvent e)
         {
-            if (!IsMine(e.Context)) return;
+            if (!IsMine(e.Context) || e.Stack.Data.Effects == null) return;
 
             var list = new List<IItemEffect>();
             foreach (var def in e.Stack.Data.Effects)
@@ -71,7 +71,7 @@ namespace JG.Inventory
 
         /* ───────── helpers ───────── */
 
-        bool IsMine(InventoryContext ctx) =>
-            ctx != null && ctx.TargetStats == TargetStats;
+        bool IsMine(IInventoryContext ctx) =>
+            ctx != null && ctx.TryGet<Stats>(out var s) && s == TargetStats;
     }
 }

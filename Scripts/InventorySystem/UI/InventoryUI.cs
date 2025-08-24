@@ -37,7 +37,7 @@ namespace JG.Inventory.UI
                 equipmentHub = GetComponentInParent<EquipmentHub>();
 
 
-            playerInventory.Runtime.Changed += Rebuild;
+            playerInventory.Get().Changed += Rebuild;
         }
 
         void OnEnable() => Rebuild();
@@ -50,7 +50,7 @@ namespace JG.Inventory.UI
 
             context ??= Instantiate(contextPrefab, transform.root);
             context.Open(stack,
-                         playerInventory.Runtime,
+                         playerInventory.Get(),
                          anchor,
                          equipmentHub);
         }
@@ -59,7 +59,7 @@ namespace JG.Inventory.UI
 
         void Rebuild()
         {
-            var inv = playerInventory.Runtime;
+            var inv = playerInventory.Get();
             if (inv == null) return;
 
             int needed = inv.Slots.Count;

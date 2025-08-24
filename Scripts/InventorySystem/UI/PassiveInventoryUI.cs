@@ -10,7 +10,7 @@ namespace JG.Inventory.UI
     public class PassiveInventoryUI : MonoBehaviour, IContextMenuHost
     {
         [Header("References")]
-        [SerializeField] private PassiveInventoryComponent passiveInventory;
+        [SerializeField] private IInventoryHolder passiveInventory;
         [SerializeField] private RectTransform contentRoot;
         [SerializeField] private ItemSlotUI slotPrefab;
         [Tooltip("Tooltip panel that belongs to THIS inventory window.")]
@@ -20,7 +20,7 @@ namespace JG.Inventory.UI
         [SerializeField] private ContextMenuUI contextPrefab;
 
         [SerializeField] bool autoSetup = true; // if true, will try to find PassiveInventoryComponent in parent hierarchy
-        
+
         readonly List<ItemSlotUI> pool = new();
         ContextMenuUI context;
         /* ───────── initialisation ───────── */
@@ -41,15 +41,8 @@ namespace JG.Inventory.UI
                 enabled = false;
                 return;
             }
-            passiveInventory.Runtime.Changed += Rebuild;
+            passiveInventory.Get().Changed += Rebuild;
         }
-
-        public void Setup(PassiveInventoryComponent passiveInventory)
-        {
-            this.passiveInventory = passiveInventory;
-            passiveInventory.Runtime.Changed += Rebuild;
-        }
-
         void OnEnable() => Rebuild();
         void OnDisable() => context?.Close();
 
@@ -61,19 +54,19 @@ namespace JG.Inventory.UI
 
             context ??= Instantiate(contextPrefab, transform.root);
             context.Open(stack,
-                         passiveInventory.Runtime,
+                         passiveInventory.Get(),
                          (RectTransform)anchor,
                          null,                                   // no router
                          null,                                   // no equipSlot
                          GetComponentInParent<IStatsProvider>()  // supply stats provider
-                        );              
+                        );
         }
 
         /* ───────── build / refresh ───────── */
 
         void Rebuild()
         {
-            var inv = passiveInventory?.Runtime;
+            var inv = passiveInventory?.Get();
             if (inv == null) return;
 
             int needed = inv.Slots.Count;

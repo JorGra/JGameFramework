@@ -15,7 +15,7 @@ namespace JG.Inventory
     public sealed class EquipmentHub : MonoBehaviour
     {
         [Header("Optional explicit links (auto-discovered if null)")]
-        [SerializeField] private InventoryComponent bag;
+        [SerializeField] private IInventoryHolder bag;
         public EquipmentUI EquipmentUI;
 
         [Header("Classification")]
@@ -25,12 +25,12 @@ namespace JG.Inventory
         //private List<EquipmentUI.SlotBinding> slots = new();
         private IStatsProvider provider;
 
-        public Inventory Inventory => bag != null ? bag.Runtime : null;
+        public Inventory Inventory => bag != null ? bag.Get() : null;
 
         void Awake()
         {
             // Find inventory on self/parents
-            bag ??= GetComponent<InventoryComponent>() ?? GetComponentInParent<InventoryComponent>(true);
+            bag ??= GetComponent<IInventoryHolder>() ?? GetComponentInParent<IInventoryHolder>(true);
 
             // Find equipment Slots under provided container or under us
             //Init(EquipmentUI);
@@ -133,6 +133,6 @@ namespace JG.Inventory
             return false;
         }
 
-        InventoryContext NewCtx() => new InventoryContext { TargetStats = provider?.Stats };
+        IInventoryContext NewCtx() => Inventory.ctxFactory();
     }
 }

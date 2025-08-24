@@ -26,7 +26,7 @@ namespace JG.Inventory
 
         public bool Equip(ItemStack stack,
                           Inventory inventory,
-                          InventoryContext ctx = null)
+                          IInventoryContext ctx = null)
         {
             if (stack == null || !CanEquip(stack.Data)) return false;
             if (inventory != null &&
@@ -50,7 +50,7 @@ namespace JG.Inventory
             return true;
         }
 
-        public bool Unequip(Inventory inventory, InventoryContext ctx = null)
+        public bool Unequip(Inventory inventory, IInventoryContext ctx = null)
         {
             if (Equipped == null) return false;
 
@@ -76,11 +76,11 @@ namespace JG.Inventory
     {
         public EquipmentSlot Slot { get; }
         public ItemStack Stack { get; }
-        public InventoryContext Context { get; }
+        public IInventoryContext Context { get; }
 
         public ItemEquippedEvent(EquipmentSlot slot,
                                  ItemStack stack,
-                                 InventoryContext context)
+                                 IInventoryContext context)
         {
             Slot = slot;
             Stack = stack;
@@ -98,11 +98,11 @@ namespace JG.Inventory
     {
         public EquipmentSlot Slot { get; }
         public ItemStack Stack { get; }
-        public InventoryContext Context { get; }
+        public IInventoryContext Context { get; }
 
         public ItemUnequippedEvent(EquipmentSlot slot,
                                    ItemStack stack,
-                                   InventoryContext context)
+                                   IInventoryContext context)
         {
             Slot = slot;
             Stack = stack;

@@ -8,6 +8,6 @@
         /// <param name="data">Item definition.</param>
         /// <param name="quantity">Number of copies added (+) or removed (−).</param>
         /// <param name="ctx">Stat context; may be <c>null</c>.</param>
-        void OnChanged(IInventoryItem data, int quantity, InventoryContext ctx);
+        void OnChanged(IInventoryItem data, int quantity, IInventoryContext ctx);
     }
 }
