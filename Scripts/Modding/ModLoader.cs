@@ -22,13 +22,14 @@ namespace JG.Modding
 
         bool _dirty;                                   // true if edits not yet applied
         public event Action<ModLoadError> OnLoadError;
+        public event Action OnReloadFinished;
 
         /* ------------------------------------------------------------ */
         public ModLoader(ModLoaderConfig cfg,
                          IModSource source,
                          IManifestReader reader,
                          IStateStore stateStore,
-                         IContentImporter importer)
+                         IContentImporter importer, bool loadInstantly)
         {
             _cfg = cfg;
             _source = source;
@@ -36,7 +37,8 @@ namespace JG.Modding
             _stateStore = stateStore;
             _importer = importer;
 
-            Reload();                                  // prime everything from disk
+            if(loadInstantly)
+                Reload();                                  // prime everything from disk
         }
 
         /* ------------------------------------------------------------ */
@@ -71,7 +73,7 @@ namespace JG.Modding
                     // keep looping – next mods still load
                 }
             }
-
+            OnReloadFinished?.Invoke();
             _dirty = false;                            // disk state now matches memory
         }
 

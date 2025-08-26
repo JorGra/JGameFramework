@@ -15,6 +15,8 @@ namespace JG.Modding
         [SerializeField] InterfaceReference<IContentImporter> importer;
         public ModLoader Loader { get; private set; }
 
+        public bool InitialLoadDone { get; private set; }
+
         void Awake()
         {
             Debug.Log("ModLoaderBehaviour Awake");
@@ -27,7 +29,7 @@ namespace JG.Modding
             var manifest = new JsonManifestReader();
             var state = new JsonStateStore(Application.persistentDataPath, cfg.stateFile);
 
-            Loader = new ModLoader(cfg, source, manifest, state, importer.Value);
+            Loader = new ModLoader(cfg, source, manifest, state, importer.Value, false);
             Loader.OnLoadError += e =>
             {
                 var severity = e.Kind == ErrorKind.CircularDependency
@@ -38,9 +40,18 @@ namespace JG.Modding
 
                 NotificationSender.Raise(e.Message, severity, "ModLoader");
             };
+            Loader.OnReloadFinished += () =>
+            {
+                if (!InitialLoadDone)
+                    InitialLoadDone = true;
+                Debug.Log("ModLoaderBehaviour: Mod loading finished.");
+            };
+
+            Loader.Reload();
 
             Debug.Log($"ModLoader initialised, modsRoot = {modsRoot}, mods count: {Loader.ActiveMods.Count}");
             NotificationSender.Raise($"ModLoader: {Loader.ActiveMods.Count} Mods loaded.", NotificationSeverity.Info, "ModLoader");
         }
+
     }
 }
