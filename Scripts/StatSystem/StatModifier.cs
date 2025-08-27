@@ -2,7 +2,7 @@
 
 public class StatModifier : IDisposable
 {
-    public StatDefinition StatDefinition { get; set; }
+    public IStatDefinition StatDefinition { get; set; }
     public IOperationStrategy Strategy { get; }
     public bool MarkedForRemoval { get; set; }
 
@@ -10,7 +10,7 @@ public class StatModifier : IDisposable
 
     readonly CountdownTimer timer;
 
-    public StatModifier(StatDefinition statDefinition, IOperationStrategy strategy, float duration)
+    public StatModifier(IStatDefinition statDefinition, IOperationStrategy strategy, float duration)
     {
         StatDefinition = statDefinition;
         Strategy = strategy;

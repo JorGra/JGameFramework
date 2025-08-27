@@ -19,10 +19,10 @@ public class StatEntryDrawer : PropertyDrawer
         string statName = "Undefined Stat";
         if (statDefinitionProp.objectReferenceValue != null)
         {
-            StatDefinition statDef = statDefinitionProp.objectReferenceValue as StatDefinition;
+            IStatDefinition statDef = statDefinitionProp.objectReferenceValue as IStatDefinition;
             if (statDef != null)
             {
-                statName = statDef.statName;
+                statName = statDef.StatName;
             }
         }
 

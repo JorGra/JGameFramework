@@ -14,11 +14,11 @@ public class StatModifierConfig : ScriptableObject
     /// The stat key used to resolve the definition.
     /// </summary>
     public string Key => key;
-    
+
     /// <summary>
     /// Resolved StatDefinition from the registry based on <see cref="Key"/>.
     /// </summary>
-    public StatDefinition StatDefinition =>
+    public IStatDefinition StatDefinition =>
         StatRegistryProvider.Instance.Registry.Get(Key);
 
     [Tooltip("Operator to apply to the stat.")]

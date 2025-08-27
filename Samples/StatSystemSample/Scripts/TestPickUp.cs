@@ -13,7 +13,7 @@ namespace JG.Samples
         [Tooltip("Pickup component that applies a stat bump.")]
         [SerializeField] private Pickup pickup;
 
-        private StatDefinition maxHealthDef;
+        private IStatDefinition maxHealthDef;
 
         void Awake()
         {

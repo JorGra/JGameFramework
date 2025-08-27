@@ -6,7 +6,7 @@ using System.Linq;
 public class StatsMediator
 {
     readonly List<StatModifier> listModifiers = new List<StatModifier>();
-    readonly Dictionary<StatDefinition, IEnumerable<StatModifier>> modifierCache = new();
+    readonly Dictionary<IStatDefinition, IEnumerable<StatModifier>> modifierCache = new();
     IStatModifierApplicationOrder order = new NormalStatModifierApplicationOrder();
 
     public void PerfromQuery(object sender, Query query)
@@ -14,13 +14,13 @@ public class StatsMediator
         if (!modifierCache.ContainsKey(query.StatDefinition))
         {
             modifierCache[query.StatDefinition] = listModifiers
-                .Where(x => x.StatDefinition == query.StatDefinition)
+                .Where(x => (object)x.StatDefinition == query.StatDefinition)
                 .ToList();
         }
         query.Value = order.Apply(modifierCache[query.StatDefinition], query.Value);
     }
 
-    void InvalidateCache(StatDefinition statDefinition)
+    void InvalidateCache(IStatDefinition statDefinition)
     {
         modifierCache.Remove(statDefinition);
     }
@@ -58,10 +58,10 @@ public class StatsMediator
 
 public class Query
 {
-    public readonly StatDefinition StatDefinition;
+    public readonly IStatDefinition StatDefinition;
     public float Value;
 
-    public Query(StatDefinition statDefinition, float value)
+    public Query(IStatDefinition statDefinition, float value)
     {
         StatDefinition = statDefinition;
         Value = value;

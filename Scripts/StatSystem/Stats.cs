@@ -47,7 +47,7 @@ public class Stats
             {
                 if (entry.statDefinition != null)
                 {
-                    baseStats[entry.statDefinition.key] = entry.baseValue;
+                    baseStats[entry.statDefinition.Key] = entry.baseValue;
                 }
                 else
                 {
@@ -86,16 +86,16 @@ public class Stats
     /// </summary>
     /// <param name="statDefinition">The definition of the stat to query.</param>
     /// <returns>Base value plus modifiers.</returns>
-    public float GetStat(StatDefinition statDefinition)
+    public float GetStat(IStatDefinition statDefinition)
     {
-        if (statDefinition == null || string.IsNullOrWhiteSpace(statDefinition.key))
+        if (statDefinition == null || string.IsNullOrWhiteSpace(statDefinition.Key))
         {
             Debug.LogError("GetStat: invalid StatDefinition or missing key.");
             return 0f;
         }
 
-        if (!baseStats.TryGetValue(statDefinition.key, out var baseValue))
-            baseValue = statDefinition.defaultValue;
+        if (!baseStats.TryGetValue(statDefinition.Key, out var baseValue))
+            baseValue = statDefinition.DefaultValue;
 
         var query = new Query(statDefinition, baseValue);
         Mediator.PerfromQuery(this, query);
