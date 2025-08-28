@@ -1,131 +1,128 @@
-﻿// StatRegistry.cs
+﻿// StatRegistry.cs (UPDATED)
+// Game-agnostic registry that exposes IStatDefinition and can be populated
+// from both legacy ScriptableObjects (StatDefinition) and the new content pipeline
+// (StatDef : ContentDef, IStatDefinition). All JSON importing has been removed.
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Holds every <see cref="StatDefinition"/> in the game, supporting
-/// static ScriptableObjects and dynamic JSON loading (including icons
-/// **and the new <c>hidden</c> flag**).
-/// </summary>
-[CreateAssetMenu(menuName = "Gameplay/Stats/Stat Registry",
-                 fileName = "NewStatRegistry")]
+[CreateAssetMenu(menuName = "Gameplay/Stats/Stat Registry", fileName = "NewStatRegistry")]
 public class StatRegistry : ScriptableObject
 {
-    [Tooltip("List of all stat definitions baked into the build.")]
+    // === Legacy baked-in assets (kept for compatibility) ===
+    // These can still be populated via inspector with old StatDefinition SOs.
+    [Tooltip("Optional baked stat definitions (legacy ScriptableObjects). " +
+             "These are merged with content pipeline stats at runtime.")]
     public List<StatDefinition> statDefinitions = new();
 
-    [Header("Runtime")]
-    [Tooltip("Fallback sprite used when a JSON-specified icon cannot be found.")]
-    [SerializeField] private Sprite defaultIcon;
+    // === Runtime index ===
+    [NonSerialized] private Dictionary<string, IStatDefinition> _byKey;
 
-    const string ICON_BASE_PATH = "StatDefinitions/Icons/";   // under Resources/
+    /// <summary>Returns the number of registered stats (after last rebuild).</summary>
+    public int Count => _byKey?.Count ?? 0;
 
-    Dictionary<string, StatDefinition> lookupByKey;
-    readonly HashSet<string> hiddenKeys = new();    // NEW
+    /// <summary>Enumerate all registered stat definitions.</summary>
+    public IEnumerable<IStatDefinition> All
+        => _byKey != null ? _byKey.Values : Array.Empty<IStatDefinition>();
 
-    #region JSON DTOs ---------------------------------------------------------
-    [Serializable]
-    private class StatDefJson
+    /// <summary>
+    /// Rebuilds the lookup index using the currently serialized legacy SOs and the
+    /// provided runtime (content-pipeline) stats. If <paramref name="runtimeOverridesBaked"/>
+    /// is true, definitions from the content pipeline replace same-key baked assets.
+    /// </summary>
+    public void RebuildIndex(IEnumerable<IStatDefinition> runtimeStats,
+                             bool runtimeOverridesBaked = true)
     {
-        public string key;
-        public string statName;
-        public float defaultValue;
-        public string iconPath;
-        public bool hidden;          // NEW
-    }
-    [Serializable] private class StatDefListJson { public List<StatDefJson> stats; }
-    #endregion
+        _byKey = new Dictionary<string, IStatDefinition>(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Replace/merge dynamic stats by parsing <paramref name="jsonText"/>.</summary>
-    public void InitializeFromJsonText(string jsonText)
-    {
-        /* 1) purge previous runtime-only SOs */
-        statDefinitions.RemoveAll(d => d == null ||
-            (d.hideFlags & HideFlags.HideAndDontSave) != 0);
-
-        /* 2) rebuild lookup from remaining (asset) definitions */
-        BuildLookupFromSO();
-        hiddenKeys.Clear();                           // NEW
-
-        if (string.IsNullOrWhiteSpace(jsonText))
+        // 1) Add baked (legacy) ScriptableObjects
+        if (statDefinitions != null)
         {
-            Debug.LogWarning("[StatRegistry] Empty JSON; no dynamic stats loaded.");
+            foreach (var def in statDefinitions)
+                TryAdd(def, allowOverride: false);
+        }
+
+        // 2) Merge runtime/content-pipeline stats
+        if (runtimeStats != null)
+        {
+            foreach (var def in runtimeStats)
+                TryAdd(def, allowOverride: runtimeOverridesBaked);
+        }
+
+        Debug.Log($"[StatRegistry] Rebuild complete. Total stats: {_byKey.Count}");
+    }
+
+    private void TryAdd(IStatDefinition def, bool allowOverride)
+    {
+        if (def == null) return;
+        var key = def.Key;
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            Debug.LogWarning($"[StatRegistry] Skipping definition with empty key: {def}");
             return;
         }
 
-        StatDefListJson wrapper;
-        try { wrapper = JsonUtility.FromJson<StatDefListJson>(jsonText); }
-        catch (Exception e)
+        if (_byKey.TryGetValue(key, out var existing))
         {
-            Debug.LogError($"[StatRegistry] JSON parse error: {e.Message}");
-            return;
+            if (ReferenceEquals(existing, def)) return;
+
+            if (allowOverride)
+            {
+                _byKey[key] = def;
+                Debug.Log($"[StatRegistry] Overrode stat '{key}' with runtime definition.");
+            }
+            else
+            {
+                Debug.LogWarning($"[StatRegistry] Duplicate key '{key}' ignored (keeping first).");
+            }
         }
-        if (wrapper?.stats == null) return;
-
-        /* 3) create transient SOs from DTOs */
-        foreach (var dto in wrapper.stats)
+        else
         {
-            if (string.IsNullOrWhiteSpace(dto.key))
-            {
-                Debug.LogWarning("[StatRegistry] JSON entry missing key; skipping.");
-                continue;
-            }
-            if (lookupByKey.ContainsKey(dto.key))
-            {
-                Debug.LogWarning($"[StatRegistry] Duplicate key '{dto.key}'; skipping.");
-                continue;
-            }
-
-            var so = ScriptableObject.CreateInstance<StatDefinition>();
-            so.hideFlags = HideFlags.HideAndDontSave;
-            so.key = dto.key;
-            so.statName = dto.statName;
-            so.defaultValue = dto.defaultValue;
-
-            if (!string.IsNullOrWhiteSpace(dto.iconPath))
-            {
-                string resPath = ICON_BASE_PATH + dto.iconPath.TrimStart('/', '\\');
-                so.icon = Resources.Load<Sprite>(resPath) ?? defaultIcon;
-            }
-
-            statDefinitions.Add(so);
-            lookupByKey.Add(so.key, so);
-
-            if (dto.hidden) hiddenKeys.Add(dto.key);  // NEW
+            _byKey.Add(key, def);
         }
     }
 
-    /// <exception cref="KeyNotFoundException" />
-    public StatDefinition Get(string key)
+    /// <summary>Returns the stat definition for <paramref name="key"/> or null if not found.</summary>
+    public IStatDefinition Get(string key)
     {
-        if (lookupByKey != null && lookupByKey.TryGetValue(key, out var def))
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            Debug.LogError("[StatRegistry] Get: empty or null key.");
+            return null;
+        }
+        if (_byKey != null && _byKey.TryGetValue(key, out var def))
+        {
             return def;
-
-        throw new KeyNotFoundException($"StatDefinition with key '{key}' not found.");
-    }
-
-    /// <summary>True if the stat should **not** be shown in the HUD.</summary>
-    public bool IsHidden(string key) => hiddenKeys.Contains(key);   // NEW
-
-    public IReadOnlyList<StatDefinition> StatDefinitions => statDefinitions;
-
-    /* ───────────────────── helpers ───────────────────── */
-
-    void BuildLookupFromSO()
-    {
-        lookupByKey = new Dictionary<string, StatDefinition>(
-            StringComparer.OrdinalIgnoreCase);
-
-        foreach (var def in statDefinitions)
+        }
+        else
         {
-            if (def == null || string.IsNullOrWhiteSpace(def.key)) continue;
-            if (lookupByKey.ContainsKey(def.key))
-            {
-                Debug.LogError($"[StatRegistry] Duplicate key '{def.key}' in baked assets.");
-                continue;
-            }
-            lookupByKey.Add(def.key, def);
+            Debug.LogWarning($"[StatRegistry] Get: unknown stat key '{key}'.");
+            return null;
         }
     }
+
+    /// <summary>Try to get a stat definition by key.</summary>
+    public bool TryGet(string key, out IStatDefinition def)
+    {
+        def = null;
+        if (string.IsNullOrWhiteSpace(key) || _byKey == null) return false;
+        return _byKey.TryGetValue(key, out def);
+    }
+
+#if UNITY_EDITOR
+    // Helpful in editor when you tweak baked lists.
+    private void OnValidate()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (statDefinitions == null) return;
+
+        foreach (var d in statDefinitions)
+        {
+            if (d == null) continue;
+            if (!seen.Add(d.Key))
+                Debug.LogWarning($"[StatRegistry] Duplicate baked key '{d.Key}'");
+        }
+    }
+#endif
 }

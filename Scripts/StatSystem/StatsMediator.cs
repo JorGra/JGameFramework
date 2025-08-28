@@ -1,69 +1,74 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
-
 public class StatsMediator
 {
-    readonly List<StatModifier> listModifiers = new List<StatModifier>();
-    readonly Dictionary<IStatDefinition, IEnumerable<StatModifier>> modifierCache = new();
-    IStatModifierApplicationOrder order = new NormalStatModifierApplicationOrder();
+    private readonly List<StatModifier> listModifiers = new();
+    private readonly Dictionary<string, List<StatModifier>> modifierCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private IStatModifierApplicationOrder order = new NormalStatModifierApplicationOrder();
 
     public void PerfromQuery(object sender, Query query)
     {
-        if (!modifierCache.ContainsKey(query.StatDefinition))
+        if (query == null || string.IsNullOrWhiteSpace(query.StatKey))
+            return;
+
+        if (!modifierCache.TryGetValue(query.StatKey, out var cached))
         {
-            modifierCache[query.StatDefinition] = listModifiers
-                .Where(x => (object)x.StatDefinition == query.StatDefinition)
+            cached = listModifiers
+                .Where(x => string.Equals(x.StatKey, query.StatKey, StringComparison.OrdinalIgnoreCase))
                 .ToList();
+
+            modifierCache[query.StatKey] = cached;
         }
-        query.Value = order.Apply(modifierCache[query.StatDefinition], query.Value);
+
+        query.Value = order.Apply(cached, query.Value);
     }
 
-    void InvalidateCache(IStatDefinition statDefinition)
+    private void InvalidateCache(string statKey)
     {
-        modifierCache.Remove(statDefinition);
+        if (!string.IsNullOrWhiteSpace(statKey))
+            modifierCache.Remove(statKey);
     }
 
     public void AddModifier(StatModifier modifier)
     {
+        if (modifier == null) return;
+
         listModifiers.Add(modifier);
-        InvalidateCache(modifier.StatDefinition);
+        InvalidateCache(modifier.StatKey);
         modifier.MarkedForRemoval = false;
 
-        modifier.OnDispose += _ => InvalidateCache(modifier.StatDefinition);
+        modifier.OnDispose += _ => InvalidateCache(modifier.StatKey);
         modifier.OnDispose += _ => listModifiers.Remove(modifier);
     }
 
     public void RemoveModifier(StatModifier modifier)
     {
-        if (listModifiers.Contains(modifier))
-        {
+        if (modifier != null && listModifiers.Contains(modifier))
             modifier.MarkedForRemoval = true;
-        }
     }
 
     public void Update(float deltaTime)
     {
         foreach (var modifier in listModifiers)
-        {
             modifier.Update(deltaTime);
-        }
+
         foreach (var modifier in listModifiers.Where(x => x.MarkedForRemoval).ToList())
-        {
             modifier.Dispose();
-        }
     }
 }
 
 public class Query
 {
-    public readonly IStatDefinition StatDefinition;
+    public readonly string StatKey;
     public float Value;
 
-    public Query(IStatDefinition statDefinition, float value)
+    public Query(string statKey, float value)
     {
-        StatDefinition = statDefinition;
+        StatKey = statKey;
         Value = value;
     }
 }

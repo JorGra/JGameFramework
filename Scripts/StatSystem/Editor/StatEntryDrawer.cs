@@ -1,42 +1,52 @@
 #if UNITY_EDITOR
+using System;
 using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Custom property drawer for StatsProfile.StatEntry.
-/// Displays a dropdown-like label (the stat's name) on the left and a base value field on the right.
+/// Drawer for StatsProfile.StatEntry: shows resolved stat name (from key) + base value.
 /// </summary>
 [CustomPropertyDrawer(typeof(StatsProfile.StatEntry))]
 public class StatEntryDrawer : PropertyDrawer
 {
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        // Get the statDefinition and baseValue properties.
-        SerializedProperty statDefinitionProp = property.FindPropertyRelative("statDefinition");
-        SerializedProperty baseValueProp = property.FindPropertyRelative("baseValue");
+        var baseValueProp = property.FindPropertyRelative("baseValue");
 
-        // Get the stat name from the statDefinition asset if available.
-        string statName = "Undefined Stat";
-        if (statDefinitionProp.objectReferenceValue != null)
+        // Get the display label by resolving via the profile + index (works in edit & play mode)
+        string statLabel = "Undefined Stat";
+        var profile = property.serializedObject.targetObject as StatsProfile;
+        var index = ExtractArrayIndex(property.propertyPath);
+
+        if (profile != null && index >= 0 && index < profile.statEntries.Count)
         {
-            IStatDefinition statDef = statDefinitionProp.objectReferenceValue as IStatDefinition;
-            if (statDef != null)
-            {
-                statName = statDef.StatName;
-            }
+            var entry = profile.statEntries[index];
+            var def = entry.Resolve(); // resolves from registry using entry.statKey
+            statLabel = entry.DisplayName;
+            // keep the cached pointer up to date so play-mode inspectors show names immediately
+            profile.statEntries[index] = entry;
         }
 
-        // Split the drawing area: left for the stat name, right for the base value.
-        Rect labelRect = new Rect(position.x, position.y, position.width * 0.5f, position.height);
-        Rect fieldRect = new Rect(position.x + position.width * 0.5f, position.y, position.width * 0.5f, position.height);
+        float half = position.width * 0.5f;
+        var labelRect = new Rect(position.x, position.y, half, position.height);
+        var fieldRect = new Rect(position.x + half, position.y, half, position.height);
 
-        EditorGUI.LabelField(labelRect, statName);
+        EditorGUI.LabelField(labelRect, statLabel);
         EditorGUI.PropertyField(fieldRect, baseValueProp, GUIContent.none);
     }
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        => EditorGUIUtility.singleLineHeight;
+
+    static int ExtractArrayIndex(string propertyPath)
     {
-        return EditorGUIUtility.singleLineHeight;
+        const string token = "Array.data[";
+        int i = propertyPath.IndexOf(token, StringComparison.Ordinal);
+        if (i < 0) return -1;
+        i += token.Length;
+        int j = propertyPath.IndexOf(']', i);
+        if (j < 0) return -1;
+        return int.TryParse(propertyPath.Substring(i, j - i), out var idx) ? idx : -1;
     }
 }
 #endif

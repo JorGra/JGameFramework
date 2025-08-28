@@ -5,6 +5,7 @@ namespace JG.Modding
 {
     /// <summary>Boots a <see cref="ModLoader"/> at runtime and exposes it to the UI.</summary>
     [AddComponentMenu("JG/Modding/Mod Loader")]
+    [DefaultExecutionOrder(-100)]
     public sealed class ModLoaderBehaviour : MonoBehaviour
     {
         [Header("Config")]
@@ -29,7 +30,7 @@ namespace JG.Modding
             var manifest = new JsonManifestReader();
             var state = new JsonStateStore(Application.persistentDataPath, cfg.stateFile);
 
-            Loader = new ModLoader(cfg, source, manifest, state, importer.Value, false);
+            Loader = new ModLoader(cfg, source, manifest, state, importer.Value, loadInstantly: false);
             Loader.OnLoadError += e =>
             {
                 var severity = e.Kind == ErrorKind.CircularDependency
@@ -45,6 +46,7 @@ namespace JG.Modding
                 if (!InitialLoadDone)
                     InitialLoadDone = true;
                 Debug.Log("ModLoaderBehaviour: Mod loading finished.");
+                EventBus<OnModLoadingFinishedEvent>.Raise(new OnModLoadingFinishedEvent());
             };
 
             Loader.Reload();
@@ -52,6 +54,11 @@ namespace JG.Modding
             Debug.Log($"ModLoader initialised, modsRoot = {modsRoot}, mods count: {Loader.ActiveMods.Count}");
             NotificationSender.Raise($"ModLoader: {Loader.ActiveMods.Count} Mods loaded.", NotificationSeverity.Info, "ModLoader");
         }
+
+    }
+
+    public struct OnModLoadingFinishedEvent : IEvent
+    {
 
     }
 }

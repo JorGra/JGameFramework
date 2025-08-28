@@ -1,30 +1,30 @@
 #if UNITY_EDITOR
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Generic inspector that appends a read-only “Runtime Stats” section
-/// to every MonoBehaviour that implements IStatsProvider.
+/// Appends a read-only “Runtime Stats” foldout to any MonoBehaviour
+/// that implements IStatsProvider. Compatible with interface-based registry.
 /// </summary>
 [CustomEditor(typeof(MonoBehaviour), true)]
 public class StatsProviderInspector : Editor
 {
     bool _foldout = true;
 
-    // Ensure the inspector refreshes while the game is running
     void OnEnable() => EditorApplication.update += Repaint;
     void OnDisable() => EditorApplication.update -= Repaint;
 
     public override void OnInspectorGUI()
     {
-        // Draw the normal inspector first
         DrawDefaultInspector();
 
-        // Only add the extra section if this component is a stats provider
         if (target is not IStatsProvider provider || provider.Stats == null)
             return;
 
-        // Don’t spam the editor while not in play mode
         if (!Application.isPlaying)
         {
             EditorGUILayout.HelpBox("Start Play Mode to see live stat values.", MessageType.Info);
@@ -35,21 +35,53 @@ public class StatsProviderInspector : Editor
         _foldout = EditorGUILayout.Foldout(_foldout, "Runtime Stats", true);
         if (!_foldout) return;
 
+        var reg = StatRegistryProvider.Instance?.Registry;
+        if (reg == null)
+        {
+            EditorGUILayout.HelpBox("StatRegistry not available.", MessageType.Warning);
+            return;
+        }
+
         using (new EditorGUI.DisabledScope(true))
         {
-
-
-            // Option B: without modifying Stats.cs
-            var registry = StatRegistryProvider.Instance?.Registry;
-            if (registry != null)
+            foreach (var def in EnumerateIStatDefinitions(reg))
             {
-                foreach (var def in registry.StatDefinitions)
-                {
-                    float value = provider.Stats.GetStat(def);
-                    EditorGUILayout.FloatField(def.statName ?? def.key, value);
-                }
+                if (def == null) continue;
+                float value = provider.Stats.GetStat(def.Key);
+                EditorGUILayout.FloatField(string.IsNullOrWhiteSpace(def.StatName) ? def.Key : def.StatName, value);
             }
+        }
+    }
 
+    // Works with both the new and old registries:
+    // - Prefers property "All : IEnumerable<IStatDefinition>"
+    // - Falls back to property "StatDefinitions" or field "statDefinitions" (StatDefinition list)
+    static IEnumerable<IStatDefinition> EnumerateIStatDefinitions(object registry)
+    {
+        if (registry == null) yield break;
+        var type = registry.GetType();
+
+        var allProp = type.GetProperty("All");
+        if (allProp != null && typeof(IEnumerable).IsAssignableFrom(allProp.PropertyType))
+        {
+            foreach (var item in (IEnumerable)allProp.GetValue(registry))
+                if (item is IStatDefinition idef) yield return idef;
+            yield break;
+        }
+
+        var statDefsProp = type.GetProperty("StatDefinitions");
+        if (statDefsProp != null)
+        {
+            foreach (var item in (IEnumerable)statDefsProp.GetValue(registry))
+                if (item is IStatDefinition idef) yield return idef;
+            yield break;
+        }
+
+        var statDefsField = type.GetField("statDefinitions");
+        if (statDefsField != null)
+        {
+            foreach (var item in (IEnumerable)statDefsField.GetValue(registry))
+                if (item is IStatDefinition idef) yield return idef;
         }
     }
 }

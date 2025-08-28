@@ -15,8 +15,7 @@ namespace JG.Inventory
             if (!ctx.TryGet<Stats>(out var stats)) return;
 
 
-            var healthDef = StatRegistryProvider.Instance.Registry.Get("health");
-            var mod = new StatModifier(healthDef, new AddOperation(amount), 0f);
+            var mod = new StatModifier("health", new AddOperation(amount), 0f);
             stats.Mediator.AddModifier(mod);
             // duration 0 → removed next frame by mediator; acts as an “impulse”.
 

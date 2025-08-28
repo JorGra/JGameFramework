@@ -23,7 +23,7 @@ namespace JG.Samples
 
         void Start()
         {
-            Debug.Log($"Starting MaxHealth: {player.Stats.GetStat(maxHealthDef)}");
+            Debug.Log($"Starting MaxHealth: {player.Stats.GetStat("maxHealth")}");
         }
 
         void Update()
@@ -32,7 +32,7 @@ namespace JG.Samples
             {
                 // Give the player a pickup bump
                 pickup.ApplyPickupEffect(player);
-                Debug.Log($"After pickup MaxHealth: {player.Stats.GetStat(maxHealthDef)}");
+                Debug.Log($"After pickup MaxHealth: {player.Stats.GetStat("maxHealth")}");
             }
         }
     }

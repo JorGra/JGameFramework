@@ -49,7 +49,7 @@ namespace JG.Inventory
                     op = new MultiplyOperation(e.value);
                 }
 
-                var mod = new StatModifier(def, op, e.duration);
+                var mod = new StatModifier(def.Key, op, e.duration);
                 list.Add(mod);
             }
             return new StatModifierEffect(list);

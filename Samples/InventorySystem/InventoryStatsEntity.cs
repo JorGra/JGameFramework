@@ -1,6 +1,6 @@
+using JG.Inventory.UI;
 using System.Collections;
 using System.Collections.Generic;
-using JG.Inventory.UI;
 using UnityEngine;
 
 namespace JG.Inventory.Samples
@@ -9,7 +9,7 @@ namespace JG.Inventory.Samples
     public class InventoryStatsEntity : MonoBehaviour, IStatsProvider
     {
         Stats stats;
-        
+
         public Stats Stats => stats;
 
         // Start is called before the first frame update
@@ -24,8 +24,8 @@ namespace JG.Inventory.Samples
             stats.Mediator.Update(Time.deltaTime);
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                var h = stats.GetStat(StatRegistryProvider.Instance.Registry.Get("health"));
-                var a = stats.GetStat(StatRegistryProvider.Instance.Registry.Get("armor"));
+                var h = stats.GetStat("health");
+                var a = stats.GetStat("armor");
 
                 Debug.Log(gameObject.name + "   " + h + " " + a);
             }

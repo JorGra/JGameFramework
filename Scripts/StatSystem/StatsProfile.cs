@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// A profile that defines the base stat values for a unit.
-/// A unit can have only some of the available stats.
+/// Stores stat keys (string) so it can be saved as an asset; resolves to IStatDefinition at runtime/editor.
 /// </summary>
 [CreateAssetMenu(menuName = "Gameplay/Stats/Stats Profile", fileName = "NewStatsProfile")]
 public class StatsProfile : ScriptableObject
@@ -12,38 +12,74 @@ public class StatsProfile : ScriptableObject
     [Serializable]
     public struct StatEntry
     {
-        [Tooltip("Reference to the global stat definition.")]
-        public IStatDefinition statDefinition;
+        [Tooltip("Registry/content key (usually the ContentDef Id).")]
+        public string statKey;
+
+        [NonSerialized] public IStatDefinition statDefinition;
 
         [Tooltip("The base value for this unit for the given stat.")]
         public float baseValue;
+
+        public IStatDefinition Resolve()
+        {
+            if (!string.IsNullOrWhiteSpace(statKey))
+            {
+                if (statDefinition == null || !string.Equals(statDefinition.Key, statKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    var reg = StatRegistryProvider.Instance?.Registry;
+                    statDefinition = reg?.Get(statKey);
+                }
+            }
+            return statDefinition;
+        }
+
+        public string DisplayName
+        {
+            get
+            {
+                var def = Resolve();
+                if (def != null && !string.IsNullOrWhiteSpace(def.StatName)) return def.StatName;
+                return string.IsNullOrWhiteSpace(statKey) ? "Undefined Stat" : statKey;
+            }
+        }
     }
 
     [Tooltip("List of stat entries that define this unit's base stats.")]
     public List<StatEntry> statEntries = new List<StatEntry>();
 
+    private void OnEnable() => ResolveAll();
+
+    public void ResolveAll()
+    {
+        for (int i = 0; i < statEntries.Count; i++)
+        {
+            var e = statEntries[i];
+            e.Resolve();
+            statEntries[i] = e;
+        }
+    }
+
     public static StatsProfile BuildStatsProfile(List<StatSpec> def)
     {
-        var profile = ScriptableObject.CreateInstance<StatsProfile>();
+        var profile = CreateInstance<StatsProfile>();
 
-        // Optional: detect duplicates early
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
         foreach (var s in def)
         {
             if (string.IsNullOrWhiteSpace(s.statId))
-                throw new Exception($"BuildStatsProfile '{s.statId}': empty statId in baseStats.");
+                throw new Exception($"BuildStatsProfile: empty statId in baseStats.");
 
             if (!seen.Add(s.statId))
-                throw new Exception($"BuildStatsProfile '{s.statId}': duplicate statId '{s.statId}' in baseStats.");
+                throw new Exception($"BuildStatsProfile: duplicate statId '{s.statId}' in baseStats.");
 
             var stat = StatRegistryProvider.Instance.Registry.Get(s.statId);
             if (stat == null)
-                throw new Exception($"BuildStatsProfile '{s.statId}': unknown statId '{s.statId}'.");
+                throw new Exception($"BuildStatsProfile: unknown statId '{s.statId}'.");
 
-            profile.statEntries.Add(new StatsProfile.StatEntry
+            profile.statEntries.Add(new StatEntry
             {
-                statDefinition = stat,
+                statKey = s.statId,
+                statDefinition = stat, // cached for runtime use; not serialized
                 baseValue = s.baseValue
             });
         }
@@ -51,10 +87,11 @@ public class StatsProfile : ScriptableObject
         return profile;
     }
 }
-//Json DTO Mapper
+
+// Json DTO Mapper
 [Serializable]
 public struct StatSpec
 {
-    public string statId;     // e.g. "com.mygame.maxhealth"
+    public string statId;     // e.g. "maxhealth"
     public float baseValue;   // e.g. 120
 }

@@ -26,14 +26,14 @@ namespace JG.Samples
             // 1) Lookup your stat definition by key
             var powerDef = StatRegistryProvider.Instance.Registry.Get("power");
             // 2) Direct modifier: +10 for 5 seconds
-            var directMod = new StatModifier(powerDef, new AddOperation(10f), 5f);
+            var directMod = new StatModifier("power", new AddOperation(10f), 5f);
             Stats.Mediator.AddModifier(directMod);
-            Debug.Log($"Power after direct modifier: {Stats.GetStat(powerDef)}");
+            Debug.Log($"Power after direct modifier: {Stats.GetStat("power")}");
 
             // 3) Factory modifier: +20 permanently
             var factoryMod = modifierFactory.Create(powerDef, OperatorType.Add, 20f, 0f);
             Stats.Mediator.AddModifier(factoryMod);
-            Debug.Log($"Power after factory modifier: {Stats.GetStat(powerDef)}");
+            Debug.Log($"Power after factory modifier: {Stats.GetStat("power")}");
 
             // 4) Remove the direct modifier
             Stats.Mediator.RemoveModifier(directMod);

@@ -1,4 +1,3 @@
-// Stats.cs
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,24 +8,21 @@ using UnityEngine;
 public class Stats
 {
     public StatsMediator Mediator { get; private set; }
-    // Stores base values keyed by StatDefinition.key
     private readonly Dictionary<string, float> baseStats;
 
-    /// <summary>
-    /// Constructs the Stats object by loading all defaults from the provider.
-    /// </summary>
     public Stats()
     {
         Mediator = new StatsMediator();
         baseStats = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
 
-        var provider = StatRegistryProvider.Instance;
-        if (provider?.Registry != null)
+        var reg = StatRegistryProvider.Instance?.Registry;
+        if (reg != null)
         {
-            foreach (var def in provider.Registry.StatDefinitions)
+            // Fill base values from content-driven defaults
+            foreach (var def in reg.All)
             {
-                if (!string.IsNullOrWhiteSpace(def.key))
-                    baseStats[def.key] = def.defaultValue;
+                if (!string.IsNullOrWhiteSpace(def.Key))
+                    baseStats[def.Key] = def.DefaultValue;
             }
         }
         else
@@ -35,70 +31,49 @@ public class Stats
         }
     }
 
-    public Stats(StatsProfile statsProfile)
+    public Stats(StatsProfile profile) : this()
     {
-        Mediator = new StatsMediator();
-        baseStats = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
-
-
-        if (statsProfile != null)
+        if (profile?.statEntries != null)
         {
-            foreach (var entry in statsProfile.statEntries)
+            foreach (var e in profile.statEntries)
             {
-                if (entry.statDefinition != null)
-                {
-                    baseStats[entry.statDefinition.Key] = entry.baseValue;
-                }
+                if (!string.IsNullOrWhiteSpace(e.statKey))
+                    baseStats[e.statKey] = e.baseValue;
                 else
-                {
-                    UnityEngine.Debug.LogWarning($"A stat entry in profile '{statsProfile.name}' is missing a StatDefinition.");
-                }
-            }
-        }
-        else
-        {
-            // Fallback: populate baseStats using global definitions.
-            try
-            {
-                var provider = StatRegistryProvider.Instance;
-                if (provider?.Registry != null)
-                {
-                    foreach (var def in provider.Registry.StatDefinitions)
-                    {
-                        if (!string.IsNullOrWhiteSpace(def.key))
-                            baseStats[def.key] = def.defaultValue;
-                    }
-                }
-                else
-                {
-                    Debug.LogError("Stats ctor: StatRegistry missing—cannot load default stats.");
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"Error loading global stat defaults: {ex.Message}");
+                    Debug.LogWarning($"A stat entry in profile '{profile.name}' is missing a key.");
             }
         }
     }
 
-    /// <summary>
-    /// Retrieves the final value for the given stat, applying all modifiers.
-    /// </summary>
-    /// <param name="statDefinition">The definition of the stat to query.</param>
-    /// <returns>Base value plus modifiers.</returns>
-    public float GetStat(IStatDefinition statDefinition)
+    /// <summary>Resolve final stat value by key (base + modifiers).</summary>
+    public float GetStat(string statKey)
     {
-        if (statDefinition == null || string.IsNullOrWhiteSpace(statDefinition.Key))
+        if (string.IsNullOrWhiteSpace(statKey))
         {
-            Debug.LogError("GetStat: invalid StatDefinition or missing key.");
+            Debug.LogError("GetStat: missing stat key.");
             return 0f;
         }
 
-        if (!baseStats.TryGetValue(statDefinition.Key, out var baseValue))
-            baseValue = statDefinition.DefaultValue;
+        float baseValue;
+        if (!baseStats.TryGetValue(statKey, out baseValue))
+        {
+            // Fallback to content default if not present in base map
+            var def = StatRegistryProvider.Instance?.Registry?.Get(statKey);
+            baseValue = def?.DefaultValue ?? 0f;
+        }
 
-        var query = new Query(statDefinition, baseValue);
+        var query = new Query(statKey, baseValue);
         Mediator.PerfromQuery(this, query);
         return query.Value;
+    }
+
+    public void SetBase(string statKey, float value)
+    {
+        if (string.IsNullOrWhiteSpace(statKey))
+        {
+            Debug.LogError("SetBase: missing stat key.");
+            return;
+        }
+        baseStats[statKey] = value;
     }
 }
