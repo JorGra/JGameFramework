@@ -44,6 +44,11 @@ namespace JG.GameContent.EditorTools
         private bool _inspectorBottom = false;
         private float _bottomHeight = 260f;
         private bool _draggingSplit = false;
+        private bool _draggingLeftSplit = false;
+        private bool _draggingRightSplit = false;
+        private Vector2 _splitDragStartMouse;
+        private float _splitStartLeftWidth;
+        private float _splitStartMiddleWidth;
 
         // Data state
         private IContentDef[] _currentDefs = Array.Empty<IContentDef>();
@@ -113,6 +118,7 @@ namespace JG.GameContent.EditorTools
                     using (new EditorGUILayout.HorizontalScope(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
                     {
                         DrawTypePane();
+                        DrawLeftSplitter();
                         DrawListPane();
                     }
 
@@ -148,7 +154,9 @@ namespace JG.GameContent.EditorTools
                 using (new EditorGUILayout.HorizontalScope(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
                 {
                     DrawTypePane();
+                    DrawLeftSplitter();
                     DrawListPane();
+                    DrawRightSplitter();
                     DrawInspectorPane();
                 }
             }
@@ -171,7 +179,11 @@ namespace JG.GameContent.EditorTools
 
                 GUILayout.FlexibleSpace();
 
-                _search = _searchField.OnToolbarGUI(_search, GUILayout.Width(260));
+                // Make the search field flex, but ensure buttons on the right remain visible
+                float reserved = 100 + 70 + 12; // Reload + Refresh + small padding
+                reserved += 120 + 130 + 24;     // toggles + padding
+                float searchWidth = Mathf.Max(120f, position.width - reserved);
+                _search = _searchField.OnToolbarGUI(_search, GUILayout.Width(searchWidth));
 
                 if (GUILayout.Button("Reload Mods", EditorStyles.toolbarButton, GUILayout.Width(100)))
                 {
@@ -181,6 +193,60 @@ namespace JG.GameContent.EditorTools
                 {
                     RefreshCurrentDefs();
                 }
+            }
+        }
+
+        private void DrawLeftSplitter()
+        {
+            var rect = GUILayoutUtility.GetRect(4, 1, GUILayout.Width(4), GUILayout.ExpandHeight(true));
+            EditorGUIUtility.AddCursorRect(rect, MouseCursor.ResizeHorizontal);
+            if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
+            {
+                _draggingLeftSplit = true;
+                _splitDragStartMouse = Event.current.mousePosition;
+                _splitStartLeftWidth = _leftWidth;
+                Event.current.Use();
+            }
+            if (_draggingLeftSplit && Event.current.type == EventType.MouseDrag)
+            {
+                float delta = Event.current.mousePosition.x - _splitDragStartMouse.x;
+                float minLeft = 160f;
+                float maxLeft = _inspectorBottom ? (position.width - 300f) : (position.width - _middleWidth - 220f);
+                _leftWidth = Mathf.Clamp(_splitStartLeftWidth + delta, minLeft, Mathf.Max(minLeft, maxLeft));
+                Repaint();
+                Event.current.Use();
+            }
+            if (Event.current.type == EventType.MouseUp && _draggingLeftSplit)
+            {
+                _draggingLeftSplit = false;
+                Event.current.Use();
+            }
+        }
+
+        private void DrawRightSplitter()
+        {
+            var rect = GUILayoutUtility.GetRect(4, 1, GUILayout.Width(4), GUILayout.ExpandHeight(true));
+            EditorGUIUtility.AddCursorRect(rect, MouseCursor.ResizeHorizontal);
+            if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
+            {
+                _draggingRightSplit = true;
+                _splitDragStartMouse = Event.current.mousePosition;
+                _splitStartMiddleWidth = _middleWidth;
+                Event.current.Use();
+            }
+            if (_draggingRightSplit && Event.current.type == EventType.MouseDrag)
+            {
+                float delta = Event.current.mousePosition.x - _splitDragStartMouse.x;
+                float minMiddle = 280f;
+                float maxMiddle = position.width - _leftWidth - 220f; // leave room for inspector
+                _middleWidth = Mathf.Clamp(_splitStartMiddleWidth + delta, minMiddle, Mathf.Max(minMiddle, maxMiddle));
+                Repaint();
+                Event.current.Use();
+            }
+            if (Event.current.type == EventType.MouseUp && _draggingRightSplit)
+            {
+                _draggingRightSplit = false;
+                Event.current.Use();
             }
         }
 
