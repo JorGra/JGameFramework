@@ -12,6 +12,7 @@ using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Editor = UnityEditor.Editor;
+using JG.Inventory; // for IInventoryItem & ItemEffectDefinition
 
 namespace JG.GameContent.EditorTools
 {
@@ -58,7 +59,9 @@ namespace JG.GameContent.EditorTools
         // Helpers
         private SearchField _searchField;
         private GUIStyle _listHeaderStyle;
+        private GUIStyle _leftAlignedButtonStyle;
         private bool _dirtySelection;
+        private bool _effectsFoldout;
 
         // ---------------- Lifetime ------------
         private void OnEnable()
@@ -277,7 +280,17 @@ namespace JG.GameContent.EditorTools
             using (new EditorGUILayout.HorizontalScope())
             {
                 GUILayout.Space(indent * 14f);
-                var selected = GUILayout.Toggle(was, label, "Button");
+                if (_leftAlignedButtonStyle == null)
+                {
+                    _leftAlignedButtonStyle = new GUIStyle(GUI.skin.button)
+                    {
+                        alignment = TextAnchor.MiddleLeft,
+                        fixedHeight = 22f,
+                        wordWrap = false
+                    };
+                    _leftAlignedButtonStyle.padding = new RectOffset(8, 8, 2, 2);
+                }
+                var selected = GUILayout.Toggle(was, label, _leftAlignedButtonStyle);
                 if (selected && !was)
                 {
                     _selectedTypeTreeId = id;
@@ -423,6 +436,42 @@ namespace JG.GameContent.EditorTools
                     if (EditorGUI.EndChangeCheck())
                     {
                         _dirtySelection = true;
+                    }
+
+                    // Render item effects (read-only) if this def has them
+                    if (_selectedObj is IInventoryItem invItem && invItem.Effects != null)
+                    {
+                        EditorGUILayout.Space(6);
+                        _effectsFoldout = EditorGUILayout.Foldout(_effectsFoldout, "Item Effects", true);
+                        if (_effectsFoldout)
+                        {
+                            using (new EditorGUI.IndentLevelScope())
+                            {
+                                int idx = 0;
+                                foreach (var eff in invItem.Effects)
+                                {
+                                    using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                                    {
+                                        EditorGUILayout.LabelField($"#{idx} Type", eff?.effectType ?? "(null)", EditorStyles.boldLabel);
+                                        if (eff != null && eff.effectParams != null)
+                                        {
+                                            // Pretty-print the JToken params
+                                            string json = eff.effectParams.ToString(Newtonsoft.Json.Formatting.Indented);
+                                            EditorGUILayout.TextArea(json, GUILayout.MinHeight(44));
+                                        }
+                                        else
+                                        {
+                                            EditorGUILayout.LabelField("Params", "(null)");
+                                        }
+                                    }
+                                    idx++;
+                                }
+                                if (idx == 0)
+                                {
+                                    EditorGUILayout.LabelField("(no effects)");
+                                }
+                            }
+                        }
                     }
                 }
                 else
