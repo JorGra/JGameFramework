@@ -38,6 +38,16 @@ public static class RuntimeObjects
         return go;
     }
 
+    public static GameObject Spawn<TDef>(string id, Transform parent = null)
+        where TDef : class, IContentDef
+    {
+        if (!ContentCatalogue.Instance.TryGet<TDef>(id, out var def))
+            throw new System.Exception($"Def '{id}' ({typeof(TDef).Name}) nicht gefunden");
+        var go = RuntimeFactoryRegistry.Get<TDef>().Build(def, parent);
+        go.SetActive(true);
+        return go;
+    }
+
     public static bool TrySpawn<TDef>(string id, Vector3 pos, Quaternion rot, out GameObject go)
         where TDef : class, IContentDef
     {
@@ -48,5 +58,15 @@ public static class RuntimeObjects
         go.transform.SetPositionAndRotation(pos, rot);
         go.SetActive(true);
         return true;
+    }
+
+    public static GameObject Get<TDef>(string id)
+        where TDef : class, IContentDef
+    {
+        if (!ContentCatalogue.Instance.TryGet<TDef>(id, out var def))
+            throw new System.Exception($"Def '{id}' ({typeof(TDef).Name}) nicht gefunden");
+        var go = RuntimeFactoryRegistry.Get<TDef>().Build(def);
+        go.SetActive(false);
+        return go;
     }
 }

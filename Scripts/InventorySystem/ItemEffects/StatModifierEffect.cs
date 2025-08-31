@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Newtonsoft.Json.Linq;
 
 namespace JG.Inventory
 {
@@ -30,27 +31,62 @@ namespace JG.Inventory
         }
 
         /* -------- factory called by registry -------- */
-
-        public static IItemEffect FromJson(string json)
+        public static IItemEffect FromJson(JToken token)
         {
-            var data = JsonUtility.FromJson<Params>(json);
-            var list = new List<StatModifier>();
+            // Accept either array at root or object with 'entries'
+            if (token == null || token.Type == JTokenType.Null || token.Type == JTokenType.Undefined)
+                return new StatModifierEffect(new List<StatModifier>());
 
-            foreach (var e in data.entries)
+            if (token.Type == JTokenType.Array)
             {
-                var def = StatRegistryProvider.Instance.Registry.Get(e.stat);
-                IOperationStrategy op;
-                if (e.op == OperatorType.Add)
-                {
-                    op = new AddOperation(e.value);
-                }
-                else
-                {
-                    op = new MultiplyOperation(e.value);
-                }
+                var pArr = new Params { entries = token.ToObject<Entry[]>() };
+                return BuildFromParams(pArr);
+            }
+            else
+            {
+                var pObj = token.ToObject<Params>();
+                return BuildFromParams(pObj);
+            }
+        }
 
-                var mod = new StatModifier(def.Key, op, e.duration);
-                list.Add(mod);
+        static IItemEffect BuildFromParams(Params data)
+        {
+            var list = new List<StatModifier>();
+            if (data.entries != null)
+            {
+                var registry = StatRegistryProvider.Instance?.Registry; // may be null
+                foreach (var e in data.entries)
+                {
+                    // validate key
+                    var statKey = e.stat;
+                    if (string.IsNullOrWhiteSpace(statKey))
+                    {
+                        Debug.LogWarning("[StatModifierEffect] Skipping entry with empty 'stat' key.");
+                        continue;
+                    }
+
+                    // If registry available, warn+skip unknown keys
+                    string keyToUse = statKey;
+                    if (registry != null)
+                    {
+                        if (!registry.TryGet(statKey, out var def))
+                        {
+                            Debug.LogWarning($"[StatModifierEffect] Unknown stat key '{statKey}' – skipping.");
+                            continue;
+                        }
+                        keyToUse = def.Key; // canonicalize casing
+                    }
+
+                    IOperationStrategy op = e.op switch
+                    {
+                        OperatorType.Add => new AddOperation(e.value),
+                        OperatorType.Multiply => new MultiplyOperation(e.value),
+                        OperatorType.Percentage => new PercentageOperation(e.value),
+                        _ => new AddOperation(e.value)
+                    };
+                    var mod = new StatModifier(keyToUse, op, e.duration);
+                    list.Add(mod);
+                }
             }
             return new StatModifierEffect(list);
         }

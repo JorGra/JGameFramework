@@ -76,4 +76,16 @@ public class Stats
         }
         baseStats[statKey] = value;
     }
+
+    public Dictionary<string, float> GetAllStats()
+    {
+        var allStats = new Dictionary<string, float>(baseStats);
+        var r = new Dictionary<string, float>();
+        foreach (var stat in allStats)
+        {
+            var v = GetStat(stat.Key);
+            r[stat.Key] = v;
+        }
+        return r;
+    }
 }

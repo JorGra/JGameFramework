@@ -244,7 +244,7 @@ Your tower uses a **template** that ships with the game:
 
     "effects": [
       { "effectType": "BuildTower",
-        "effectParams": "{ \"towerID\":\"Tower_BallisticTurret\" }"
+        "effectParams": { "towerID": "Tower_BallisticTurret" }
       }
     ]
   }

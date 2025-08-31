@@ -1,23 +1,22 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using Newtonsoft.Json.Linq;
 
 namespace JG.Inventory
 {
     /// <summary>
-    /// Central lookup: effect-id → factory delegate.
-    /// Effects may self-register *or* just carry <see cref="ItemEffectAttribute"/>.
+    /// Central lookup: effect-id -> factory delegate.
+    /// Effects may self-register or just carry <see cref="ItemEffectAttribute"/>.
     /// </summary>
     public static class ItemEffectRegistry
     {
-        static readonly Dictionary<string, Func<string, IItemEffect>> factories = new();
-        static bool bootstrapped;
+        private static readonly Dictionary<string, Func<JToken, IItemEffect>> factories = new();
+        private static bool bootstrapped;
 
-        /* ───────── public API ───────── */
-
-        /// <summary>Called by an effect’s static ctor (optional).</summary>
-        public static void Register<T>(Func<string, IItemEffect> factory)
+        /// <summary>Called by an effect's static ctor (optional).</summary>
+        public static void Register<T>(Func<JToken, IItemEffect> factory)
             where T : IItemEffect
         {
             var attr = typeof(T).GetCustomAttribute<ItemEffectAttribute>();
@@ -32,21 +31,19 @@ namespace JG.Inventory
         /// <summary>
         /// Creates the effect or returns <c>null</c> if the id is unknown.
         /// </summary>
-        public static IItemEffect Build(string id, string json)
+        public static IItemEffect Build(string id, JToken args)
         {
-            if (!bootstrapped) Bootstrap();                 // NEW
+            if (!bootstrapped) Bootstrap();
 
             if (factories.TryGetValue(id, out var f))
-                return f(json);
+                return f(args);
 
             Debug.LogError($"[ItemEffectRegistry] Unknown effect id '{id}'.");
             return null;
         }
 
-        /* ───────── internal ───────── */
-
         /// <summary>One-time reflection pass to auto-register every effect class.</summary>
-        static void Bootstrap()
+        private static void Bootstrap()
         {
             bootstrapped = true;
 
@@ -59,20 +56,20 @@ namespace JG.Inventory
                     var attr = t.GetCustomAttribute<ItemEffectAttribute>();
                     if (attr == null || factories.ContainsKey(attr.Id)) continue;
 
-                    /* find a public static FromJson(string) method */
-                    var mi = t.GetMethod("FromJson",
-                                         BindingFlags.Public | BindingFlags.Static,
-                                         null,
-                                         new[] { typeof(string) }, null);
-                    if (mi == null)
+                    // Prefer a public static FromJson(JToken) method
+                    var miToken = t.GetMethod("FromJson",
+                                               BindingFlags.Public | BindingFlags.Static,
+                                               null,
+                                               new[] { typeof(JToken) }, null);
+                    if (miToken != null)
                     {
-                        Debug.LogWarning($"ItemEffect '{t.Name}' has no FromJson(string).");
+                        var delTok = (Func<JToken, IItemEffect>)Delegate.CreateDelegate(
+                                         typeof(Func<JToken, IItemEffect>), miToken);
+                        factories[attr.Id] = delTok;
                         continue;
                     }
 
-                    var del = (Func<string, IItemEffect>)Delegate.CreateDelegate(
-                                  typeof(Func<string, IItemEffect>), mi);
-                    factories[attr.Id] = del;
+                    Debug.LogWarning($"ItemEffect '{t.Name}' has no FromJson(JToken).");
                 }
             }
         }

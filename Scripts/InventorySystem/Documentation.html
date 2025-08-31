@@ -109,7 +109,7 @@ ItemCatalog.Instance.ImportModFile(mod, canOverride:true);</code></pre>
   "maxStack":10,
   "equipTags":[],
   "effects":[
-    { "effectType":"Heal", "effectParams":"{ \"amount\":25 }" }
+    { "effectType":"Heal", "effectParams": { "amount": 25 } }
   ]
 }</code></pre>
 
@@ -121,14 +121,14 @@ ItemCatalog.Instance.ImportModFile(mod, canOverride:true);</code></pre>
       "displayName":"Minor Healing Potion",
       "maxStack":10,
       "equipTags":[],
-      "effects":[{ "effectType":"Heal", "effectParams":"{ \"amount\":25 }" }]
+      "effects":[{ "effectType":"Heal", "effectParams": { "amount": 25 } }]
     },
     {
       "id":"scroll_fireball",
       "displayName":"Scroll of Fireball",
       "maxStack":1,
       "equipTags":[],
-      "effects":[{ "effectType":"CastSpell", "effectParams":"{ \"spell\":\"Fireball\" }" }]
+      "effects":[{ "effectType":"CastSpell", "effectParams": { "spell":"Fireball" } }]
     }
   ],
   "modName":"Core Items",
@@ -227,7 +227,7 @@ inv.UseItem("potion_health_small", new InventoryContext { TargetStats = playerSt
     <ol>
         <li>Implement <code>IItemEffect</code>.</li>
         <li>Decorate with <code>[ItemEffect("Id")]</code>.</li>
-        <li>Provide <code>static IItemEffect FromJson(string)</code>.</li>
+        <li>Provide <code>static IItemEffect FromJson(JToken)</code>.</li>
         <li>Register in a one-liner:<br>
             <code>static NewFx() => ItemEffectRegistry.Register&lt;NewFx&gt;(FromJson);</code>
         </li>

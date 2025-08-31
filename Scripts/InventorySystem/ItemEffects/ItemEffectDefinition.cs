@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Newtonsoft.Json.Linq;
 
 namespace JG.Inventory
 {
@@ -12,7 +13,7 @@ namespace JG.Inventory
         [Tooltip("Concrete class name, e.g. HealEffect")]
         public string effectType;
 
-        [Tooltip("JSON-encoded parameter object understood by the effect.")]
-        public string effectParams;
+        [Tooltip("Parameters object understood by the effect (JSON object).")]
+        public JToken effectParams;
     }
 }
