@@ -8,8 +8,8 @@ using UnityEngine;
 public class ResourceDef : ContentDef
 {
     public string displayName;
-    public string IconKey;
-    [AssetFromFile("Resources/Icons", ".png", fileNameKey: nameof(IconKey))]
+    public string IconKey; // now holds a full path key (e.g., "Resources:Icons/Wood.png" or "/Icons/Wood.png")
+    [AssetFromPath(nameof(IconKey))]
     public Sprite icon;
 
     public ResourceDef(string id, string displayName, Sprite icon = null) : base()

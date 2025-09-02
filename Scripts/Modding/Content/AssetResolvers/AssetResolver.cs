@@ -1,6 +1,5 @@
 ﻿using JG.GameContent;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -11,20 +10,7 @@ internal static class AssetResolver
     // Prefix that switches the resolver into Resources.Load() mode.
     private const string RESOURCES_PREFIX = "Resources:";
 
-    // Register per-type loaders for file mode (loose files in mod folder).
-    // Extend as needed (e.g., TextAsset, Mesh).
-    private static readonly Dictionary<Type, Func<string, UnityEngine.Object>> _fileLoaders =
-        new()
-        {
-            [typeof(Texture2D)] = LoadTextureFromFile,
-            [typeof(Sprite)] = p => MakeSprite(LoadTextureFromFile(p)),
-            // NOTE: Provide your own WAV/OGG loader if you plan to load audio from disk.
-            [typeof(AudioClip)] = LoadAudioClipFromFile
-        };
-
-    /// Injects assets into fields/properties marked with [AssetFromFile] on a definition.
-    /// - File mode: loads from <modRoot>/<subFolder>/<fileName><ext>
-    /// - Resources mode: loads via Resources.Load("<subPath>/<fileName>", memberType)
+    /// Injects assets into fields/properties marked with [AssetFromPath] on a definition.
     public static void InjectAssets(IContentDef def, string modRoot, string modId)
     {
         if (def == null) throw new ArgumentNullException(nameof(def));
@@ -35,117 +21,27 @@ internal static class AssetResolver
 
         foreach (var mem in members)
         {
-            var a = mem.GetCustomAttribute<AssetFromFileAttribute>();
-            if (a == null) continue;
-
             var memberType = GetMemberType(mem);
             if (memberType == null || !typeof(UnityEngine.Object).IsAssignableFrom(memberType))
+                continue; // only bind UnityEngine.Object values
+
+            var attrPath = mem.GetCustomAttribute<AssetFromPathAttribute>();
+            if (attrPath != null)
             {
-                Debug.LogError($"[{modId}] {t.Name}.{mem.Name} has [AssetFromFile] but type is not a UnityEngine.Object.");
+                ResolveFromPathAttribute(def, mem, memberType, attrPath, modRoot, modId);
                 continue;
             }
 
-            // Resolve "file name" (or logical name) from FileNameKey or fall back to Id
-            var name = ResolveName(def, t, a.FileNameKey, modId, $"{t.Name}.{mem.Name}", a.Optional);
-            if (string.IsNullOrWhiteSpace(name)) continue;
-
-            // Branch by scheme
-            if (IsResourcesMode(a.SubFolder))
-            {
-                // -------- Resources mode --------
-                var subPath = a.SubFolder.Substring(RESOURCES_PREFIX.Length).Trim().TrimStart('/', '\\');
-                var resourcesPath = BuildResourcesPath(subPath, name);
-
-                try
-                {
-                    var asset = Resources.Load(resourcesPath, memberType);
-                    if (!asset)
-                    {
-                        if (!a.Optional)
-                            Debug.LogWarning($"[{modId}] Resources asset not found: Resources/{resourcesPath} (type {memberType.Name})");
-                        continue;
-                    }
-
-                    SetMemberValue(def, mem, asset);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"[{modId}] Failed to load Resources {memberType.Name} for {t.Name}.{mem.Name} at '{resourcesPath}':\n{ex}");
-                }
-            }
-            else
-            {
-                // -------- File mode --------
-                if (!_fileLoaders.TryGetValue(memberType, out var loader))
-                {
-                    Debug.LogError($"[{modId}] No file loader registered for {memberType.Name}. Add one to AssetResolver._fileLoaders.");
-                    continue;
-                }
-
-                var ext = a.Extension ?? DefaultExt(memberType);
-                if (string.IsNullOrEmpty(ext))
-                {
-                    Debug.LogError($"[{modId}] Missing file extension for {memberType.Name} on {t.Name}.{mem.Name}. Specify one on [AssetFromFile] or add DefaultExt.");
-                    continue;
-                }
-
-                var sub = (a.SubFolder ?? string.Empty)
-                          .Replace('/', Path.DirectorySeparatorChar)
-                          .Replace('\\', Path.DirectorySeparatorChar);
-
-                var abs = Path.Combine(modRoot ?? string.Empty, sub, name + ext);
-
-                if (!File.Exists(abs))
-                {
-                    if (!a.Optional)
-                        Debug.LogWarning($"[{modId}] Asset file not found: {abs}");
-                    continue;
-                }
-
-                try
-                {
-                    var asset = loader(abs);
-                    if (asset == null && !a.Optional)
-                    {
-                        Debug.LogWarning($"[{modId}] Loader returned null for {abs} ({memberType.Name}).");
-                        continue;
-                    }
-
-                    SetMemberValue(def, mem, asset);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"[{modId}] Failed to load {memberType.Name} for {t.Name}.{mem.Name} from '{abs}':\n{ex}");
-                }
-            }
+            // No legacy path: only [AssetFromPath] is supported now.
         }
     }
 
     // ------------ Helpers ------------
 
-    private static bool IsResourcesMode(string subFolder)
-        => !string.IsNullOrEmpty(subFolder) && subFolder.StartsWith(RESOURCES_PREFIX, StringComparison.OrdinalIgnoreCase);
+    private static bool IsResourcesKey(string key)
+        => !string.IsNullOrEmpty(key) && key.StartsWith(RESOURCES_PREFIX, StringComparison.OrdinalIgnoreCase);
 
-    private static string BuildResourcesPath(string subPath, string name)
-    {
-        // Allow name to include subfolders. Strip known extensions if author provided any.
-        string strip(string s)
-        {
-            s = s.Replace('\\', '/');
-            if (s.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase)) s = Path.ChangeExtension(s, null);
-            else if (s.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) s = Path.ChangeExtension(s, null);
-            else if (s.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)) s = Path.ChangeExtension(s, null);
-            else if (s.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)) s = Path.ChangeExtension(s, null);
-            else if (s.EndsWith(".mat", StringComparison.OrdinalIgnoreCase)) s = Path.ChangeExtension(s, null);
-            else if (s.EndsWith(".asset", StringComparison.OrdinalIgnoreCase)) s = Path.ChangeExtension(s, null);
-            return s.Trim('/');
-        }
-
-        subPath = strip(subPath ?? string.Empty);
-        name = strip(name ?? string.Empty);
-
-        return string.IsNullOrEmpty(subPath) ? name : $"{subPath}/{name}";
-    }
+    // No BuildResourcesPath needed; new path mode builds directly.
 
     private static Type GetMemberType(MemberInfo mem) =>
         mem switch
@@ -198,38 +94,105 @@ internal static class AssetResolver
         return val;
     }
 
-    private static string DefaultExt(Type t)
+    // Legacy file loaders removed; file loading is handled by extension plugins.
+
+    // -------------------- New path-based resolution --------------------
+    private static void ResolveFromPathAttribute(
+        IContentDef def,
+        MemberInfo mem,
+        Type memberType,
+        AssetFromPathAttribute attr,
+        string modRoot,
+        string modId)
     {
-        if (t == typeof(Texture2D) || t == typeof(Sprite)) return ".png";
-        if (t == typeof(AudioClip)) return ".wav";
-        return string.Empty;
+        var t = def.GetType();
+        var key = ResolveName(def, t, attr.PathKey, modId, $"{t.Name}.{mem.Name}", attr.Optional);
+        if (string.IsNullOrWhiteSpace(key)) return;
+
+        var raw = key.Trim();
+        var isResources = IsResourcesKey(raw);
+        string ext = Path.GetExtension(raw);
+
+        // Normalize paths
+        if (isResources)
+        {
+            var resPath = raw.Substring(RESOURCES_PREFIX.Length).Trim().TrimStart('/', '\\').Replace('\\', '/');
+            var resPathNoExt = Path.ChangeExtension(resPath, null);
+
+            // If extension is known, try plugin; else fallback to direct Resources.Load by member type.
+            if (!string.IsNullOrEmpty(ext) && JG.GameContent.AssetResolving.AssetResolverRegistry.TryGetByExtension(ext, out var plug))
+            {
+                TryLoadWithPlugin(() => plug.LoadFromResources(resPathNoExt, memberType), def, mem, memberType, modId, raw, attr.Optional);
+            }
+            else
+            {
+                try
+                {
+                    var asset = Resources.Load(resPathNoExt, memberType);
+                    if (!asset)
+                    {
+                        if (!attr.Optional)
+                            Debug.LogWarning($"[{modId}] Resources asset not found: Resources/{resPathNoExt} (type {memberType.Name})");
+                        return;
+                    }
+                    SetMemberValue(def, mem, asset);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[{modId}] Failed to load Resources {memberType.Name} for {t.Name}.{mem.Name} at '{resPathNoExt}':\n{ex}");
+                }
+            }
+        }
+        else
+        {
+            // File mode, path is relative to current content folder (directory of the JSON file)
+            var contentRoot = Path.GetDirectoryName(def.SourceFile);
+            var rel = raw.TrimStart('/', '\\');
+            var abs = Path.Combine(contentRoot ?? modRoot ?? string.Empty,
+                                   rel.Replace('/', Path.DirectorySeparatorChar)
+                                      .Replace('\\', Path.DirectorySeparatorChar));
+
+            if (!File.Exists(abs))
+            {
+                if (!attr.Optional)
+                    Debug.LogWarning($"[{modId}] Asset file not found: {abs}");
+                return;
+            }
+
+            if (!JG.GameContent.AssetResolving.AssetResolverRegistry.TryGetByExtension(ext, out var plug))
+            {
+                Debug.LogError($"[{modId}] No resolver registered for extension '{ext}' referenced by {t.Name}.{mem.Name} → '{raw}'.");
+                return;
+            }
+
+            TryLoadWithPlugin(() => plug.LoadFromFile(abs, memberType), def, mem, memberType, modId, abs, attr.Optional);
+        }
     }
 
-    // ------------ File loaders (mod folder) ------------
-
-    private static Texture2D LoadTextureFromFile(string path)
+    private static void TryLoadWithPlugin(Func<UnityEngine.Object> load,
+                                          IContentDef def,
+                                          MemberInfo mem,
+                                          Type memberType,
+                                          string modId,
+                                          string where,
+                                          bool optional)
     {
-        var data = File.ReadAllBytes(path);
-        var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-        if (!tex.LoadImage(data, markNonReadable: false))
-            throw new Exception($"Failed to decode image: {path}");
-        tex.name = Path.GetFileNameWithoutExtension(path);
-        return tex;
+        try
+        {
+            var asset = load();
+            if (!asset)
+            {
+                if (!optional)
+                    Debug.LogWarning($"[{modId}] Resolver returned null for {where} (expected {memberType.Name}).");
+                return;
+            }
+            SetMemberValue(def, mem, asset);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[{modId}] Failed to load {memberType.Name} from '{where}':\n{ex}");
+        }
     }
 
-    private static Sprite MakeSprite(Texture2D tex)
-    {
-        if (!tex) throw new ArgumentNullException(nameof(tex));
-        return Sprite.Create(tex,
-                             new Rect(0, 0, tex.width, tex.height),
-                             new Vector2(0.5f, 0.5f),
-                             100f); // pixels-per-unit default
-    }
-
-    private static AudioClip LoadAudioClipFromFile(string path)
-    {
-        // Placeholder – implement your own WAV/OGG decoder or integrate an existing one.
-        // Throwing here keeps behavior explicit if someone tries to load audio via file mode.
-        throw new NotSupportedException($"Audio file loading is not implemented. Tried to load: {path}");
-    }
+    // Legacy support removed; migrate to [AssetFromPath].
 }
