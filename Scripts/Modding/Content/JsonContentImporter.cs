@@ -31,7 +31,7 @@ namespace JG.GameContent
         private static readonly JsonSerializer _json =
             JsonSerializer.Create(new JsonSerializerSettings
             {
-                Converters = { new UnityScriptableObjectConverter() },
+                Converters = { new UnityScriptableObjectConverter(), new UnityColorJsonConverter() },
                 MissingMemberHandling = MissingMemberHandling.Error,
                 NullValueHandling = NullValueHandling.Ignore,
                 Formatting = Formatting.None,
