@@ -1,8 +1,9 @@
 using System.Collections;
 #if UNITY_EDITOR
 using UnityEditor.SceneManagement;
-#endif
 using UnityEditor;
+using JG.Tools.SceneManagement.Editor;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -30,6 +31,12 @@ namespace JG.Tools.SceneManagement
         private static void Init()          // <- static, void, no params
         {
             Debug.Log("Bootstrapper Init...");
+#if UNITY_EDITOR
+            if (!JG.Tools.SceneManagement.Editor.BootstrapperEditorUtility.IsBootstrapperEnabled)
+            {
+                return;
+            }
+#endif
             if (SceneManager.GetActiveScene().buildIndex != 0)
             {
                 SceneManager.LoadSceneAsync(0, LoadSceneMode.Single);
@@ -43,10 +50,7 @@ namespace JG.Tools.SceneManagement
         [InitializeOnLoadMethod]            // Editor-time attribute
         private static void SetStartScene()
         {
-            var firstSceneAsset = AssetDatabase
-                                   .LoadAssetAtPath<SceneAsset>(
-                                        EditorBuildSettings.scenes[0].path);
-            EditorSceneManager.playModeStartScene = firstSceneAsset;
+            JG.Tools.SceneManagement.Editor.BootstrapperEditorUtility.ApplyBootstrapperSceneSetting();
         }
 #endif
         //#endif
