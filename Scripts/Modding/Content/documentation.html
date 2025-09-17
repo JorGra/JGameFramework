@@ -110,7 +110,7 @@ public sealed class ItemDef : ContentDef
 
   <p>The JSON schema follows the <em>exact same</em> field layout:</p>
   <pre><code class="language-json">[
-  { "id": "SoyMilk",      "Price": 40,
+  { "id": "core.item.consumable.soymilk",      "Price": 40,
     "OnPickup": [ { "stat": "AttackSpeed", "op": "Add", "value": 40 } ] },
 
   { "id": "GentleAlien",  "Price": 60,
@@ -197,7 +197,7 @@ void   Clear();  // editor hot‑reload
   <h2>7&nbsp;·&nbsp;Runtime Usage & Typical Workflows</h2>
 
   <h3>7.1 &nbsp;Getting a Single Definition</h3>
-  <pre><code class="language-csharp">if (ContentCatalogue.Instance.TryGet&lt;ItemDef&gt;("SoyMilk", out var soy))
+  <pre><code class="language-csharp">if (ContentCatalogue.Instance.TryGet&lt;ItemDef&gt;("core.item.consumable.soymilk", out var soy))
 {
     player.ApplyStatMods(soy.OnPickup);
 }</code></pre>
@@ -233,7 +233,7 @@ void   Clear();  // editor hot‑reload
   <p>Intended. Typos should fail fast.  
      Either fix the typo or add the missing field to the ScriptableObject schema.</p>
 
-  <h3>Two Mods Both Change <code>Price</code> of “SoyMilk”</h3>
+  <h3>Two Mods Both Change <code>Price</code> of “core.item.consumable.soymilk”</h3>
   <p>Whichever mod appears later in load order dictates the final value.  
      Players can reorder in UI → immediate resolution.</p>
 

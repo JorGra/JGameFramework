@@ -223,7 +223,7 @@ Your tower uses a **template** that ships with the game:
 ```json
 [
   {
-    "id": "Tower_BallisticTurret",
+    "id": "myfirstmod.tower.ballisticTurret",
     "displayName": "Ballistic Turret",
     "description": "Tastes bland",
     "iconKey": "Turret01",
@@ -244,7 +244,7 @@ Your tower uses a **template** that ships with the game:
 
     "effects": [
       { "effectType": "BuildTower",
-        "effectParams": { "towerID": "Tower_BallisticTurret" }
+        "effectParams": { "towerID": "myfirstmod.tower.ballisticTurret" }
       }
     ]
   }
@@ -282,7 +282,7 @@ At runtime you can spawn your tower by ID:
 
 ```csharp
 RuntimeObjects.TrySpawn<TowerDef>(
-    "Tower_BallisticTurret",
+    "myfirstmod.tower.ballisticTurret",
     pos,
     Quaternion.FromToRotation(Vector3.up, normal),
     out var go);
@@ -402,7 +402,7 @@ public static class RuntimeObjects
 
 | JSON key                 | Unity field                              | Type       | Source/Resolution                                               | Required | Example                        |
 | ------------------------ | ---------------------------------------- | ---------- | --------------------------------------------------------------- | -------- | ------------------------------ |
-| `id`                     | `Id`                                     | string     | Unique content ID (case-insensitive)                            | **Yes**  | `"Tower_BallisticTurret"`      |
+| `id`                     | `Id`                                     | string     | Unique content ID (case-insensitive)                            | **Yes**  | `"myfirstmod.tower.ballisticTurret"`      |
 | `displayName`            | `DisplayName`                            | string     | Shown in UI, inventories                                        | Yes      | `"Ballistic Turret"`           |
 | `description`            | `Description`                            | string     | Tooltip or UI description                                       | Optional | `"Tastes bland"`               |
 | `iconKey`                | `IconKey` + `Icon`                       | Sprite     | `Mods/<Mod>/Items/Icons/<IconKey>.png`                          | Yes      | `"Turret01"` → `Turret01.png`  |
@@ -426,8 +426,8 @@ public static class RuntimeObjects
 
 | Symptom / Error message                                   | Likely cause & fix                                                                                               |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `Def 'Tower_BallisticTurret' (TowerDef) nicht gefunden`   | Wrong `id` in spawn call, JSON didn’t load, or wrong load order. Verify `towers.json` path & Mod Manager order.  |
-| `Tower 'Tower_BallisticTurret' is missing TemplatePrefab` | `towerTemplate` not resolved. Check `towerTemplatePrefabKey` matches a prefab under `Resources/Prefabs/Towers/`. |
+| `Def 'myfirstmod.tower.ballisticTurret' (TowerDef) nicht gefunden`   | Wrong `id` in spawn call, JSON didn’t load, or wrong load order. Verify `towers.json` path & Mod Manager order.  |
+| `Tower 'myfirstmod.tower.ballisticTurret' is missing TemplatePrefab` | `towerTemplate` not resolved. Check `towerTemplatePrefabKey` matches a prefab under `Resources/Prefabs/Towers/`. |
 | `Tower view is missing on template`                       | Template prefab lacks `TowerView` component. Add it and ensure `UpdateTowerGraphics(...)` exists.                |
 | Icon or sprite missing visually                           | Key-to-file mismatch. Check file exists at the exact mod path and filename (`.png`) matches the JSON key.        |
 | Two mods define the same `id`                             | Undefined which one “wins.” Use unique IDs across all mods to avoid conflicts.                                   |
@@ -438,7 +438,7 @@ public static class RuntimeObjects
 
 ## 8) Best practices for mod authors
 
-* **Unique IDs**: Prefix with your mod name, e.g., `MyMod_Tower_BallisticTurret`.
+* **Unique IDs**: Prefix with your mod name, e.g., `mymod.tower.ballisticTurret`.
 * **Consistent naming**: Keep JSON keys and filenames aligned exactly.
 * **Bundle only what you own**: Game-shipped templates go in `Resources` (not in the mod). Modders supply sprites, icons, their JSON.
 * **Organize JSON**: You can split into multiple files under `Items/Towers/` if helpful; the loader reads all of them.
@@ -609,7 +609,7 @@ RuntimeObjects.Spawn<TrapDef>("MyMod_Trap_Spike", pos, rot);
 6. In a test script, call:
 
    ```csharp
-   RuntimeObjects.TrySpawn<TowerDef>("Tower_BallisticTurret", somePos, Quaternion.identity, out _);
+   RuntimeObjects.TrySpawn<TowerDef>("myfirstmod.tower.ballisticTurret", somePos, Quaternion.identity, out _);
    ```
 
    You should see a live tower with the correct base/head sprites and offsets.
