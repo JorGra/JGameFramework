@@ -39,6 +39,12 @@ namespace JGameFramework.UI.Tooltips
             return this;
         }
 
+        public TooltipRequestBuilder WithFollowTarget(bool follow)
+        {
+            _request.FollowTarget = follow;
+            return this;
+        }
+
         public TooltipRequestBuilder WithPlayerContext(TooltipPlayerContext context)
         {
             _request.PlayerContext = context;
@@ -66,6 +72,18 @@ namespace JGameFramework.UI.Tooltips
         public TooltipRequestBuilder WithClampOverride(bool clamp)
         {
             _request.ClampToViewport = clamp;
+            return this;
+        }
+
+        public TooltipRequestBuilder WithBlocksRaycasts(bool blocksRaycasts)
+        {
+            _request.BlocksRaycasts = blocksRaycasts;
+            return this;
+        }
+
+        public TooltipRequestBuilder AsStickyTooltip(bool sticky = true)
+        {
+            _request.Sticky = sticky;
             return this;
         }
 
@@ -97,10 +115,7 @@ namespace JGameFramework.UI.Tooltips
         {
             _request.Content = _content;
             _request.Actions = _actions;
-            if (_request.Pivot == default)
-            {
-                _request.Pivot = new Vector2(0f, 1f);
-            }
+            EnsurePivot();
             return TooltipSystemRoot.Instance.ShowTooltip(_request);
         }
 
@@ -108,10 +123,7 @@ namespace JGameFramework.UI.Tooltips
         {
             _request.Content = _content;
             _request.Actions = _actions;
-            if (_request.Pivot == default)
-            {
-                _request.Pivot = new Vector2(0f, 1f);
-            }
+            EnsurePivot();
             return _request;
         }
 
@@ -121,5 +133,15 @@ namespace JGameFramework.UI.Tooltips
             _actions.Clear();
             _request = default;
         }
+
+        private void EnsurePivot()
+        {
+            if (_request.Pivot == default)
+            {
+                _request.Pivot = new Vector2(0f, 1f);
+            }
+        }
     }
 }
+
+

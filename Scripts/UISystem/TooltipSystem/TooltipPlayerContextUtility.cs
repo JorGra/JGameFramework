@@ -15,6 +15,7 @@ namespace JGameFramework.UI.Tooltips
             {
                 EventSystem = eventSystem,
                 PlayerIndex = playerIndex,
+                HasPlayerIndex = playerIndex >= 0,
                 UICamera = uiCamera
             };
         }
@@ -31,6 +32,7 @@ namespace JGameFramework.UI.Tooltips
             {
                 PlayerInput = playerInput,
                 PlayerIndex = playerInput.playerIndex,
+                HasPlayerIndex = playerInput.playerIndex >= 0,
                 UICamera = uiCamera
             };
 
@@ -38,6 +40,7 @@ namespace JGameFramework.UI.Tooltips
             if (eventSystem != null)
             {
                 context.MultiplayerEventSystem = eventSystem;
+                context.EventSystem = eventSystem;
             }
 
             var inputModule = playerInput.GetComponentInChildren<InputSystemUIInputModule>();
@@ -46,9 +49,9 @@ namespace JGameFramework.UI.Tooltips
                 context.InputModule = inputModule;
             }
 
-            if (eventSystem != null)
+            if (context.EventSystem == null)
             {
-                context.EventSystem = eventSystem;
+                context.EventSystem = playerInput.GetComponentInChildren<EventSystem>();
             }
 
             return context;

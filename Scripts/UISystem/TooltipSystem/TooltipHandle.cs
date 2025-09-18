@@ -20,6 +20,8 @@ namespace JGameFramework.UI.Tooltips
         public bool IsValid => _system != null && View != null;
         public TooltipPlayerContext PlayerContext => View != null ? View.PlayerContext : default;
         public object Tag => View != null ? View.Tag : null;
+        public bool BlocksRaycasts => View != null && View.BlocksRaycasts;
+        public bool IsSticky => View != null && View.IsSticky;
 
         public void Close()
         {

@@ -26,9 +26,13 @@ namespace JGameFramework.UI.Tooltips
         private bool _isVisible = true;
         private Vector3? _worldPosition;
         private bool _isFollowing;
+        private bool _blocksRaycasts;
+        private bool _isSticky;
 
         public TooltipPlayerContext PlayerContext => _request.PlayerContext;
         public object Tag { get; private set; }
+        internal bool BlocksRaycasts => _blocksRaycasts;
+        internal bool IsSticky => _isSticky;
 
         internal void Initialize(TooltipRequest request, TooltipHandle handle)
         {
@@ -37,6 +41,8 @@ namespace JGameFramework.UI.Tooltips
             _handle = handle;
             _worldPosition = request.WorldPosition;
             _isFollowing = request.FollowTarget;
+            _blocksRaycasts = request.BlocksRaycasts;
+            _isSticky = request.Sticky;
             Tag = request.Tag;
 
             if (_root == null)
@@ -76,6 +82,12 @@ namespace JGameFramework.UI.Tooltips
             _request = default;
             Tag = null;
             _worldPosition = null;
+            _isFollowing = false;
+            _blocksRaycasts = false;
+            _isSticky = false;
+            _currentOffset = Vector2.zero;
+            _isVisible = false;
+            ApplyCanvasGroupState(false);
         }
 
         private void SetupSorting(int sortingOffset)
@@ -143,6 +155,7 @@ namespace JGameFramework.UI.Tooltips
             {
                 _actionsRoot.gameObject.SetActive(false);
             }
+
             LayoutRebuilder.ForceRebuildLayoutImmediate(_root);
         }
 
@@ -183,12 +196,20 @@ namespace JGameFramework.UI.Tooltips
         public void SetVisibility(bool visible)
         {
             _isVisible = visible;
-            if (_canvasGroup != null)
+            ApplyCanvasGroupState(visible);
+        }
+
+        private void ApplyCanvasGroupState(bool visible)
+        {
+            if (_canvasGroup == null)
             {
-                _canvasGroup.alpha = visible ? 1f : 0f;
-                _canvasGroup.blocksRaycasts = visible;
-                _canvasGroup.interactable = visible;
+                return;
             }
+
+            _canvasGroup.alpha = visible ? 1f : 0f;
+            bool interactive = visible && _blocksRaycasts;
+            _canvasGroup.blocksRaycasts = interactive;
+            _canvasGroup.interactable = interactive;
         }
 
         private void ClearContent()

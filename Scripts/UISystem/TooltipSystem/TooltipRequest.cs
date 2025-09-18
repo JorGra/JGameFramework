@@ -20,6 +20,8 @@ namespace JGameFramework.UI.Tooltips
         public IReadOnlyList<TooltipActionData> Actions;
         public int SortingOffset;
         public bool? ClampToViewport;
+        public bool BlocksRaycasts;
+        public bool Sticky;
         public object Tag;
 
         public TooltipRequest(
@@ -34,6 +36,8 @@ namespace JGameFramework.UI.Tooltips
             bool followTarget = true,
             bool? clampToViewport = null,
             int sortingOffset = 0,
+            bool blocksRaycasts = false,
+            bool sticky = false,
             object tag = null)
         {
             Content = content;
@@ -47,6 +51,8 @@ namespace JGameFramework.UI.Tooltips
             FollowTarget = followTarget;
             ClampToViewport = clampToViewport;
             SortingOffset = sortingOffset;
+            BlocksRaycasts = blocksRaycasts;
+            Sticky = sticky;
             Tag = tag;
         }
 

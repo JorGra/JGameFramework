@@ -38,10 +38,12 @@ namespace JGameFramework.UI.Tooltips
         }
     }
 
+
     [Serializable]
     public struct TooltipPlayerContext
     {
         public int PlayerIndex;
+        public bool HasPlayerIndex;
 #if ENABLE_INPUT_SYSTEM
         public PlayerInput PlayerInput;
         public MultiplayerEventSystem MultiplayerEventSystem;
@@ -50,28 +52,30 @@ namespace JGameFramework.UI.Tooltips
         public EventSystem EventSystem;
         public Camera UICamera;
 
-        public bool IsValid
+        public bool IsValid => HasFilters;
+
+        private bool HasFilters
         {
             get
             {
+                if (HasPlayerIndex)
+                {
+                    return true;
+                }
+
 #if ENABLE_INPUT_SYSTEM
                 if (PlayerInput != null || MultiplayerEventSystem != null || InputModule != null)
                 {
                     return true;
                 }
 #endif
-                if (EventSystem != null)
-                {
-                    return true;
-                }
-
-                return PlayerIndex >= 0;
+                return EventSystem != null;
             }
         }
 
         public bool MatchesEvent(BaseEventData eventData)
         {
-            if (!IsValid)
+            if (!HasFilters)
             {
                 return true;
             }
@@ -84,11 +88,12 @@ namespace JGameFramework.UI.Tooltips
             var module = eventData.currentInputModule;
             if (module == null)
             {
-                return EventSystem == null && PlayerIndex < 0;
+                return false;
             }
 
-            var resolvedEventSystem = module.GetComponent<EventSystem>();
-            if (EventSystem != null && resolvedEventSystem == EventSystem)
+            EventSystem moduleEventSystem = module.GetComponent<EventSystem>();
+
+            if (EventSystem != null && moduleEventSystem == EventSystem)
             {
                 return true;
             }
@@ -99,7 +104,8 @@ namespace JGameFramework.UI.Tooltips
                 return true;
             }
 
-            if (MultiplayerEventSystem != null && resolvedEventSystem == MultiplayerEventSystem)
+            var resolvedMultiplayer = moduleEventSystem as MultiplayerEventSystem;
+            if (MultiplayerEventSystem != null && resolvedMultiplayer == MultiplayerEventSystem)
             {
                 return true;
             }
@@ -111,12 +117,8 @@ namespace JGameFramework.UI.Tooltips
                 {
                     return true;
                 }
-            }
 
-            var resolvedMultiplayer = resolvedEventSystem as MultiplayerEventSystem;
-            if (resolvedMultiplayer != null)
-            {
-                if (PlayerInput != null && resolvedMultiplayer.playerRoot != null)
+                if (resolvedMultiplayer != null && resolvedMultiplayer.playerRoot != null)
                 {
                     var rootPlayer = resolvedMultiplayer.playerRoot.GetComponent<PlayerInput>();
                     if (rootPlayer != null && rootPlayer == PlayerInput)
@@ -124,8 +126,11 @@ namespace JGameFramework.UI.Tooltips
                         return true;
                     }
                 }
+            }
 
-                if (PlayerIndex >= 0 && resolvedMultiplayer.playerRoot != null)
+            if (HasPlayerIndex)
+            {
+                if (resolvedMultiplayer != null && resolvedMultiplayer.playerRoot != null)
                 {
                     var rootPlayer = resolvedMultiplayer.playerRoot.GetComponent<PlayerInput>();
                     if (rootPlayer != null && rootPlayer.playerIndex == PlayerIndex)
@@ -133,10 +138,7 @@ namespace JGameFramework.UI.Tooltips
                         return true;
                     }
                 }
-            }
 
-            if (PlayerIndex >= 0)
-            {
                 var modulePlayer = module.GetComponent<PlayerInput>();
                 if (modulePlayer != null && modulePlayer.playerIndex == PlayerIndex)
                 {
@@ -145,8 +147,7 @@ namespace JGameFramework.UI.Tooltips
             }
 #endif
 
-            return EventSystem == null && PlayerIndex < 0;
+            return false;
         }
     }
 }
-
