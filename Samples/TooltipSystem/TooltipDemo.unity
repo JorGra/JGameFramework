@@ -172,7 +172,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tooltipType: 0
-  sprite: {fileID: 21300000, guid: 07103c52b3aaeca4da8a83361edd059f, type: 3}
+  imageSprite: {fileID: 0}
+  simpleHeader: Sample Header
+  simpleBody: Hover each corner button to preview the tooltip system.
 --- !u!114 &48200653
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -690,7 +692,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tooltipType: 2
-  sprite: {fileID: 21300000, guid: 07103c52b3aaeca4da8a83361edd059f, type: 3}
+  imageSprite: {fileID: 0}
+  simpleHeader: Sample Header
+  simpleBody: Hover each corner button to preview the tooltip system.
 --- !u!114 &708921235
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -885,6 +889,52 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 6124150015861321427, guid: f06141c51124c894fadd0fd4c3977883, type: 3}
   m_PrefabInstance: {fileID: 7295392519520957234}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1238571596
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1238571598}
+  - component: {fileID: 1238571597}
+  m_Layer: 0
+  m_Name: StatRegistryProvider Auto-Generated
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1238571597
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1238571596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1dba2942149be442ba4ee36e9ec2ef4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  registry: {fileID: 0}
+  runtimeOverridesBaked: 1
+--- !u!4 &1238571598
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1238571596}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1258539521
 GameObject:
   m_ObjectHideFlags: 0
@@ -1020,7 +1070,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tooltipType: 1
-  sprite: {fileID: 21300000, guid: 07103c52b3aaeca4da8a83361edd059f, type: 3}
+  imageSprite: {fileID: 21300000, guid: cd138aba98d8b934ab8c2a56c2d51df7, type: 3}
+  simpleHeader: Sample Header
+  simpleBody: Hover each corner button to preview the tooltip system.
 --- !u!1001 &1289907574
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2332,3 +2384,4 @@ SceneRoots:
   - {fileID: 186016617}
   - {fileID: 2008365478}
   - {fileID: 855374968}
+  - {fileID: 1238571598}
