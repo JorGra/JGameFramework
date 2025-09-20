@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(RectTransform))]
-public sealed class TooltipTester : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public sealed class TooltipTester : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
     public enum TooltipType
     {
@@ -20,9 +20,13 @@ public sealed class TooltipTester : MonoBehaviour, IPointerEnterHandler, IPointe
 
     private RectTransform _rectTransform;
 
-    private static TooltipTester s_activeOwner;
-    private static TooltipHandle s_activeHandle;
-    private static bool s_hasActiveHandle;
+    private static TooltipTester s_hoverOwner;
+    private static TooltipHandle s_hoverHandle;
+    private static bool s_hasHoverHandle;
+
+    private static TooltipTester s_menuOwner;
+    private static TooltipHandle s_menuHandle;
+    private static bool s_hasMenuHandle;
 
     private void Awake()
     {
@@ -31,52 +35,74 @@ public sealed class TooltipTester : MonoBehaviour, IPointerEnterHandler, IPointe
 
     private void OnDisable()
     {
-        if (IsActiveOwner)
+        if (IsHoverOwner)
         {
-            DismissActiveTooltip();
+            DismissHoverTooltip();
+        }
+
+        if (IsMenuOwner)
+        {
+            DismissContextMenu();
         }
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        ShowTooltip(eventData);
-    }
-
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        if (!IsActiveOwner)
-        {
-            return;
-        }
-
         if (tooltipType == TooltipType.Actions)
         {
             return;
         }
 
-        DismissActiveTooltip();
+        ShowHoverTooltip(eventData);
     }
 
-    private void ShowTooltip(PointerEventData eventData)
+    public void OnPointerExit(PointerEventData eventData)
     {
-        CloseExistingHandle();
+        if (tooltipType == TooltipType.Actions)
+        {
+            return;
+        }
 
-        var builder = new TooltipRequestBuilder()
+        if (IsHoverOwner)
+        {
+            DismissHoverTooltip();
+        }
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (tooltipType != TooltipType.Actions)
+        {
+            return;
+        }
+
+        if (IsMenuOwner)
+        {
+            DismissContextMenu();
+        }
+        else
+        {
+            ShowContextMenu(eventData);
+        }
+    }
+
+    private void ShowHoverTooltip(PointerEventData eventData)
+    {
+        CloseHoverTooltip();
+
+        var context = ResolvePlayerContext(eventData);
+        var builder = new TooltipBuilder()
             .WithAnchor(_rectTransform, follow: true)
-            .WithPlayerContext(ResolvePlayerContext(eventData))
-            .WithSortingOffset(tooltipType == TooltipType.Actions ? 50 : 0)
+            .WithPlayerContext(context)
             .WithTag(this);
 
         switch (tooltipType)
         {
             case TooltipType.SimpleText:
-                ConfigureSimpleText(builder);
+                ConfigureSimpleTooltip(builder);
                 break;
             case TooltipType.Image:
-                ConfigureImage(builder);
-                break;
-            case TooltipType.Actions:
-                ConfigureActions(builder);
+                ConfigureImageTooltip(builder);
                 break;
         }
 
@@ -86,12 +112,51 @@ public sealed class TooltipTester : MonoBehaviour, IPointerEnterHandler, IPointe
             return;
         }
 
-        s_activeOwner = this;
-        s_activeHandle = handle;
-        s_hasActiveHandle = true;
+        s_hoverOwner = this;
+        s_hoverHandle = handle;
+        s_hasHoverHandle = true;
+
+        if (IsMenuOwner)
+        {
+            DismissContextMenu();
+        }
     }
 
-    private void ConfigureSimpleText(TooltipRequestBuilder builder)
+    private void ShowContextMenu(PointerEventData eventData)
+    {
+        CloseContextMenu();
+
+        var context = ResolvePlayerContext(eventData);
+        var builder = new ContextMenuBuilder()
+            .WithAnchor(_rectTransform, follow: false)
+            .WithOffset(new Vector2(0f, 18f))
+            .WithPivot(new Vector2(0.5f, 0f))
+            .WithClampOverride(false)
+            .WithPlayerContext(context)
+            .WithTag(this)
+            .WithSortingOffset(50)
+            .WithBlocksRaycasts(true)
+            .AsStickyTooltip(true);
+
+        ConfigureContextMenu(builder);
+
+        var handle = builder.Show();
+        if (!handle.IsValid)
+        {
+            return;
+        }
+
+        s_menuOwner = this;
+        s_menuHandle = handle;
+        s_hasMenuHandle = true;
+
+        if (IsHoverOwner)
+        {
+            DismissHoverTooltip();
+        }
+    }
+
+    private void ConfigureSimpleTooltip(TooltipBuilder builder)
     {
         builder
             .WithPivot(new Vector2(0f, 1f))
@@ -109,7 +174,7 @@ public sealed class TooltipTester : MonoBehaviour, IPointerEnterHandler, IPointe
         builder.AddContent(new TooltipKeyValueRowData { Label = "Follows target", Value = "Yes" });
     }
 
-    private void ConfigureImage(TooltipRequestBuilder builder)
+    private void ConfigureImageTooltip(TooltipBuilder builder)
     {
         builder
             .WithPivot(new Vector2(1f, 1f))
@@ -134,25 +199,18 @@ public sealed class TooltipTester : MonoBehaviour, IPointerEnterHandler, IPointe
         });
     }
 
-    private void ConfigureActions(TooltipRequestBuilder builder)
+    private void ConfigureContextMenu(ContextMenuBuilder builder)
     {
-        builder
-            .AsStickyTooltip()
-            .WithBlocksRaycasts(true)
-            .WithPivot(new Vector2(0.5f, 0f))
-            .WithOffset(new Vector2(0f, 18f))
-            .WithClampOverride(false);
-
         builder.AddContent(new TooltipTextBlockData
         {
             Header = "Context Actions",
-            Body = "Click the buttons below. The first two keep the tooltip open, the last one closes it.",
+            Body = "Click the buttons below. The first two keep the menu open, the last one closes it.",
             ShowHeader = true
         });
         builder.AddContent(new TooltipSpacerData { Height = 6f });
         builder.AddContent(new TooltipKeyValueRowData { Label = "Blocks Raycasts", Value = "Yes" });
 
-        var actions = new List<TooltipActionData>();
+        var menuActions = new List<TooltipActionData>();
 
         var inspectAction = new TooltipActionData(
             label: "Inspect",
@@ -172,12 +230,12 @@ public sealed class TooltipTester : MonoBehaviour, IPointerEnterHandler, IPointe
                     new TooltipTextBlockData
                     {
                         Header = "Tip",
-                        Body = "Use the other actions to keep the tooltip open or close it manually.",
+                        Body = "Use the other actions to keep the menu open or close it manually.",
                         ShowHeader = true
                     }
                 };
 
-                handle.ReplaceContent(refreshedContent, actions);
+                handle.ReplaceContent(refreshedContent, menuActions);
             },
             closeOnTrigger: false);
 
@@ -190,55 +248,145 @@ public sealed class TooltipTester : MonoBehaviour, IPointerEnterHandler, IPointe
             closeOnTrigger: false);
 
         var closeAction = new TooltipActionData(
-            label: "Close Tooltip",
+            label: "Close Menu",
             callback: (handle, context) =>
             {
-                Debug.Log("Closing tooltip");
+                Debug.Log("Closing context menu");
             });
 
-        actions.Add(inspectAction);
-        actions.Add(pinAction);
-        actions.Add(closeAction);
+        menuActions.Add(inspectAction);
+        menuActions.Add(pinAction);
+        menuActions.Add(closeAction);
 
-        foreach (var action in actions)
-        {
-            builder.AddAction(action);
-        }
+        builder.AddActions(menuActions);
     }
 
-    private void DismissActiveTooltip()
+    private void DismissHoverTooltip()
     {
-        if (!s_hasActiveHandle)
+        if (!s_hasHoverHandle)
         {
             return;
         }
 
-        if (s_activeHandle.IsValid)
+        if (s_hoverHandle.IsValid)
         {
-            s_activeHandle.Close();
+            s_hoverHandle.Close();
         }
 
-        ClearActiveHandle();
+        ClearHoverHandle();
     }
 
-    private static void CloseExistingHandle()
+    private static void CloseHoverTooltip()
     {
-        if (s_hasActiveHandle && s_activeHandle.IsValid)
+        if (!s_hasHoverHandle)
         {
-            s_activeHandle.Close();
+            return;
         }
 
-        ClearActiveHandle();
+        if (s_hoverHandle.IsValid)
+        {
+            s_hoverHandle.Close();
+        }
+
+        ClearHoverHandle();
     }
 
-    private static void ClearActiveHandle()
+    private void DismissContextMenu()
     {
-        s_activeOwner = null;
-        s_activeHandle = default;
-        s_hasActiveHandle = false;
+        if (!s_hasMenuHandle)
+        {
+            return;
+        }
+
+        if (s_menuHandle.IsValid)
+        {
+            s_menuHandle.Close();
+        }
+
+        ClearMenuHandle();
     }
 
-    private bool IsActiveOwner => s_hasActiveHandle && ReferenceEquals(s_activeOwner, this) && s_activeHandle.IsValid;
+    private static void CloseContextMenu()
+    {
+        if (!s_hasMenuHandle)
+        {
+            return;
+        }
+
+        if (s_menuHandle.IsValid)
+        {
+            s_menuHandle.Close();
+        }
+
+        ClearMenuHandle();
+    }
+
+    private static void ClearHoverHandle()
+    {
+        s_hoverOwner = null;
+        s_hoverHandle = default;
+        s_hasHoverHandle = false;
+    }
+
+    private static void ClearMenuHandle()
+    {
+        s_menuOwner = null;
+        s_menuHandle = default;
+        s_hasMenuHandle = false;
+    }
+
+    private bool IsHoverOwner
+    {
+        get
+        {
+            if (!s_hasHoverHandle)
+            {
+                return false;
+            }
+
+            if (!IsHandleAlive(s_hoverHandle))
+            {
+                ClearHoverHandle();
+                return false;
+            }
+
+            return ReferenceEquals(s_hoverOwner, this);
+        }
+    }
+
+    private bool IsMenuOwner
+    {
+        get
+        {
+            if (!s_hasMenuHandle)
+            {
+                return false;
+            }
+
+            if (!IsHandleAlive(s_menuHandle))
+            {
+                ClearMenuHandle();
+                return false;
+            }
+
+            return ReferenceEquals(s_menuOwner, this);
+        }
+    }
+
+    private static bool IsHandleAlive(TooltipHandle handle)
+    {
+        if (!handle.IsValid)
+        {
+            return false;
+        }
+
+        if (handle.View == null)
+        {
+            return false;
+        }
+
+        return handle.View.gameObject.activeInHierarchy;
+    }
 
     private static TooltipPlayerContext ResolvePlayerContext(PointerEventData eventData)
     {
@@ -252,3 +400,5 @@ public sealed class TooltipTester : MonoBehaviour, IPointerEnterHandler, IPointe
         return TooltipPlayerContextUtility.FromEventSystem(eventSystem, uiCamera);
     }
 }
+
+

@@ -1,137 +1,181 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace JGameFramework.UI.Tooltips
 {
-    /// <summary>
-    /// Fluent helper that makes it easier to create tooltips at runtime.
-    /// </summary>
-    public sealed class TooltipRequestBuilder
+    public abstract class TooltipBuilderBase<TBuilder> where TBuilder : TooltipBuilderBase<TBuilder>
     {
-        private readonly List<TooltipContentData> _content = new();
-        private readonly List<TooltipActionData> _actions = new();
-        private TooltipRequest _request;
+        protected readonly List<TooltipContentData> _content = new();
+        protected readonly List<TooltipActionData> _actions = new();
+        protected TooltipRequest _request;
+        private readonly bool _allowsActions;
 
-        public TooltipRequestBuilder WithAnchor(RectTransform anchor, bool follow = true)
+        protected TooltipBuilderBase(TooltipPresentationMode mode, bool allowsActions)
+        {
+            _allowsActions = allowsActions;
+            _request = default;
+            _request.PresentationMode = mode;
+            _request.Offset = Vector2.zero;
+            _request.Pivot = default;
+            _request.FollowTarget = mode == TooltipPresentationMode.Tooltip;
+
+            if (mode == TooltipPresentationMode.ContextMenu)
+            {
+                _request.BlocksRaycasts = true;
+                _request.Sticky = true;
+                _request.FollowTarget = false;
+            }
+        }
+
+        protected TBuilder Self => (TBuilder)this;
+
+        public TBuilder WithAnchor(RectTransform anchor, bool follow = true)
         {
             _request.Anchor = anchor;
             _request.WorldPosition = null;
             _request.ScreenPosition = null;
             _request.FollowTarget = follow;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder WithWorldPosition(Vector3 position, bool follow = false)
+        public TBuilder WithWorldPosition(Vector3 position, bool follow = false)
         {
             _request.WorldPosition = position;
             _request.Anchor = null;
             _request.ScreenPosition = null;
             _request.FollowTarget = follow;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder WithScreenPosition(Vector2 screenPosition)
+        public TBuilder WithScreenPosition(Vector2 screenPosition)
         {
             _request.ScreenPosition = screenPosition;
             _request.Anchor = null;
             _request.WorldPosition = null;
             _request.FollowTarget = false;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder WithFollowTarget(bool follow)
+        public TBuilder WithFollowTarget(bool follow)
         {
             _request.FollowTarget = follow;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder WithPlayerContext(TooltipPlayerContext context)
+        public TBuilder WithPlayerContext(TooltipPlayerContext context)
         {
             _request.PlayerContext = context;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder WithPivot(Vector2 pivot)
+        public TBuilder WithPivot(Vector2 pivot)
         {
             _request.Pivot = pivot;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder WithOffset(Vector2 offset)
+        public TBuilder WithOffset(Vector2 offset)
         {
             _request.Offset = offset;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder WithSortingOffset(int sortingOffset)
+        public TBuilder WithSortingOffset(int sortingOffset)
         {
             _request.SortingOffset = sortingOffset;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder WithClampOverride(bool clamp)
+        public TBuilder WithClampOverride(bool clamp)
         {
             _request.ClampToViewport = clamp;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder WithBlocksRaycasts(bool blocksRaycasts)
+        public TBuilder WithBlocksRaycasts(bool blocksRaycasts)
         {
             _request.BlocksRaycasts = blocksRaycasts;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder AsStickyTooltip(bool sticky = true)
+        public TBuilder AsStickyTooltip(bool sticky = true)
         {
             _request.Sticky = sticky;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder WithTag(object tag)
+        public TBuilder WithTag(object tag)
         {
             _request.Tag = tag;
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder AddContent(TooltipContentData content)
+        public TBuilder AddContent(TooltipContentData content)
         {
             if (content != null)
             {
                 _content.Add(content);
             }
-            return this;
+            return Self;
         }
 
-        public TooltipRequestBuilder AddAction(TooltipActionData action)
+        protected void AddActionInternal(TooltipActionData action)
         {
+            if (!_allowsActions)
+            {
+                Debug.LogWarning("This builder does not allow actions. Use ContextMenuBuilder instead.");
+                return;
+            }
+
             if (action != null)
             {
                 _actions.Add(action);
             }
-            return this;
         }
 
         public TooltipHandle Show()
         {
-            _request.Content = _content;
-            _request.Actions = _actions;
-            EnsurePivot();
-            return TooltipSystemRoot.Instance.ShowTooltip(_request);
+            return ShowInternal();
         }
 
         public TooltipRequest Build()
         {
-            _request.Content = _content;
-            _request.Actions = _actions;
-            EnsurePivot();
-            return _request;
+            return BuildInternal();
         }
 
         public void Reset()
         {
+            var mode = _request.PresentationMode;
             _content.Clear();
             _actions.Clear();
             _request = default;
+            _request.PresentationMode = mode;
+            _request.Offset = Vector2.zero;
+            _request.Pivot = default;
+            _request.FollowTarget = mode == TooltipPresentationMode.Tooltip;
+
+            if (mode == TooltipPresentationMode.ContextMenu)
+            {
+                _request.BlocksRaycasts = true;
+                _request.Sticky = true;
+                _request.FollowTarget = false;
+            }
+        }
+
+        protected TooltipHandle ShowInternal()
+        {
+            _request.Content = _content;
+            _request.Actions = _allowsActions ? _actions : null;
+            EnsurePivot();
+            return TooltipSystemRoot.Instance.ShowPresentation(_request);
+        }
+
+        protected TooltipRequest BuildInternal()
+        {
+            _request.Content = _content;
+            _request.Actions = _allowsActions ? _actions : null;
+            EnsurePivot();
+            return _request;
         }
 
         private void EnsurePivot()
@@ -142,6 +186,39 @@ namespace JGameFramework.UI.Tooltips
             }
         }
     }
+
+    public sealed class TooltipBuilder : TooltipBuilderBase<TooltipBuilder>
+    {
+        public TooltipBuilder() : base(TooltipPresentationMode.Tooltip, allowsActions: false)
+        {
+        }
+    }
+
+    public sealed class ContextMenuBuilder : TooltipBuilderBase<ContextMenuBuilder>
+    {
+        public ContextMenuBuilder() : base(TooltipPresentationMode.ContextMenu, allowsActions: true)
+        {
+        }
+
+        public ContextMenuBuilder AddAction(TooltipActionData action)
+        {
+            AddActionInternal(action);
+            return this;
+        }
+
+        public ContextMenuBuilder AddActions(IEnumerable<TooltipActionData> actions)
+        {
+            if (actions == null)
+            {
+                return this;
+            }
+
+            foreach (var action in actions)
+            {
+                AddActionInternal(action);
+            }
+
+            return this;
+        }
+    }
 }
-
-

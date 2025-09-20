@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -138,6 +138,32 @@ namespace JGameFramework.UI.Tooltips
 
         public TooltipHandle ShowTooltip(in TooltipRequest request)
         {
+            if (request.PresentationMode == TooltipPresentationMode.ContextMenu)
+            {
+                Debug.LogWarning("Received a context menu request via ShowTooltip. Use ShowContextMenu instead.");
+            }
+
+            return ShowInternal(request);
+        }
+
+        public TooltipHandle ShowContextMenu(in TooltipRequest request)
+        {
+            var localRequest = request;
+            if (localRequest.PresentationMode != TooltipPresentationMode.ContextMenu)
+            {
+                localRequest.PresentationMode = TooltipPresentationMode.ContextMenu;
+            }
+
+            return ShowInternal(localRequest);
+        }
+
+        internal TooltipHandle ShowPresentation(in TooltipRequest request)
+        {
+            return ShowInternal(request);
+        }
+
+        private TooltipHandle ShowInternal(TooltipRequest request)
+        {
             EnsureCanvasSetup();
             WarmUpRegistryIfNeeded();
 
@@ -238,3 +264,4 @@ namespace JGameFramework.UI.Tooltips
         }
     }
 }
+

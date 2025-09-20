@@ -1,9 +1,15 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace JGameFramework.UI.Tooltips
 {
+    public enum TooltipPresentationMode
+    {
+        Tooltip = 0,
+        ContextMenu = 1
+    }
+
     /// <summary>
     /// Describes how a tooltip should be presented.
     /// </summary>
@@ -23,6 +29,7 @@ namespace JGameFramework.UI.Tooltips
         public bool BlocksRaycasts;
         public bool Sticky;
         public object Tag;
+        public TooltipPresentationMode PresentationMode;
 
         public TooltipRequest(
             IReadOnlyList<TooltipContentData> content,
@@ -38,7 +45,8 @@ namespace JGameFramework.UI.Tooltips
             int sortingOffset = 0,
             bool blocksRaycasts = false,
             bool sticky = false,
-            object tag = null)
+            object tag = null,
+            TooltipPresentationMode presentationMode = TooltipPresentationMode.Tooltip)
         {
             Content = content;
             PlayerContext = playerContext;
@@ -54,10 +62,13 @@ namespace JGameFramework.UI.Tooltips
             BlocksRaycasts = blocksRaycasts;
             Sticky = sticky;
             Tag = tag;
+            PresentationMode = presentationMode;
         }
 
         public bool HasExplicitScreenPosition => ScreenPosition.HasValue;
         public bool HasWorldPosition => WorldPosition.HasValue;
         public bool HasAnchor => Anchor != null;
+        public bool IsContextMenu => PresentationMode == TooltipPresentationMode.ContextMenu;
+        public bool AllowsActions => IsContextMenu;
     }
 }

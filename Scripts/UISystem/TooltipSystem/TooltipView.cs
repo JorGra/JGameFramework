@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM
@@ -126,7 +126,16 @@ namespace JGameFramework.UI.Tooltips
             }
 
             var actions = _request.Actions;
-            if (actions != null && actions.Count > 0)
+            bool hasActions = actions != null && actions.Count > 0;
+            bool shouldRenderActions = _request.IsContextMenu && hasActions;
+
+            if (!_request.IsContextMenu && hasActions)
+            {
+                Debug.LogWarning("Received tooltip actions for a non-context-menu presentation. Actions will be ignored.", this);
+                shouldRenderActions = false;
+            }
+
+            if (shouldRenderActions)
             {
                 if (_actionsRoot != null)
                 {
