@@ -198,9 +198,11 @@ Add as many actions as needed when assembling the request. They will spawn under
 - Use the `Tag` field in `TooltipRequest` to mark ownership (e.g., item reference), enabling you to close or update specific tooltips later.
 - `FollowTarget = true` lets tooltips track moving anchors. Use `UpdateAnchor` or `UpdateWorldPosition` on the handle to switch follow targets at runtime.
 
+
 ## 12. Advanced Notes
 
-- **Pooling**: `TooltipSystemRoot` reuses `TooltipView` instances. Any transient state should be reset in `TooltipView.Release` or `TooltipContentViewBase.Unbind`.
+- **PlayerTooltipController**: Optional per-player facade that tracks hover tooltips and context menus. Reuse a single instance across shop, inventory, and weapon UIs to keep ownership and player filtering consistent.
+- **Pooling**: `TooltipSystemRoot` reuses `TooltipView` instances. Reset transient state in TooltipView.Release or your custom content views to avoid leaking data.
 - **Sorting**: Use `TooltipRequest.SortingOffset` to adjust per-tooltip canvas sorting order if you stack multiple UIs.
 - **Clamping**: Enable/disable clamping globally via `TooltipSystemRoot.ClampToViewport` or per request (`TooltipRequest.ClampToViewport`).
 - **Camera Override**: Provide a player-specific UI camera in `TooltipPlayerContext.UICamera` when using split-screen setups.
@@ -223,12 +225,23 @@ With these steps the tooltip system becomes reusable across the project and adap
 
 ## 15. Example: Item Shop Integration
 
-- Add `ShopTooltipController` to the same GameObject as `ItemShopUI` (each player UI can keep its own instance). The controller discovers every `ItemShopSlotUI` in the shop and reuses a single tooltip handle per player.
-- Ensure your slot prefabs use the updated `ItemShopSlotUI` (implements pointer/select handlers) and that the shop canvas hosts a `TooltipSystemRoot` somewhere in the scene.
-- `ShopTooltipController` automatically builds text, image, and price blocks for each `ItemDef`, and injects a context action that mirrors the slot's purchase button. The action is filtered by the owning player's `MultiplayerEventSystem`/`PlayerInput`, so mouse and gamepad users can't trigger each other's tooltips.
-- When you reroll or close the shop the controller keeps handles in sync; only the currently hovered or selected slot keeps a tooltip, and swapping slots simply updates its content.
-- Customise labels/icons via the controller's inspector (e.g., change the purchase text or hide the action by leaving the shop button unassigned).
-- Slots with actions open their tooltip on button press; the tooltip stays open (sticky) until dismissed or replaced, so players can reliably click context buttons.
+- Add `PlayerTooltipController` to the root of each player HUD (or reuse an existing one) and wire in the player's `MultiplayerEventSystem`/`PlayerInput` plus UI camera.
+- Drag that controller into `ItemShopUI.tooltipController`; the slots register themselves in `Awake` and show hover tooltips automatically while purchase buttons call their assigned action directly.
+- The `RuntimePlayerSpawner` now wires each player's `PlayerTooltipController` with the active `PlayerInput`, `MultiplayerEventSystem`, UI camera, and player index, so every screen (shop, inventory, weapons, build menus) receives the correct context automatically.
+- Ensure your slot prefabs still use `ItemShopSlotUI` (implements pointer/select handlers) and that the shop canvas hosts a `TooltipSystemRoot` somewhere in the scene.
+- When you reroll or close the shop the slots clear their tooltip/context menu handles, so the shared controller can immediately service other UI like inventory tabs or weapon loadouts.
+- Customise labels/icons directly in `ItemShopSlotUI` or extend `PlayerTooltipController` with helper methods that build shared content blocks.
+- Use `PlayerTooltipController.ShowContextMenu`/`ToggleContextMenu` from other UI (inventory, weapon loadouts, etc.) when you need explicit action menus; hover tooltips remain non-interactive.
+
+
+
+
+
+
+
+
+
+
 
 
 
