@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
+using JGameFramework.UI.Tooltips;
 
 namespace JG.Inventory.UI
 {
     /// <summary>
-    /// Scroll-view list for the “passive-bonus” inventory. Keeps item Slots,
-    /// tooltip and context-menu in sync with <see cref="PassiveInventoryComponent"/>.
+    /// Scroll-view list for the "passive-bonus" inventory. Keeps item Slots,
+    /// tooltip and context menu in sync with <see cref="PassiveInventoryComponent"/>.
     /// </summary>
     public class PassiveInventoryUI : MonoBehaviour, IContextMenuHost
     {
@@ -17,71 +18,133 @@ namespace JG.Inventory.UI
         [SerializeField] private ItemDetailPanelUI detailPanel;
 
         [Header("Context Menu")]
-        [SerializeField] private ContextMenuUI contextPrefab;
+        [SerializeField] private PlayerTooltipController tooltipController;
+        [SerializeField] private Vector2 contextMenuOffset = new Vector2(0f, 18f);
 
-        [SerializeField] bool autoSetup = true; // if true, will try to find PassiveInventoryComponent in parent hierarchy
+        [SerializeField] private bool autoSetup = true;
 
-        readonly List<ItemSlotUI> pool = new();
-        ContextMenuUI context;
-        /* ───────── initialisation ───────── */
+        private readonly List<ItemSlotUI> _pool = new();
 
-        void Awake()
+        public void SetTooltipController(PlayerTooltipController controller) => tooltipController = controller;
+
+        private void Awake()
         {
             if (autoSetup)
+            {
                 Setup();
+            }
         }
 
         public void Setup()
         {
             if (passiveInventory == null)
+            {
                 passiveInventory = GetComponentInParent<PassiveInventoryComponent>();
+            }
+
             if (passiveInventory == null)
             {
                 Debug.LogError($"{name}: No PassiveInventoryComponent assigned or found.");
                 enabled = false;
                 return;
             }
+
             passiveInventory.Get().Changed += Rebuild;
         }
-        void OnEnable() => Rebuild();
-        void OnDisable() => context?.Close();
 
-        /* ───────── called by ItemSlotUI ───────── */
+        private void OnEnable() => Rebuild();
+
+        private void OnDisable()
+        {
+            tooltipController?.CloseAllContextMenus();
+        }
 
         public void ShowContextMenu(ItemStack stack, RectTransform anchor)
         {
-            if (stack == null) return;
+            if (stack == null || anchor == null || tooltipController == null)
+            {
+                return;
+            }
 
-            context ??= Instantiate(contextPrefab, transform.root);
-            context.Open(stack,
-                         passiveInventory.Get(),
-                         (RectTransform)anchor,
-                         null,                                   // no router
-                         null,                                   // no equipSlot
-                         GetComponentInParent<IStatsProvider>()  // supply stats provider
-                        );
+            var inventory = passiveInventory?.Get();
+            if (inventory == null)
+            {
+                return;
+            }
+
+            tooltipController.ShowContextMenu(
+                owner: anchor,
+                anchor: anchor,
+                configure: builder =>
+                {
+                    builder
+                        .WithOffset(contextMenuOffset)
+                        .WithPivot(new Vector2(0.5f, 0f))
+                        .WithClampOverride(true);
+
+                    builder.AddContent(new TooltipTextBlockData
+                    {
+                        Header = stack.Data.DisplayName,
+                        Body = string.Empty,
+                        ShowHeader = true
+                    });
+
+                    builder.AddContent(new TooltipKeyValueRowData
+                    {
+                        Label = "Quantity",
+                        Value = stack.Count.ToString()
+                    });
+
+                    bool hasEffects = stack.Data.Effects != null && stack.Data.Effects.Count > 0;
+
+                    if (hasEffects)
+                    {
+                        builder.AddAction(new TooltipActionData(
+                            label: "Use",
+                            callback: (handle, ctx) =>
+                            {
+                                inventory.UseItem(stack.Data.Id, inventory.ctxFactory());
+                            }));
+                    }
+
+                    builder.AddAction(new TooltipActionData(
+                        label: "Drop",
+                        callback: (handle, ctx) =>
+                        {
+                            inventory.RemoveItem(stack.Data.Id, stack.Count);
+                        }));
+                },
+                eventData: null,
+                contextOverride: null,
+                followTarget: false);
         }
 
-        /* ───────── build / refresh ───────── */
-
-        void Rebuild()
+        private void Rebuild()
         {
-            var inv = passiveInventory?.Get();
-            if (inv == null) return;
+            var inventory = passiveInventory?.Get();
+            if (inventory == null) return;
 
-            int needed = inv.Slots.Count;
+            int needed = inventory.Slots.Count;
 
-            /* ensure enough pooled widgets */
-            while (pool.Count < needed)
-                pool.Add(Instantiate(slotPrefab, contentRoot));
+            while (_pool.Count < needed)
+            {
+                _pool.Add(Instantiate(slotPrefab, contentRoot));
+            }
 
-            for (int i = 0; i < pool.Count; i++)
+            for (int i = 0; i < _pool.Count; i++)
             {
                 bool active = i < needed;
-                pool[i].gameObject.SetActive(active);
+                var slot = _pool[i];
 
-                if (active)
-                    pool[i].Init(inv.Slots[i].Stack, this, detailPanel);
+                if (!active)
+                {
+                    tooltipController?.CloseContextMenu(slot.RectTransform);
+                    slot.gameObject.SetActive(false);
+                    continue;
+                }
+
+                slot.gameObject.SetActive(true);
+                slot.Init(inventory.Slots[i].Stack, this, detailPanel);
             }
         }
     }

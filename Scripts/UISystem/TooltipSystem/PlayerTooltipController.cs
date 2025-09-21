@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -24,6 +24,7 @@ namespace JGameFramework.UI.Tooltips
         [SerializeField] private PlayerInput _playerInput;
         [SerializeField] private MultiplayerEventSystem _multiplayerEventSystem;
 #endif
+        [SerializeField] private RectTransform _tooltipLayerOverride;
 
         [Header("Behaviour")]
         [SerializeField, Tooltip("If true, all hover tooltips owned by this controller close when the object disables.")]
@@ -68,6 +69,11 @@ namespace JGameFramework.UI.Tooltips
             var builder = new TooltipBuilder()
                 .WithPlayerContext(context)
                 .WithTag(owner);
+
+            if (_tooltipLayerOverride != null)
+            {
+                builder.WithLayer(_tooltipLayerOverride);
+            }
 
             if (anchor != null)
             {
@@ -119,6 +125,11 @@ namespace JGameFramework.UI.Tooltips
             var builder = new ContextMenuBuilder()
                 .WithPlayerContext(context)
                 .WithTag(owner);
+
+            if (_tooltipLayerOverride != null)
+            {
+                builder.WithLayer(_tooltipLayerOverride);
+            }
 
             if (anchor != null)
             {
@@ -217,6 +228,11 @@ namespace JGameFramework.UI.Tooltips
             return ResolvePlayerContext(pointerEvent: null);
         }
 
+        public void SetTooltipLayer(RectTransform layer)
+        {
+            _tooltipLayerOverride = layer;
+        }
+
         public void SetPlayerContext(EventSystem eventSystem, Camera uiCamera, int playerIndex = -1)
         {
             _eventSystem = eventSystem;
@@ -237,7 +253,7 @@ namespace JGameFramework.UI.Tooltips
 
         #endregion
 
-                #region Helpers
+        #region Helpers
 
         private bool TryPruneAndCheck(Dictionary<object, TooltipHandle> map, object owner)
         {
@@ -280,7 +296,19 @@ namespace JGameFramework.UI.Tooltips
 #if ENABLE_INPUT_SYSTEM
             if (_playerInput != null)
             {
-                return TooltipPlayerContextUtility.FromPlayerInput(_playerInput, camera);
+                var context = TooltipPlayerContextUtility.FromPlayerInput(_playerInput, camera);
+
+                if (_multiplayerEventSystem != null)
+                {
+                    context.MultiplayerEventSystem = _multiplayerEventSystem;
+                }
+
+                if (context.EventSystem == null)
+                {
+                    context.EventSystem = _eventSystem != null ? _eventSystem : ResolveEventSystem(pointerEvent);
+                }
+
+                return context;
             }
 
             if (_multiplayerEventSystem != null)
@@ -321,7 +349,6 @@ namespace JGameFramework.UI.Tooltips
 
             return -1;
         }
-
 
         private EventSystem ResolveEventSystem(PointerEventData pointerEvent)
         {
@@ -365,6 +392,3 @@ namespace JGameFramework.UI.Tooltips
         #endregion
     }
 }
-
-
-

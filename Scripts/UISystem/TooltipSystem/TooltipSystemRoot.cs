@@ -167,7 +167,7 @@ namespace JGameFramework.UI.Tooltips
             EnsureCanvasSetup();
             WarmUpRegistryIfNeeded();
 
-            var view = SpawnView();
+            var view = SpawnView(request.LayerOverride);
             var handle = new TooltipHandle(this, view);
             view.Initialize(request, handle);
             _activeViews.Add(view);
@@ -241,9 +241,14 @@ namespace JGameFramework.UI.Tooltips
 
         internal Vector2 DefaultOffset => _defaultScreenOffset;
 
-        private TooltipView SpawnView()
+        private TooltipView SpawnView(RectTransform layerOverride)
         {
-            TooltipView view = _pool.Count > 0 ? _pool.Dequeue() : Instantiate(_tooltipPrefab, _tooltipLayer);
+            var parent = layerOverride != null ? layerOverride : _tooltipLayer;
+            TooltipView view = _pool.Count > 0 ? _pool.Dequeue() : Instantiate(_tooltipPrefab, parent);
+            if (view.transform.parent != parent)
+            {
+                view.transform.SetParent(parent, false);
+            }
             view.gameObject.SetActive(true);
             return view;
         }
@@ -252,6 +257,10 @@ namespace JGameFramework.UI.Tooltips
         {
             if (view == null) return;
             view.gameObject.SetActive(false);
+            if (_tooltipLayer != null)
+            {
+                view.transform.SetParent(_tooltipLayer, false);
+            }
             _pool.Enqueue(view);
         }
 
@@ -264,4 +273,6 @@ namespace JGameFramework.UI.Tooltips
         }
     }
 }
+
+
 

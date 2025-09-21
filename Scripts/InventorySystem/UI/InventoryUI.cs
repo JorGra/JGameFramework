@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using JGameFramework.UI.Tooltips;
 
 namespace JG.Inventory.UI
 {
@@ -18,12 +19,14 @@ namespace JG.Inventory.UI
         [SerializeField] private ItemDetailPanelUI detailPanel;
 
         [Header("Context Menu")]
-        [SerializeField] private ContextMenuUI contextPrefab;
+        [SerializeField] private PlayerTooltipController tooltipController;
+        [SerializeField] private Vector2 contextMenuOffset = new Vector2(0f, 18f);
 
-        readonly List<ItemSlotUI> pool = new();
-        ContextMenuUI context;
+        private readonly List<ItemSlotUI> _pool = new();
 
-        void Awake()
+        public void SetTooltipController(PlayerTooltipController controller) => tooltipController = controller;
+
+        private void Awake()
         {
             if (playerInventory == null)
                 playerInventory = GetComponentInParent<InventoryComponent>();
@@ -31,49 +34,138 @@ namespace JG.Inventory.UI
             if (playerInventory == null)
             {
                 Debug.LogError($"{name}: No InventoryComponent assigned or found.");
-                enabled = false; return;
+                enabled = false;
+                return;
             }
+
             if (equipmentHub == null)
                 equipmentHub = GetComponentInParent<EquipmentHub>();
-
 
             playerInventory.Get().Changed += Rebuild;
         }
 
-        void OnEnable() => Rebuild();
-        void OnDisable() => context?.Close();
+        private void OnEnable() => Rebuild();
 
-        /// <summary>Called by <see cref="ItemSlotUI"/> to open the context-menu.</summary>
-        public void ShowContextMenu(ItemStack stack, RectTransform anchor)
+        private void OnDisable()
         {
-            if (stack == null) return;
-
-            context ??= Instantiate(contextPrefab, transform.root);
-            context.Open(stack,
-                         playerInventory.Get(),
-                         anchor,
-                         equipmentHub);
+            tooltipController?.CloseAllContextMenus();
         }
 
-        /* ───────── build / refresh ───────── */
-
-        void Rebuild()
+        /// <summary>Called by <see cref="ItemSlotUI"/> to open the context menu.</summary>
+        public void ShowContextMenu(ItemStack stack, RectTransform anchor)
         {
-            var inv = playerInventory.Get();
-            if (inv == null) return;
+            if (stack == null || anchor == null || tooltipController == null)
+            {
+                return;
+            }
 
-            int needed = inv.Slots.Count;
+            var inventory = playerInventory.Get();
+            if (inventory == null)
+            {
+                return;
+            }
 
-            while (pool.Count < needed)
-                pool.Add(Instantiate(slotPrefab, contentRoot));
+            tooltipController.ShowContextMenu(
+                owner: anchor,
+                anchor: anchor,
+                configure: builder =>
+                {
+                    builder
+                        .WithOffset(contextMenuOffset)
+                        .WithPivot(new Vector2(0.5f, 0f))
+                        .WithClampOverride(true);
 
-            for (int i = 0; i < pool.Count; i++)
+                    builder.AddContent(new TooltipTextBlockData
+                    {
+                        Header = stack.Data.DisplayName,
+                        Body = string.Empty,
+                        ShowHeader = true
+                    });
+
+                    builder.AddContent(new TooltipKeyValueRowData
+                    {
+                        Label = "Quantity",
+                        Value = stack.Count.ToString()
+                    });
+
+                    bool hasEffects = stack.Data.Effects != null && stack.Data.Effects.Count > 0;
+                    bool hasEquipTags = stack.Data.EquipTags != null && stack.Data.EquipTags.Count > 0;
+                    bool canEquip = equipmentHub != null && hasEquipTags;
+                    bool canUse = hasEffects;
+
+                    if (canUse)
+                    {
+                        builder.AddAction(new TooltipActionData(
+                            label: "Use",
+                            callback: (handle, ctx) =>
+                            {
+                                bool used = false;
+                                if (equipmentHub != null)
+                                {
+                                    used = equipmentHub.Use(stack);
+                                }
+
+                                if (!used)
+                                {
+                                    var invInstance = playerInventory.Get();
+                                    if (invInstance != null)
+                                    {
+                                        invInstance.UseItem(stack.Data.Id, invInstance.ctxFactory());
+                                    }
+                                }
+                            }));
+                    }
+
+                    if (canEquip)
+                    {
+                        builder.AddAction(new TooltipActionData(
+                            label: "Equip",
+                            callback: (handle, ctx) =>
+                            {
+                                equipmentHub?.Equip(stack);
+                            },
+                            interactable: equipmentHub != null));
+                    }
+
+                    builder.AddAction(new TooltipActionData(
+                        label: "Drop",
+                        callback: (handle, ctx) =>
+                        {
+                            var invInstance = playerInventory.Get();
+                            invInstance?.RemoveItem(stack.Data.Id, stack.Count);
+                        }));
+                },
+                eventData: null,
+                contextOverride: null,
+                followTarget: false);
+        }
+
+        private void Rebuild()
+        {
+            var inventory = playerInventory.Get();
+            if (inventory == null) return;
+
+            int needed = inventory.Slots.Count;
+
+            while (_pool.Count < needed)
+            {
+                _pool.Add(Instantiate(slotPrefab, contentRoot));
+            }
+
+            for (int i = 0; i < _pool.Count; i++)
             {
                 bool active = i < needed;
-                pool[i].gameObject.SetActive(active);
+                var slot = _pool[i];
 
-                if (active)
-                    pool[i].Init(inv.Slots[i].Stack, this, detailPanel);
+                if (!active)
+                {
+                    tooltipController?.CloseContextMenu(slot.RectTransform);
+                    slot.gameObject.SetActive(false);
+                    continue;
+                }
+
+                slot.gameObject.SetActive(true);
+                slot.Init(inventory.Slots[i].Stack, this, detailPanel);
             }
         }
     }

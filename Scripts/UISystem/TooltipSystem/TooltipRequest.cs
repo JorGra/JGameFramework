@@ -30,6 +30,7 @@ namespace JGameFramework.UI.Tooltips
         public bool Sticky;
         public object Tag;
         public TooltipPresentationMode PresentationMode;
+        public RectTransform LayerOverride;
 
         public TooltipRequest(
             IReadOnlyList<TooltipContentData> content,
@@ -46,7 +47,8 @@ namespace JGameFramework.UI.Tooltips
             bool blocksRaycasts = false,
             bool sticky = false,
             object tag = null,
-            TooltipPresentationMode presentationMode = TooltipPresentationMode.Tooltip)
+            TooltipPresentationMode presentationMode = TooltipPresentationMode.Tooltip,
+            RectTransform layerOverride = null)
         {
             Content = content;
             PlayerContext = playerContext;
@@ -63,6 +65,7 @@ namespace JGameFramework.UI.Tooltips
             Sticky = sticky;
             Tag = tag;
             PresentationMode = presentationMode;
+            LayerOverride = layerOverride;
         }
 
         public bool HasExplicitScreenPosition => ScreenPosition.HasValue;
@@ -72,3 +75,6 @@ namespace JGameFramework.UI.Tooltips
         public bool AllowsActions => IsContextMenu;
     }
 }
+
+
+

@@ -11,12 +11,14 @@ namespace JG.Inventory.UI
                               IPointerEnterHandler, IPointerExitHandler,
                               ISelectHandler, IDeselectHandler
     {
-        [SerializeField] Image icon;
-        [SerializeField] TMP_Text qtyText;
+        [SerializeField] private Image icon;
+        [SerializeField] private TMP_Text qtyText;
 
-        ItemStack stack;
-        IContextMenuHost owner;          // ← was InventoryUI
-        ItemDetailPanelUI detailPanel;
+        private ItemStack stack;
+        private IContextMenuHost owner;
+        private ItemDetailPanelUI detailPanel;
+
+        public RectTransform RectTransform => transform as RectTransform;
 
         public void Init(ItemStack s, IContextMenuHost o, ItemDetailPanelUI panel)
         {
@@ -26,24 +28,18 @@ namespace JG.Inventory.UI
             RefreshVisuals();
         }
 
-        /* ───────── visuals ───────── */
-
-        void RefreshVisuals()
+        private void RefreshVisuals()
         {
             icon.sprite = stack.Data.Icon;
             icon.enabled = icon.sprite != null;
-            qtyText.text = stack.Count > 1 ? stack.Count.ToString() : "";
+            qtyText.text = stack.Count > 1 ? stack.Count.ToString() : string.Empty;
         }
-
-        /* ───────── input ───────── */
 
         public void OnPointerClick(PointerEventData ev)
         {
             if (ev.button != PointerEventData.InputButton.Right) return;
-            owner?.ShowContextMenu(stack, transform as RectTransform);
+            owner?.ShowContextMenu(stack, RectTransform);
         }
-
-        /* ───────── tooltip passthrough ───────── */
 
         public void OnPointerEnter(PointerEventData _) => detailPanel?.Show(stack);
         public void OnPointerExit(PointerEventData _) => detailPanel?.Hide();

@@ -18,6 +18,7 @@ namespace JGameFramework.UI.Tooltips
             _request.Offset = Vector2.zero;
             _request.Pivot = default;
             _request.FollowTarget = mode == TooltipPresentationMode.Tooltip;
+            _request.LayerOverride = null;
 
             if (mode == TooltipPresentationMode.ContextMenu)
             {
@@ -110,6 +111,12 @@ namespace JGameFramework.UI.Tooltips
             return Self;
         }
 
+        public TBuilder WithLayer(RectTransform layer)
+        {
+            _request.LayerOverride = layer;
+            return Self;
+        }
+
         public TBuilder AddContent(TooltipContentData content)
         {
             if (content != null)
@@ -153,6 +160,7 @@ namespace JGameFramework.UI.Tooltips
             _request.Offset = Vector2.zero;
             _request.Pivot = default;
             _request.FollowTarget = mode == TooltipPresentationMode.Tooltip;
+            _request.LayerOverride = null;
 
             if (mode == TooltipPresentationMode.ContextMenu)
             {
@@ -222,3 +230,5 @@ namespace JGameFramework.UI.Tooltips
         }
     }
 }
+
+
