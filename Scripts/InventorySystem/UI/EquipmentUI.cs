@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -108,12 +108,15 @@ namespace JG.Inventory.UI
                 return;
             }
 
-            var equipped = binding.slotComponent.Slot.Equipped;
+            var slot = binding.slotComponent.Slot;
+            var equipped = slot?.Equipped;
             if (equipped == null)
             {
                 return;
             }
 
+            bool isWeapon = hub != null && hub.IsWeapon(equipped.Data);
+            var inventory = hub != null ? hub.Inventory : null;
             var anchor = binding.button.transform as RectTransform;
 
             tooltipController.ShowContextMenu(
@@ -139,51 +142,69 @@ namespace JG.Inventory.UI
                         Value = binding.slotComponent.name
                     });
 
-                    bool canUse = equipped.Data.Effects != null && equipped.Data.Effects.Count > 0;
-                    var inventory = hub != null ? hub.Inventory : null;
-
-                    if (canUse)
+                    if (isWeapon)
                     {
                         builder.AddAction(new TooltipActionData(
-                            label: "Use",
+                            label: "Combine",
                             callback: (handle, ctx) =>
                             {
-                                hub?.Use(equipped);
-                            }));
-                    }
-
-                    if (hub != null)
-                    {
-                        builder.AddAction(new TooltipActionData(
-                            label: "Unequip",
-                            callback: (handle, ctx) =>
-                            {
-                                hub.Unequip(binding.slotComponent);
-                            }));
-
-                        builder.AddAction(new TooltipActionData(
-                            label: "Drop",
-                            callback: (handle, ctx) =>
-                            {
-                                if (inventory != null)
+                                if (!(hub?.TryCombineWeapon(binding.slotComponent) ?? false))
                                 {
-                                    if (hub.Unequip(binding.slotComponent))
-                                    {
-                                        inventory.RemoveItem(equipped.Data.Id, equipped.Count);
-                                    }
+                                    Debug.Log("[EquipmentUI] Combine failed: no matching weapon available.");
                                 }
-                                else
-                                {
-                                    hub.UnequipToVoid(binding.slotComponent);
-                                }
-                            }));
-                    }
-                    builder.AddAction(new TooltipActionData(
-                            label: "Close",
-                            callback: (handle, ctx) =>
-                            {
                                 handle.Close();
                             }));
+
+                        builder.AddAction(new TooltipActionData(
+                            label: "Sell",
+                            callback: (handle, ctx) =>
+                            {
+                                if (!(hub?.TrySellWeapon(binding.slotComponent) ?? false))
+                                {
+                                    Debug.Log("[EquipmentUI] Sell failed.");
+                                }
+                                handle.Close();
+                            }));
+                    }
+                    else
+                    {
+                        bool canUse = equipped.Data.Effects != null && equipped.Data.Effects.Count > 0;
+
+                        if (canUse)
+                        {
+                            builder.AddAction(new TooltipActionData(
+                                label: "Use",
+                                callback: (handle, ctx) => hub?.Use(equipped)));
+                        }
+
+                        if (hub != null)
+                        {
+                            builder.AddAction(new TooltipActionData(
+                                label: "Unequip",
+                                callback: (handle, ctx) => hub.Unequip(binding.slotComponent)));
+
+                            builder.AddAction(new TooltipActionData(
+                                label: "Drop",
+                                callback: (handle, ctx) =>
+                                {
+                                    if (inventory != null)
+                                    {
+                                        if (hub.Unequip(binding.slotComponent))
+                                        {
+                                            inventory.RemoveItem(equipped.Data.Id, equipped.Count);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        hub.UnequipToVoid(binding.slotComponent);
+                                    }
+                                }));
+                        }
+                    }
+
+                    builder.AddAction(new TooltipActionData(
+                        label: "Cancel",
+                        callback: (handle, ctx) => handle.Close()));
                 },
                 eventData: null,
                 contextOverride: null,
@@ -211,6 +232,28 @@ namespace JG.Inventory.UI
                 binding.qty.text = hasItem && equipped.Count > 1 ? equipped.Count.ToString() : string.Empty;
             }
         }
+
+        //public void RebuildBindings()(SlotBinding binding)
+        //{
+        //    var equipped = binding.slotComponent.Slot.Equipped;
+        //    bool hasItem = equipped != null;
+
+        //    if (!hasItem)
+        //    {
+        //        tooltipController?.CloseContextMenu(binding.slotComponent);
+        //    }
+
+        //    if (binding.icon != null)
+        //    {
+        //        binding.icon.enabled = hasItem;
+        //        binding.icon.sprite = hasItem ? equipped.Data.Icon : null;
+        //    }
+
+        //    if (binding.qty != null)
+        //    {
+        //        binding.qty.text = hasItem && equipped.Count > 1 ? equipped.Count.ToString() : string.Empty;
+        //    }
+        //}
 
         public void RebuildBindings()
         {
@@ -277,3 +320,5 @@ namespace JG.Inventory.UI
         }
     }
 }
+
+

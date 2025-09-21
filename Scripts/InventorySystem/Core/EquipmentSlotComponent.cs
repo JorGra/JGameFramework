@@ -1,3 +1,4 @@
+using Weapons;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -12,10 +13,12 @@ namespace JG.Inventory
         [Tooltip("Any item that contains at least ONE of these tags can be equipped here.")]
         [SerializeField] private List<string> acceptedTags = new() { "Head" };
 
-        public EquipmentSlot Slot { get; private set; }
+        [Tooltip("Determines which weapon group this slot belongs to (used for auto-equip/combine).")]
+        [SerializeField] private WeaponSlotCategory slotCategory = WeaponSlotCategory.Primary;
 
-        //void Awake() =>
-        //    Slot = new EquipmentSlot(acceptedTags);
+        public WeaponSlotCategory SlotCategory => slotCategory;
+
+        public EquipmentSlot Slot { get; private set; }
 
         public void SetSlot() => Slot = new EquipmentSlot(acceptedTags);
 
@@ -26,3 +29,4 @@ namespace JG.Inventory
         }
     }
 }
+

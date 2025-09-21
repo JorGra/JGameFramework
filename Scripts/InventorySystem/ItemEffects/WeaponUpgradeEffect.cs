@@ -1,16 +1,18 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
+using Weapons;
 
 namespace JG.Inventory
 {
     /// <summary>
-    /// Adds stacks of one or more WeaponUpgradeDef entries to the player's weapon controller.
+    /// Adds stacks of one or more WeaponUpgradeDef entries to the player's weapon controller.
     /// - effectType: "WeaponUpgrade"
     /// - effectParams can be:
     ///   { "upgradeId":"MyMod_Upgrade", "stacks": 2 }
     ///   or { "entries":[ {"id":"A","stacks":1}, {"id":"B","stacks":3} ] }
     ///   or simply "MyMod_Upgrade" (stacks=1)
+    ///   Optional "group" value can be "Primary", "Secondary" or "All".
     /// </summary>
     [ItemEffect("WeaponUpgrade")]
     public sealed class WeaponUpgradeEffect : IItemEffect
@@ -39,7 +41,8 @@ namespace JG.Inventory
             foreach (var e in entries)
             {
                 if (string.IsNullOrWhiteSpace(e.id) || e.stacks <= 0) continue;
-                for (int i = 0; i < e.stacks; i++) controller.AddUpgradeById(e.id);
+                var target = e.targetOverride ?? WeaponUpgradeTarget.All;
+                for (int i = 0; i < e.stacks; i++) controller.AddUpgradeById(e.id, target);
             }
         }
 
@@ -52,14 +55,14 @@ namespace JG.Inventory
             foreach (var e in entries)
             {
                 if (string.IsNullOrWhiteSpace(e.id) || e.stacks <= 0) continue;
-                for (int i = 0; i < e.stacks; i++) controller.RemoveUpgradeById(e.id);
+                var target = e.targetOverride ?? WeaponUpgradeTarget.All;
+                for (int i = 0; i < e.stacks; i++) controller.RemoveUpgradeById(e.id, target);
             }
         }
 
         // ---------------- Factory ----------------
         public static IItemEffect FromJson(JToken token)
         {
-            // Allow a raw string: "upgradeId"
             if (token == null || token.Type == JTokenType.Null || token.Type == JTokenType.Undefined)
                 return new WeaponUpgradeEffect(null);
 
@@ -79,22 +82,48 @@ namespace JG.Inventory
                 {
                     foreach (var el in arr)
                     {
-                        var id = el["id"]?.ToString() ?? el["upgradeId"]?.ToString();
-                        int stacks = el["stacks"]?.Value<int?>() ?? 1;
-                        if (!string.IsNullOrWhiteSpace(id) && stacks > 0)
-                            list.Add(new Entry { id = id, stacks = stacks });
+                        var entry = ParseEntry(el as JObject);
+                        if (!string.IsNullOrWhiteSpace(entry.id) && entry.stacks > 0)
+                            list.Add(entry);
                     }
                 }
                 else
                 {
-                    var id = obj["upgradeId"]?.ToString() ?? obj["id"]?.ToString();
-                    int stacks = obj["stacks"]?.Value<int?>() ?? 1;
-                    if (!string.IsNullOrWhiteSpace(id) && stacks > 0)
-                        list.Add(new Entry { id = id, stacks = stacks });
+                    var entry = ParseEntry(obj);
+                    if (!string.IsNullOrWhiteSpace(entry.id) && entry.stacks > 0)
+                        list.Add(entry);
                 }
             }
 
             return new WeaponUpgradeEffect(list);
+        }
+
+        private static Entry ParseEntry(JObject obj)
+        {
+            if (obj == null) return default;
+            var id = obj["upgradeId"]?.ToString() ?? obj["id"]?.ToString();
+            int stacks = obj["stacks"]?.Value<int?>() ?? 1;
+            var group = obj["group"]?.ToString();
+            return new Entry
+            {
+                id = id,
+                stacks = stacks,
+                targetOverride = ParseTarget(group)
+            };
+        }
+
+        private static WeaponUpgradeTarget? ParseTarget(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            switch (value.Trim().ToLowerInvariant())
+            {
+                case "primary": return WeaponUpgradeTarget.Primary;
+                case "secondary": return WeaponUpgradeTarget.Secondary;
+                case "all": return WeaponUpgradeTarget.All;
+                default:
+                    Debug.LogWarning($"[WeaponUpgradeEffect] Unknown upgrade group '{value}'.");
+                    return null;
+            }
         }
 
         static WeaponUpgradeEffect() => ItemEffectRegistry.Register<WeaponUpgradeEffect>(FromJson);
@@ -103,7 +132,9 @@ namespace JG.Inventory
         {
             public string id;
             public int stacks;
+            public WeaponUpgradeTarget? targetOverride;
         }
     }
 }
+
 
