@@ -161,10 +161,12 @@ namespace JG.Inventory.UI
                 {
                     tooltipController?.CloseContextMenu(slot.RectTransform);
                     slot.gameObject.SetActive(false);
+                    tooltipController?.CloseTooltip(slot);
                     continue;
                 }
 
                 slot.gameObject.SetActive(true);
+                slot.ConfigureTooltip(tooltipController);
                 slot.Init(inventory.Slots[i].Stack, this, detailPanel);
             }
         }
