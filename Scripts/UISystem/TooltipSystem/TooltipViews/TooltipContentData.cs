@@ -43,6 +43,14 @@ namespace JGameFramework.UI.Tooltips
     }
 
     [Serializable]
+    public sealed class TooltipItemHeaderBlockData : TooltipContentData
+    {
+        public Sprite Sprite;
+        public string Title;
+        public string Caption;
+    }
+
+    [Serializable]
     public sealed class TooltipKeyValueRowData : TooltipContentData
     {
         public string Label;
