@@ -315,10 +315,10 @@ namespace UI.Theming.Editor
                     GUIUtility.ExitGUI();
                 }
 
-                // second row – Image Type
+                // second row – Image ItemType
                 if (open)
                 {
-                    // line-2:  Image Type
+                    // line-2:  Image ItemType
                     var typeRect = new Rect(rect.x + 16f,
                                             rect.y + EditorGUIUtility.singleLineHeight + 6f,
                                             rect.width - 16f,

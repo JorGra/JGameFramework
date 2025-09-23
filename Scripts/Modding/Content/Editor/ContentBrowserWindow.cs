@@ -28,7 +28,7 @@ namespace JG.GameContent.EditorTools
         }
 
         // ---------------- Fields --------------
-        // Type caches / hierarchy
+        // ItemType caches / hierarchy
         private Type[] _allAssignableTypes = Array.Empty<Type>();
         private Type[] _leafDefTypes = Array.Empty<Type>();
         private Dictionary<Type, List<Type>> _childrenByType = new();
@@ -491,7 +491,7 @@ namespace JG.GameContent.EditorTools
             }
         }
 
-        // ---------- Type hierarchy --------------
+        // ---------- ItemType hierarchy --------------
         private void BuildTypeHierarchy()
         {
             var asm = Assembly.GetAssembly(typeof(IContentDef));
