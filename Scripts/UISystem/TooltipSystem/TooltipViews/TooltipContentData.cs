@@ -67,4 +67,12 @@ namespace JGameFramework.UI.Tooltips
     {
         public float Height = 12f;
     }
+
+    [Serializable]
+    public sealed class TooltipSeparatorData : TooltipContentData
+    {
+        public float Height = 3f;
+        public Color Color = new Color(1,1,1,1);
+
+    }
 }

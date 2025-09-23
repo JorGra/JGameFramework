@@ -22,7 +22,7 @@ namespace JGameFramework.UI.Tooltips
                 _value.text = data.Value ?? string.Empty;
                 _value.color = data.ValueColor;
                 if (data.ValueFont) _value.font = data.ValueFont;
-                _value.alignment = data.Alignment;
+                //_value.alignment = data.Alignment;
             }
         }
     }
