@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using JGameFramework.UI.Tooltips;
+using JG.GameContent;
 
 namespace JG.Inventory.UI
 {
@@ -122,23 +123,42 @@ namespace JG.Inventory.UI
                 return;
             }
 
-            tooltipController.ShowTooltip(
+            if (!TryResolveItemDef(out var itemDef))
+            {
+                return;
+            }
+
+            var context = new ItemTooltipContext(
                 owner: this,
+                item: itemDef,
                 anchor: RectTransform,
-                followTarget: true,
-                configure: builder =>
-                {
-                    builder
-                        .WithOffset(tooltipOffset)
-                        .WithClampOverride(true)
-                        .AddContent(new TooltipTextBlockData
-                        {
-                            Header = stack.Data.DisplayName,
-                            //Body = stack.Data.,
-                            ShowHeader = true
-                        });
-                },
-                eventData: eventData);
+                eventData: eventData,
+                fallbackOffset: tooltipOffset);
+
+            tooltipController.ShowItemTooltip(context);
+        }
+
+        private bool TryResolveItemDef(out ItemDef itemDef)
+        {
+            itemDef = null;
+
+            if (stack?.Data is ItemDef directDef)
+            {
+                itemDef = directDef;
+                return true;
+            }
+
+            if (stack?.Data == null)
+            {
+                return false;
+            }
+
+            if (ContentCatalogue.Instance.TryGet(stack.Data.Id, out itemDef))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private void HideTooltip()
@@ -147,3 +167,4 @@ namespace JG.Inventory.UI
         }
     }
 }
+
