@@ -344,6 +344,7 @@ GameObject:
   - component: {fileID: 3493949514678186974}
   - component: {fileID: 5953263352432863172}
   - component: {fileID: 4614365081917692528}
+  - component: {fileID: 7185019929416477154}
   m_Layer: 5
   m_Name: EquipmentSlot
   m_TagString: Untagged
@@ -386,6 +387,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   acceptedTags:
   - head
+  slotCategory: 0
 --- !u!222 &5953263352432863172
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -423,4 +425,24 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 2
+  m_PixelsPerUnitMultiplier: 5
+--- !u!114 &7185019929416477154
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9088936529419868317}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
+  m_IgnoreLayout: 0
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: 50
+  m_PreferredHeight: 50
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1

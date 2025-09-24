@@ -27,6 +27,8 @@ namespace JG.Inventory
             if (Slot == null)
                 Slot = new EquipmentSlot(acceptedTags);
         }
+
+
     }
 }
 
