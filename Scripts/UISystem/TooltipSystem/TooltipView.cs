@@ -23,6 +23,7 @@ namespace JGameFramework.UI.Tooltips
         private readonly List<TooltipContentViewBase> _spawnedContent = new();
         private readonly List<TooltipActionButtonView> _spawnedActions = new();
         private Vector2 _currentOffset;
+        private Vector2 _basePivot;
         private bool _isVisible = true;
         private Vector3? _worldPosition;
         private bool _isFollowing;
@@ -66,6 +67,7 @@ namespace JGameFramework.UI.Tooltips
 
             _currentOffset = _system.DefaultOffset + request.Offset;
             _root.pivot = request.Pivot;
+            _basePivot = _root.pivot;
 
             SetupSorting(request.SortingOffset);
             BuildContent();
@@ -86,6 +88,7 @@ namespace JGameFramework.UI.Tooltips
             _blocksRaycasts = false;
             _isSticky = false;
             _currentOffset = Vector2.zero;
+            _basePivot = Vector2.zero;
             _isVisible = false;
             ApplyCanvasGroupState(false);
         }
@@ -277,7 +280,7 @@ namespace JGameFramework.UI.Tooltips
                 return;
             }
 
-            var layer = (_root != null ? _root.parent as RectTransform : null) ?? _system.GetTooltipLayerOrThrow();
+            var layer = (_root.parent as RectTransform) ?? _system.GetTooltipLayerOrThrow();
             var canvas = layer != null ? layer.GetComponentInParent<Canvas>() : null;
             if (canvas == null)
             {
@@ -292,20 +295,141 @@ namespace JGameFramework.UI.Tooltips
                 LayoutRebuilder.ForceRebuildLayoutImmediate(_root);
             }
 
-            Vector2 screenPoint = ResolveScreenPoint(camera);
-            screenPoint += _currentOffset;
+            var anchorScreenPoint = ResolveScreenPoint(camera);
+            var resolvedOffset = _currentOffset;
+            var resolvedPivot = _basePivot;
 
-            if (!RectTransformUtility.ScreenPointToWorldPointInRectangle(layer, screenPoint, camera, out var worldPoint))
+            if (!TryPlaceTooltip(layer, camera, anchorScreenPoint, resolvedOffset, resolvedPivot))
             {
                 return;
             }
 
-            _root.position = worldPoint;
+            var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(layer, _root);
+
+            if (TryFlipHorizontal(anchorScreenPoint, layer, camera, ref resolvedOffset, ref resolvedPivot, bounds))
+            {
+                bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(layer, _root);
+            }
+
+            if (TryFlipVertical(anchorScreenPoint, layer, camera, ref resolvedOffset, ref resolvedPivot, bounds))
+            {
+                bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(layer, _root);
+            }
 
             if (ShouldClamp())
             {
                 ClampToCanvas(layer);
             }
+        }
+
+        private bool TryPlaceTooltip(RectTransform layer, Camera camera, Vector2 anchorScreenPoint, Vector2 offset, Vector2 pivot)
+        {
+            _root.pivot = pivot;
+
+            var screenPoint = anchorScreenPoint + offset;
+
+            if (!RectTransformUtility.ScreenPointToWorldPointInRectangle(layer, screenPoint, camera, out var worldPoint))
+            {
+                return false;
+            }
+
+            _root.position = worldPoint;
+            return true;
+        }
+
+        private bool TryFlipHorizontal(Vector2 anchorScreenPoint, RectTransform layer, Camera camera, ref Vector2 offset, ref Vector2 pivot, Bounds currentBounds)
+        {
+            var container = layer.rect;
+            bool overflowRight = currentBounds.max.x > container.xMax;
+            bool overflowLeft = currentBounds.min.x < container.xMin;
+
+            if ((overflowLeft && overflowRight) || (!overflowLeft && !overflowRight))
+            {
+                return false;
+            }
+
+            float orientation = Mathf.Approximately(offset.x, 0f) ? 0.5f - pivot.x : offset.x;
+
+            if (Mathf.Approximately(orientation, 0f))
+            {
+                return false;
+            }
+
+            if (orientation > 0f && !overflowRight)
+            {
+                return false;
+            }
+
+            if (orientation < 0f && !overflowLeft)
+            {
+                return false;
+            }
+
+            var candidateOffset = offset;
+            candidateOffset.x = FlipOffset(candidateOffset.x);
+
+            var candidatePivot = pivot;
+            candidatePivot.x = 1f - candidatePivot.x;
+
+            if (!TryPlaceTooltip(layer, camera, anchorScreenPoint, candidateOffset, candidatePivot))
+            {
+                TryPlaceTooltip(layer, camera, anchorScreenPoint, offset, pivot);
+                return false;
+            }
+
+            offset = candidateOffset;
+            pivot = candidatePivot;
+            return true;
+        }
+
+        private bool TryFlipVertical(Vector2 anchorScreenPoint, RectTransform layer, Camera camera, ref Vector2 offset, ref Vector2 pivot, Bounds currentBounds)
+        {
+            var container = layer.rect;
+            bool overflowTop = currentBounds.max.y > container.yMax;
+            bool overflowBottom = currentBounds.min.y < container.yMin;
+
+            if ((overflowTop && overflowBottom) || (!overflowTop && !overflowBottom))
+            {
+                return false;
+            }
+
+            float orientation = Mathf.Approximately(offset.y, 0f) ? 0.5f - pivot.y : offset.y;
+
+            if (Mathf.Approximately(orientation, 0f))
+            {
+                return false;
+            }
+
+            if (orientation > 0f && !overflowTop)
+            {
+                return false;
+            }
+
+            if (orientation < 0f && !overflowBottom)
+            {
+                return false;
+            }
+
+            var candidateOffset = offset;
+            candidateOffset.y = FlipOffset(candidateOffset.y);
+
+            var candidatePivot = pivot;
+            candidatePivot.y = 1f - candidatePivot.y;
+
+            if (!TryPlaceTooltip(layer, camera, anchorScreenPoint, candidateOffset, candidatePivot))
+            {
+                TryPlaceTooltip(layer, camera, anchorScreenPoint, offset, pivot);
+                return false;
+            }
+
+            offset = candidateOffset;
+            pivot = candidatePivot;
+            return true;
+        }
+
+        private static float FlipOffset(float value)
+        {
+            return Mathf.Approximately(value, 0f) ? value : -value;
         }
 
         private Camera ResolveCameraForCanvas(Canvas canvas)
@@ -412,3 +536,8 @@ namespace JGameFramework.UI.Tooltips
         }
     }
 }
+
+
+
+
+
