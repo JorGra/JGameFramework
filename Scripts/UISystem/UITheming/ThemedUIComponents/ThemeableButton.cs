@@ -1,4 +1,5 @@
 ﻿// ───────────────────────────────────────────────────────── ThemeableButton.cs
+﻿// ��������������������������������������������������������� ThemeableButton.cs
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,7 +15,6 @@ namespace UI.Theming
 
         Button button;
         Image targetImage;
-        EventBinding<ThemeChangedEvent> binding;
 
         // ────────────────────────────────────────────────────────────────── setup
         void Awake()
@@ -26,8 +26,7 @@ namespace UI.Theming
 
         void OnEnable()
         {
-            binding = new EventBinding<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
-            EventBus<ThemeChangedEvent>.Register(binding);
+            this.SubscribeEvent<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
             ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
 
@@ -37,9 +36,6 @@ namespace UI.Theming
             ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
 
-        void OnDisable() => EventBus<ThemeChangedEvent>.Deregister(binding);
-
-        // ─────────────────────────────────────────────────────────── theming API
         public void ApplyTheme(ThemeAsset theme)
         {
             if (theme == null ||

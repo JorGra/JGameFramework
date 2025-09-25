@@ -10,16 +10,10 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Image))]
 public class ScreenFadeController : MonoBehaviour
 {
-    /* ────────────────────────────────────────────
-     *  Inspector fields
-     * ────────────────────────────────────────── */
     [Header("Fade Defaults")]
     [SerializeField] private float defaultFadeDuration = 1f;
     [SerializeField] private Color defaultFadeColor = Color.black;
 
-    /* ────────────────────────────────────────────
-     *  Runtime
-     * ────────────────────────────────────────── */
     private Image image;
     private Coroutine fadeCoroutine;
     private bool isFading;
@@ -27,12 +21,6 @@ public class ScreenFadeController : MonoBehaviour
     /// <summary>True while a fade coroutine is executing.</summary>
     public bool IsFading => isFading;
 
-    /* Event-bus binding */
-    private EventBinding<FadeRequestEvent> fadeRequestBinding;
-
-    /* ────────────────────────────────────────────
-     *  Unity lifecycle
-     * ────────────────────────────────────────── */
     private void Awake()
     {
         image = GetComponent<Image>();
@@ -42,18 +30,9 @@ public class ScreenFadeController : MonoBehaviour
 
     private void OnEnable()
     {
-        fadeRequestBinding = new EventBinding<FadeRequestEvent>(OnFadeRequestReceived);
-        EventBus<FadeRequestEvent>.Register(fadeRequestBinding);
+        this.SubscribeEvent<FadeRequestEvent>(OnFadeRequestReceived);
     }
 
-    private void OnDisable()
-    {
-        EventBus<FadeRequestEvent>.Deregister(fadeRequestBinding);
-    }
-
-    /* ────────────────────────────────────────────
-     *  Event-bus callback
-     * ────────────────────────────────────────── */
     private void OnFadeRequestReceived(FadeRequestEvent e)
     {
         if (isFading && !e.ForceReset) return;            // Ignore if busy
@@ -68,26 +47,20 @@ public class ScreenFadeController : MonoBehaviour
             FadeOut(e.Duration, e.ColorOverride, null, e.ForceReset);
     }
 
-    /* ────────────────────────────────────────────
-     *  Public API (optional direct use)
-     * ────────────────────────────────────────── */
-    /// <summary>Fade from clear ➜ opaque.</summary>
+    /// <summary>Fade from clear→opaque.</summary>
     public void FadeIn(float duration = -1f, Color? color = null,
                        UnityAction onComplete = null, bool forceReset = false)
     {
         StartFade(0f, 1f, duration, color, onComplete, forceReset);
     }
 
-    /// <summary>Fade from opaque ➜ clear.</summary>
+    /// <summary>Fade from opaque→clear.</summary>
     public void FadeOut(float duration = -1f, Color? color = null,
                         UnityAction onComplete = null, bool forceReset = false)
     {
         StartFade(1f, 0f, duration, color, onComplete, forceReset);
     }
 
-    /* ────────────────────────────────────────────
-     *  Core fade logic
-     * ────────────────────────────────────────── */
     private void StartFade(float startValue, float endValue,
                            float duration, Color? color,
                            UnityAction onComplete, bool forceReset)
@@ -121,16 +94,13 @@ public class ScreenFadeController : MonoBehaviour
         onComplete?.Invoke();
     }
 
-    /* ────────────────────────────────────────────
-     *  Helpers
-     * ────────────────────────────────────────── */
     /// <summary>Instantly override fade colour (keeps current alpha).</summary>
     public void SetFadeColor(Color color)
     {
         image.color = new Color(color.r, color.g, color.b, image.color.a);
     }
 
-    /// <summary>Set alpha (0–1) while preserving RGB.</summary>
+    /// <summary>Set alpha (0-1) while preserving RGB.</summary>
     public void SetFadeAmount(float amount)
     {
         Color c = image.color;

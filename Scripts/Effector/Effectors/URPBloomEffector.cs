@@ -1,18 +1,15 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using JG.Tools;
 
 public class URPVolumeBloomEffector : MonoBehaviour
 {
     private Volume volume;
     private Bloom bloomOverride;
 
-    // Baseline from the Volume’s default Bloom intensity
+    // Baseline from the Volume's default Bloom intensity
     private float baselineIntensity;
-
-    private IEventBinding<URPBloomEvent> bloomBinding;
 
     private readonly List<ActiveBloom> activeBlooms = new List<ActiveBloom>();
 
@@ -37,7 +34,6 @@ public class URPVolumeBloomEffector : MonoBehaviour
             return;
         }
 
-        // If we already have a Bloom override, capture the existing intensity as the baseline
         if (volume.profile.TryGet(out bloomOverride))
         {
             baselineIntensity = bloomOverride.intensity.value;
@@ -46,13 +42,7 @@ public class URPVolumeBloomEffector : MonoBehaviour
 
     private void OnEnable()
     {
-        bloomBinding = new EventBinding<URPBloomEvent>(OnBloomEvent);
-        EventBus<URPBloomEvent>.Register(bloomBinding);
-    }
-
-    private void OnDisable()
-    {
-        EventBus<URPBloomEvent>.Deregister(bloomBinding);
+        this.SubscribeEvent<URPBloomEvent>(OnBloomEvent);
     }
 
     private void OnBloomEvent(URPBloomEvent evt)
@@ -65,7 +55,6 @@ public class URPVolumeBloomEffector : MonoBehaviour
             baselineIntensity = bloomOverride.intensity.value;
         }
 
-        // Add a new active bloom
         activeBlooms.Add(new ActiveBloom
         {
             startTime = Time.time,
@@ -107,7 +96,6 @@ public class URPVolumeBloomEffector : MonoBehaviour
     }
 }
 
-
 /// <summary>
 /// Describes a bloom effect that plays over a certain duration,
 /// with an intensity curve and optional color/tint.
@@ -148,5 +136,3 @@ public struct URPBloomEvent : IEvent
         this.active = active;
     }
 }
-
-

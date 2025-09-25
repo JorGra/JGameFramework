@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using JG.Tools;  // Adjust namespace if needed
 
@@ -8,9 +8,6 @@ using JG.Tools;  // Adjust namespace if needed
 /// </summary>
 public class CameraShakeEffector : MonoBehaviour
 {
-    // Event bus binding
-    private IEventBinding<CameraShakeEvent> shakeEventBinding;
-
     // The coroutine currently handling shake
     private Coroutine shakeCoroutine;
 
@@ -27,15 +24,7 @@ public class CameraShakeEffector : MonoBehaviour
 
     private void OnEnable()
     {
-        // Register for the camera shake event
-        shakeEventBinding = new EventBinding<CameraShakeEvent>(OnCameraShake);
-        EventBus<CameraShakeEvent>.Register(shakeEventBinding);
-    }
-
-    private void OnDisable()
-    {
-        // Deregister to avoid leaks
-        EventBus<CameraShakeEvent>.Deregister(shakeEventBinding);
+        this.SubscribeEvent<CameraShakeEvent>(OnCameraShake);
     }
 
     /// <summary>

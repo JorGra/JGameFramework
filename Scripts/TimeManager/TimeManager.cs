@@ -7,7 +7,7 @@ public class TimeManager : MonoBehaviour
     private List<TimeEffect> activeEffects = new List<TimeEffect>();
 
     // The final time scale we are *currently* applying (for smooth transition).
-    // We'll smoothly lerp from `Time.timeScale` to `desiredTimeScale`.
+    // We'll smoothly lerp from Time.timeScale to desiredTimeScale.
     private float desiredTimeScale = 1f;
 
     // If multiple effects have the same priority, decide tie-break rule:
@@ -22,19 +22,10 @@ public class TimeManager : MonoBehaviour
     // set something here. If you prefer each effect to define its own speed, read it from the effect.
     public float globalLerpSpeed = 5f;
 
-
-    private IEventBinding<TimeFlowEvent> timeFlowBinding;
-
     void OnEnable()
     {
         // Register for time flow events
-        timeFlowBinding = new EventBinding<TimeFlowEvent>(OnTimeFlowEvent);
-        EventBus<TimeFlowEvent>.Register(timeFlowBinding);
-    }
-
-    void OnDisable()
-    {
-        EventBus<TimeFlowEvent>.Deregister(timeFlowBinding);
+        this.SubscribeEvent<TimeFlowEvent>(OnTimeFlowEvent);
     }
 
     private void OnTimeFlowEvent(TimeFlowEvent evt)
@@ -91,9 +82,6 @@ public class TimeManager : MonoBehaviour
 
         // 4) Smoothly approach the desiredTimeScale
         float currentTS = Time.timeScale;
-        // Option A: Use the effect's own lerpSpeed if you want the chosen effect's speed
-        // Option B: Use a single global speed
-        // We'll do a simple approach with global speed here
         float finalTS = Mathf.MoveTowards(currentTS, desiredTimeScale, globalLerpSpeed * Time.unscaledDeltaTime);
         Time.timeScale = finalTS;
     }
@@ -172,7 +160,6 @@ public class TimeManager : MonoBehaviour
                                 best = eff;
                             break;
                         case TieBreakRule.Newest:
-                            // The one with the more recent startTime is "newer"
                             if (eff.startTime > best.startTime)
                                 best = eff;
                             break;

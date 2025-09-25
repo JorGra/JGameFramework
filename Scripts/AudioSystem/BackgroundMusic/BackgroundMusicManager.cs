@@ -1,4 +1,4 @@
-using JG.Tools;
+﻿using JG.Tools;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -43,13 +43,13 @@ namespace JG.Audio
         private PlaylistSO currentPlaylist;
         private int currentTrackIndex;
 
-        EventBinding<ChangePlaylistEvent> changePlaylistBinding;
-        EventBinding<NextTrackEvent> nextTrackBinding;
-        EventBinding<PreviousTrackEvent> previousTrackBinding;
-        EventBinding<PauseMusicEvent> pauseMusicBinding;
-        EventBinding<ChangeMusicVolumeEvent> changeVolumeBinding;
-        EventBinding<ChangeMusicPitchEvent> changePitchBinding;
-        EventBinding<ResetMusicSettingsEvent> resetSettingsBinding;
+        EventSubscription<ChangePlaylistEvent> changePlaylistSubscription;
+        EventSubscription<NextTrackEvent> nextTrackSubscription;
+        EventSubscription<PreviousTrackEvent> previousTrackSubscription;
+        EventSubscription<PauseMusicEvent> pauseMusicSubscription;
+        EventSubscription<ChangeMusicVolumeEvent> changeVolumeSubscription;
+        EventSubscription<ChangeMusicPitchEvent> changePitchSubscription;
+        EventSubscription<ResetMusicSettingsEvent> resetSettingsSubscription;
 
         protected override void Awake()
         {
@@ -63,26 +63,13 @@ namespace JG.Audio
             musicController.PlayClip(currentPlaylist.Tracks[currentTrackIndex], true, startFadeInDuration);
 
             // Register events
-            changePlaylistBinding = new EventBinding<ChangePlaylistEvent>(OnChangePlaylist);
-            EventBus<ChangePlaylistEvent>.Register(changePlaylistBinding);
-
-            nextTrackBinding = new EventBinding<NextTrackEvent>(OnNextTrack);
-            EventBus<NextTrackEvent>.Register(nextTrackBinding);
-
-            previousTrackBinding = new EventBinding<PreviousTrackEvent>(OnPreviousTrack);
-            EventBus<PreviousTrackEvent>.Register(previousTrackBinding);
-
-            pauseMusicBinding = new EventBinding<PauseMusicEvent>(OnPauseMusic);
-            EventBus<PauseMusicEvent>.Register(pauseMusicBinding);
-
-            changeVolumeBinding = new EventBinding<ChangeMusicVolumeEvent>(OnChangeMusicVolume);
-            EventBus<ChangeMusicVolumeEvent>.Register(changeVolumeBinding);
-
-            changePitchBinding = new EventBinding<ChangeMusicPitchEvent>(OnChangeMusicPitch);
-            EventBus<ChangeMusicPitchEvent>.Register(changePitchBinding);
-
-            resetSettingsBinding = new EventBinding<ResetMusicSettingsEvent>(OnResetMusicSettings);
-            EventBus<ResetMusicSettingsEvent>.Register(resetSettingsBinding);
+            changePlaylistSubscription = EventBus<ChangePlaylistEvent>.Subscribe(OnChangePlaylist, this);
+            nextTrackSubscription = EventBus<NextTrackEvent>.Subscribe(OnNextTrack, this);
+            previousTrackSubscription = EventBus<PreviousTrackEvent>.Subscribe(OnPreviousTrack, this);
+            pauseMusicSubscription = EventBus<PauseMusicEvent>.Subscribe(OnPauseMusic, this);
+            changeVolumeSubscription = EventBus<ChangeMusicVolumeEvent>.Subscribe(OnChangeMusicVolume, this);
+            changePitchSubscription = EventBus<ChangeMusicPitchEvent>.Subscribe(OnChangeMusicPitch, this);
+            resetSettingsSubscription = EventBus<ResetMusicSettingsEvent>.Subscribe(OnResetMusicSettings, this);
         }
 
         private void Update()
@@ -96,13 +83,21 @@ namespace JG.Audio
 
         private void OnDestroy()
         {
-            EventBus<ChangePlaylistEvent>.Deregister(changePlaylistBinding);
-            EventBus<NextTrackEvent>.Deregister(nextTrackBinding);
-            EventBus<PreviousTrackEvent>.Deregister(previousTrackBinding);
-            EventBus<PauseMusicEvent>.Deregister(pauseMusicBinding);
-            EventBus<ChangeMusicVolumeEvent>.Deregister(changeVolumeBinding);
-            EventBus<ChangeMusicPitchEvent>.Deregister(changePitchBinding);
-            EventBus<ResetMusicSettingsEvent>.Deregister(resetSettingsBinding);
+            changePlaylistSubscription?.Dispose();
+            nextTrackSubscription?.Dispose();
+            previousTrackSubscription?.Dispose();
+            pauseMusicSubscription?.Dispose();
+            changeVolumeSubscription?.Dispose();
+            changePitchSubscription?.Dispose();
+            resetSettingsSubscription?.Dispose();
+
+            changePlaylistSubscription = null;
+            nextTrackSubscription = null;
+            previousTrackSubscription = null;
+            pauseMusicSubscription = null;
+            changeVolumeSubscription = null;
+            changePitchSubscription = null;
+            resetSettingsSubscription = null;
         }
 
         private void SetPlaylist(PlaylistSO playlist)

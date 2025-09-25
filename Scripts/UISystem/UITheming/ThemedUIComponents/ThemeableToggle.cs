@@ -1,5 +1,4 @@
-﻿using JG.Tools;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 namespace UI.Theming
@@ -13,7 +12,6 @@ namespace UI.Theming
         Toggle toggle;
         Image background;
         Image checkmark;
-        EventBinding<ThemeChangedEvent> binding;
 
         void Awake()
         {
@@ -24,19 +22,15 @@ namespace UI.Theming
 
         void OnEnable()
         {
-            binding = new EventBinding<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
-            EventBus<ThemeChangedEvent>.Register(binding);
+            this.SubscribeEvent<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
             ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
-
-        void OnDisable() => EventBus<ThemeChangedEvent>.Deregister(binding);
 
         public void ApplyTheme(ThemeAsset theme)
         {
             if (theme == null ||
                 !theme.TryGetStyle(styleKey, out ToggleStyleParameters s)) return;
 
-            // ─── Static sprites & colours ------------------------------------------
             if (background)
             {
                 if (!string.IsNullOrEmpty(s.BackgroundSpriteKey))
@@ -57,7 +51,6 @@ namespace UI.Theming
                     checkmark.color = theme.GetColor(s.CheckmarkColorKey);
             }
 
-            // ─── Interaction / transition ------------------------------------------
             toggle.transition = s.Transition;
 
             if (s.Transition == Selectable.Transition.SpriteSwap)
@@ -71,10 +64,10 @@ namespace UI.Theming
                     disabledSprite = LoadSprite(theme, swap.disabledSpriteKey)
                 };
             }
-            else // ColorTint (default & most common)
+            else
             {
                 var tint = s.ColorTint;
-                var cb = toggle.colors;          // start from current so we don't reset extra fields
+                var cb = toggle.colors;
 
                 if (!string.IsNullOrEmpty(tint.normalColorKey))
                     cb.normalColor = theme.GetColor(tint.normalColorKey);
@@ -94,7 +87,6 @@ namespace UI.Theming
             }
         }
 
-        // helper ---------------------------------------------------------------------
         static Sprite LoadSprite(ThemeAsset t, string key) =>
             string.IsNullOrEmpty(key) ? null : t.GetSprite(key);
     }

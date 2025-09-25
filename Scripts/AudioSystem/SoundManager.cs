@@ -20,27 +20,27 @@ namespace JG.Audio
         [SerializeField] int maxPoolSize = 100;
         [SerializeField] int maxSoundInstances = 30;
 
-
-        IEventBinding<PlaySoundEvent> soundEventBinding;
+        EventSubscription<PlaySoundEvent> soundEventSubscription;
 
         private void Start()
         {
-            soundEventBinding = new EventBinding<PlaySoundEvent>(e =>
-            {
-                CreateSound()
-                    .WithSoundData(e.SoundData)
-                    .WithPosition(e.Position)
-                    .WithRadnomPitch(e.RandomPitchRange.x, e.RandomPitchRange.y)
-                    .Play();
-            });
-            EventBus<PlaySoundEvent>.Register(soundEventBinding);
-
+            soundEventSubscription = EventBus<PlaySoundEvent>.Subscribe(OnPlaySoundEvent, this);
             InitializePool();
         }
 
         private void OnDestroy()
         {
-            EventBus<PlaySoundEvent>.Deregister(soundEventBinding);
+            soundEventSubscription?.Dispose();
+            soundEventSubscription = null;
+        }
+
+        void OnPlaySoundEvent(PlaySoundEvent e)
+        {
+            CreateSound()
+                .WithSoundData(e.SoundData)
+                .WithPosition(e.Position)
+                .WithRadnomPitch(e.RandomPitchRange.x, e.RandomPitchRange.y)
+                .Play();
         }
 
         public SoundBuilder CreateSound() => new SoundBuilder(this);

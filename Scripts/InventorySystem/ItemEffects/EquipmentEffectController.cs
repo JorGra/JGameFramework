@@ -12,9 +12,6 @@ namespace JG.Inventory
         Stats targetStats;     // auto-discovered
         readonly Dictionary<EquipmentSlot, List<IItemEffect>> active = new();
 
-        EventBinding<ItemEquippedEvent> bindEq;
-        EventBinding<ItemUnequippedEvent> bindUnEq;
-
         Stats TargetStats
         {
             get
@@ -28,16 +25,8 @@ namespace JG.Inventory
 
         void OnEnable()
         {
-            bindEq = new EventBinding<ItemEquippedEvent>(OnEquipped);
-            bindUnEq = new EventBinding<ItemUnequippedEvent>(OnUnequipped);
-            EventBus<ItemEquippedEvent>.Register(bindEq);
-            EventBus<ItemUnequippedEvent>.Register(bindUnEq);
-        }
-
-        void OnDisable()
-        {
-            EventBus<ItemEquippedEvent>.Deregister(bindEq);
-            EventBus<ItemUnequippedEvent>.Deregister(bindUnEq);
+            this.SubscribeEvent<ItemEquippedEvent>(OnEquipped);
+            this.SubscribeEvent<ItemUnequippedEvent>(OnUnequipped);
         }
 
         /* ───────── handlers ───────── */

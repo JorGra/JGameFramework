@@ -21,15 +21,13 @@ public class StatRegistryProvider : Singleton<StatRegistryProvider>
 
     public StatRegistry Registry => registry;
 
-    EventBinding<OnModLoadingFinishedEvent> binding;
+    EventSubscription<OnModLoadingFinishedEvent> modLoadingSubscription;
 
     protected override void Awake()
     {
         base.Awake();
 
-        binding = new EventBinding<OnModLoadingFinishedEvent>(OnContentIndexRebuilt);
-        EventBus<OnModLoadingFinishedEvent>.Register(binding);
-
+        modLoadingSubscription = EventBus<OnModLoadingFinishedEvent>.Subscribe(OnContentIndexRebuilt, this);
 
         if (registry == null)
         {
@@ -80,6 +78,7 @@ public class StatRegistryProvider : Singleton<StatRegistryProvider>
 
     private void OnDestroy()
     {
-        EventBus<OnModLoadingFinishedEvent>.Deregister(binding);
+        modLoadingSubscription?.Dispose();
+        modLoadingSubscription = null;
     }
 }

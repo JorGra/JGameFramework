@@ -1,5 +1,4 @@
-using JG.Tools;
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 
 namespace UI.Theming
@@ -12,18 +11,14 @@ namespace UI.Theming
         [SerializeField] bool CustomFontSize = false;
 
         TMP_Text text;
-        EventBinding<ThemeChangedEvent> binding;
 
         void Awake() => text = GetComponent<TMP_Text>();
 
         void OnEnable()
         {
-            binding = new EventBinding<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
-            EventBus<ThemeChangedEvent>.Register(binding);
+            this.SubscribeEvent<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
             ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
-
-        void OnDisable() => EventBus<ThemeChangedEvent>.Deregister(binding);
 
         /// <inheritdoc/>
         public void ApplyTheme(ThemeAsset theme)

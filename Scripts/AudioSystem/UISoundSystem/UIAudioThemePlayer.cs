@@ -1,4 +1,4 @@
-using JG.Audio;
+﻿using JG.Audio;
 using UnityEngine;
 
 /// <summary>
@@ -12,17 +12,9 @@ public class UIAudioThemePlayer : MonoBehaviour
     [Tooltip("Theme containing every UI-audio profile.")]
     [SerializeField] private UIAudioTheme theme;
 
-    EventBinding<PlayUISoundEvent> binding;
-
     void OnEnable()
     {
-        binding = new EventBinding<PlayUISoundEvent>(OnPlayUISound);
-        EventBus<PlayUISoundEvent>.Register(binding);
-    }
-
-    void OnDisable()
-    {
-        EventBus<PlayUISoundEvent>.Deregister(binding);
+        this.SubscribeEvent<PlayUISoundEvent>(OnPlayUISound);
     }
 
     /// <summary>Handles UI sound-play requests.</summary>

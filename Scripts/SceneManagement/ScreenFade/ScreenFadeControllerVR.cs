@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Events;
 using System.Collections;
 using System.Collections.Generic;
@@ -47,8 +47,6 @@ public class ScreenFadeControllerVR : MonoBehaviour
     private static readonly int FadeColorProperty = Shader.PropertyToID("_FadeColor");
 
     /* Event-bus binding */
-    private EventBinding<FadeRequestEvent> fadeRequestBinding;
-
     /* ────────────────────────────────────────────
      *  Unity lifecycle
      * ────────────────────────────────────────── */
@@ -56,16 +54,9 @@ public class ScreenFadeControllerVR : MonoBehaviour
     {
         CreateFadeMesh();
     }
-
     private void OnEnable()
     {
-        fadeRequestBinding = new EventBinding<FadeRequestEvent>(OnFadeRequestReceived);
-        EventBus<FadeRequestEvent>.Register(fadeRequestBinding);
-    }
-
-    private void OnDisable()
-    {
-        EventBus<FadeRequestEvent>.Deregister(fadeRequestBinding);
+        this.SubscribeEvent<FadeRequestEvent>(OnFadeRequestReceived);
     }
 
     private void Start()
@@ -358,3 +349,5 @@ public class FadeRequestEvent : IEvent
         ForceReset = forceReset;
     }
 }
+
+

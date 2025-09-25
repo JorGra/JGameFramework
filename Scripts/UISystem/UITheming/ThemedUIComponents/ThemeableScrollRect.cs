@@ -27,8 +27,6 @@ namespace UI.Theming
         Sprite originalVBackgroundSprite, originalVHandleSprite;
         ColorBlock originalVColors;
 
-        EventBinding<ThemeChangedEvent> binding;
-
         void Awake()
         {
             scrollRect = GetComponent<ScrollRect>();
@@ -67,12 +65,9 @@ namespace UI.Theming
 
         void OnEnable()
         {
-            binding = new EventBinding<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
-            EventBus<ThemeChangedEvent>.Register(binding);
+            this.SubscribeEvent<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
             ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
-
-        void OnDisable() => EventBus<ThemeChangedEvent>.Deregister(binding);
 
         public void ApplyTheme(ThemeAsset theme)
         {
@@ -109,11 +104,9 @@ namespace UI.Theming
             Sprite originalBgSprite, Sprite originalHandleSprite,
             ColorBlock originalColors, bool isHorizontal)
         {
-            // Apply sprites
             ApplySprites(theme, style, background, handle,
                 originalBgSprite, originalHandleSprite, isHorizontal);
 
-            // Set transition mode and apply specific settings
             scrollbar.transition = style.ScrollbarTransition;
 
             switch (style.ScrollbarTransition)

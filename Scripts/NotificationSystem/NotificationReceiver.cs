@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -21,17 +21,9 @@ public abstract class NotificationReceiver : MonoBehaviour
             NotificationSeverity.Error
         };
 
-    EventBinding<NotificationEvent> binding;
-
     protected virtual void OnEnable()
     {
-        binding = new EventBinding<NotificationEvent>(OnNotification);
-        EventBus<NotificationEvent>.Register(binding);
-    }
-
-    protected virtual void OnDisable()
-    {
-        EventBus<NotificationEvent>.Deregister(binding);
+        this.SubscribeEvent<NotificationEvent>(OnNotification);
     }
 
     void OnNotification(NotificationEvent e)
