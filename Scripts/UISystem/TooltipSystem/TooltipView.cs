@@ -272,14 +272,20 @@ namespace JGameFramework.UI.Tooltips
 
         private void UpdatePosition(bool forceRebuildLayout = false)
         {
-            if (_system == null)
+            if (_system == null || _root == null)
             {
                 return;
             }
 
-            var canvas = _system.GetCanvasOrThrow();
-            var layer = _system.GetTooltipLayerOrThrow();
-            var camera = _request.PlayerContext.UICamera != null ? _request.PlayerContext.UICamera : _system.GetUICamera();
+            var layer = (_root != null ? _root.parent as RectTransform : null) ?? _system.GetTooltipLayerOrThrow();
+            var canvas = layer != null ? layer.GetComponentInParent<Canvas>() : null;
+            if (canvas == null)
+            {
+                canvas = _system.GetCanvasOrThrow();
+                layer = _system.GetTooltipLayerOrThrow();
+            }
+
+            var camera = ResolveCameraForCanvas(canvas);
 
             if (forceRebuildLayout)
             {
@@ -288,13 +294,51 @@ namespace JGameFramework.UI.Tooltips
 
             Vector2 screenPoint = ResolveScreenPoint(camera);
             screenPoint += _currentOffset;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(layer, screenPoint, camera, out var localPoint);
-            _root.anchoredPosition = localPoint;
+
+            if (!RectTransformUtility.ScreenPointToWorldPointInRectangle(layer, screenPoint, camera, out var worldPoint))
+            {
+                return;
+            }
+
+            _root.position = worldPoint;
 
             if (ShouldClamp())
             {
                 ClampToCanvas(layer);
             }
+        }
+
+        private Camera ResolveCameraForCanvas(Canvas canvas)
+        {
+            if (canvas == null)
+            {
+                if (_request.PlayerContext.UICamera != null)
+                {
+                    return _request.PlayerContext.UICamera;
+                }
+
+                return _system != null ? _system.GetUICamera() : null;
+            }
+
+            switch (canvas.renderMode)
+            {
+                case RenderMode.ScreenSpaceOverlay:
+                    return null;
+                case RenderMode.ScreenSpaceCamera:
+                case RenderMode.WorldSpace:
+                    if (canvas.worldCamera != null)
+                    {
+                        return canvas.worldCamera;
+                    }
+                    break;
+            }
+
+            if (_request.PlayerContext.UICamera != null)
+            {
+                return _request.PlayerContext.UICamera;
+            }
+
+            return _system.GetUICamera();
         }
 
         private bool ShouldClamp()
