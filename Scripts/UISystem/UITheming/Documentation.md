@@ -1,4 +1,4 @@
-# Unified Theme System — Complete Guide (Typed-Sheet Architecture)
+﻿# Unified Theme System — Complete Guide (Typed-Sheet Architecture)
 
 ---
 
@@ -109,28 +109,31 @@ Suppose you want to theme a **Slider**.
    {
        [SerializeField] string styleKey = "Slider";
 
-       Slider slider;
-       Image background;
-       Image fill;
-       Image handle;
-       EventBinding<ThemeChangedEvent> binding;
+        Slider slider;
+        Image background;
+        Image fill;
+        Image handle;
+        EventSubscription<ThemeChangedEvent> subscription;
 
-       void Awake()
-       {
-           slider     = GetComponent<Slider>();
-           background = slider.GetComponent<Image>();
-           fill       = slider.fillRect.GetComponent<Image>();
-           handle     = slider.handleRect.GetComponent<Image>();
-       }
+        void Awake()
+        {
+            slider     = GetComponent<Slider>();
+            background = slider.GetComponent<Image>();
+            fill       = slider.fillRect.GetComponent<Image>();
+            handle     = slider.handleRect.GetComponent<Image>();
+        }
 
-       void OnEnable()
-       {
-           binding = new EventBinding<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
-           EventBus<ThemeChangedEvent>.Register(binding);
-           ApplyTheme(ThemeManager.Instance.CurrentTheme);
-       }
+        void OnEnable()
+        {
+            subscription = this.SubscribeEvent<ThemeChangedEvent>(e => ApplyTheme(e.Theme));
+            ApplyTheme(ThemeManager.Instance.CurrentTheme);
+        }
 
-       void OnDisable() => EventBus<ThemeChangedEvent>.Deregister(binding);
+        void OnDisable()
+        {
+            subscription?.Dispose();
+            subscription = null;
+        }
 
        public void ApplyTheme(ThemeAsset theme)
        {
