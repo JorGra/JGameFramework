@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -30,6 +31,8 @@ namespace JG.Inventory.UI
 
         public EquipmentHub hub;
 
+        private readonly Dictionary<EquipmentSlotComponent, Action> slotChangedHandlers = new();
+
         [ContextMenu("Auto-bind + Init")]
         private void AutoBindAndInit()
         {
@@ -46,6 +49,8 @@ namespace JG.Inventory.UI
         {
             hub ??= GetComponentInParent<EquipmentHub>(true);
 
+            ResetSlotListeners();
+
             if (Slots.Count == 0)
             {
                 RebuildBindings();
@@ -55,9 +60,8 @@ namespace JG.Inventory.UI
             {
                 var binding = raw;
 
-                if (binding.slotComponent == null)
+                if (!ValidateBinding(binding))
                 {
-                    Debug.LogWarning($"{name}: Slot binding missing EquipmentSlotComponent.", this);
                     continue;
                 }
 
@@ -67,10 +71,7 @@ namespace JG.Inventory.UI
                     binding.button.onClick.AddListener(() => OnSlotClicked(binding));
                 }
 
-                binding.slotComponent.EnsureSlot();
-                var slotRef = binding.slotComponent.Slot;
-                slotRef.Changed += () => Refresh(binding);
-                Refresh(binding);
+                BindSlot(binding);
             }
         }
 
@@ -211,6 +212,77 @@ namespace JG.Inventory.UI
                 followTarget: false);
         }
 
+        private bool ValidateBinding(SlotBinding binding)
+        {
+            if (binding.slotComponent == null)
+            {
+                Debug.LogWarning($"{name}: Slot binding missing EquipmentSlotComponent.", this);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void BindSlot(SlotBinding binding)
+        {
+            if (binding.slotComponent == null)
+            {
+                return;
+            }
+
+            binding.slotComponent.EnsureSlot();
+            var slotRef = binding.slotComponent.Slot;
+            if (slotRef == null)
+            {
+                Debug.LogWarning($"{name}: Slot '{binding.slotComponent.name}' did not provide an EquipmentSlot instance.", this);
+                return;
+            }
+
+            if (slotChangedHandlers.TryGetValue(binding.slotComponent, out var existingHandler))
+            {
+                slotRef.Changed -= existingHandler;
+            }
+
+            Action handler = () => Refresh(binding);
+            slotChangedHandlers[binding.slotComponent] = handler;
+            slotRef.Changed += handler;
+
+            Refresh(binding);
+        }
+
+        private void ResetSlotListeners()
+        {
+            if (slotChangedHandlers.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var pair in slotChangedHandlers)
+            {
+                var component = pair.Key;
+                if (component == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var slot = component.Slot;
+                    if (slot != null)
+                    {
+                        slot.Changed -= pair.Value;
+                    }
+                }
+                catch (MissingReferenceException)
+                {
+                    // Slot or component already destroyed; nothing to clean up.
+                }
+            }
+
+            slotChangedHandlers.Clear();
+        }
+
+
         private void Refresh(SlotBinding binding)
         {
             var equipped = binding.slotComponent.Slot.Equipped;
@@ -257,6 +329,7 @@ namespace JG.Inventory.UI
 
         public void RebuildBindings()
         {
+            ResetSlotListeners();
             Slots.Clear();
 
             var roots = slotContainers != null && slotContainers.Count > 0

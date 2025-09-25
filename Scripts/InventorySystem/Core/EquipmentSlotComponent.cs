@@ -22,6 +22,11 @@ namespace JG.Inventory
 
         public void SetSlot() => Slot = new EquipmentSlot(acceptedTags);
 
+        public void AdoptSlot(EquipmentSlot slot)
+        {
+            Slot = slot ?? new EquipmentSlot(acceptedTags);
+        }
+
         public void EnsureSlot()
         {
             if (Slot == null)
