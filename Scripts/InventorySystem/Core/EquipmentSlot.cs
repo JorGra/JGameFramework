@@ -28,7 +28,15 @@ namespace JG.Inventory
                           Inventory inventory,
                           IInventoryContext ctx = null)
         {
-            if (stack == null || !CanEquip(stack.Data)) return false;
+            if (stack == null || stack.Data == null)
+                return false;
+
+            if (!CanEquip(stack.Data))
+            {
+                WarnIncompatibleItem(stack.Data);
+                return false;
+            }
+
             if (inventory != null &&
                 !inventory.RemoveItem(stack.Data.Id, 1))       // pop 1 from inv
                 return false;
@@ -48,6 +56,35 @@ namespace JG.Inventory
             Debug.Log($"[EquipmentSlot] Equipped {stack.Data.Id}");
 
             return true;
+        }
+
+        private void WarnIncompatibleItem(IInventoryItem data)
+        {
+            if (data == null)
+            {
+                Debug.LogWarning("[EquipmentSlot] Attempted to equip a null item.");
+                return;
+            }
+
+            if (acceptedTags.Count == 0)
+            {
+                Debug.LogWarning($"[EquipmentSlot] Item '{data.Id}' was rejected even though the slot accepts any tag.");
+                return;
+            }
+
+            var required = string.Join(", ", acceptedTags);
+            var itemTags = data.EquipTags != null && data.EquipTags.Any()
+                ? string.Join(", ", data.EquipTags)
+                : "<none>";
+
+            if (itemTags == "<none>")
+            {
+                Debug.LogWarning($"[EquipmentSlot] Item '{data.Id}' is missing equip tags. Slot requires one of: {required}. Add the appropriate EquipTag to the item definition.");
+            }
+            else
+            {
+                Debug.LogWarning($"[EquipmentSlot] Item '{data.Id}' has equip tags [{itemTags}] which do not match the required tags [{required}] for this slot.");
+            }
         }
 
         public bool Unequip(Inventory inventory, IInventoryContext ctx = null)
