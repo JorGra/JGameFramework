@@ -11,13 +11,31 @@ namespace JGameFramework.UI.Tooltips
     {
         public static TooltipPlayerContext FromEventSystem(EventSystem eventSystem, Camera uiCamera = null, int playerIndex = -1)
         {
-            return new TooltipPlayerContext
+            var context = new TooltipPlayerContext
             {
                 EventSystem = eventSystem,
                 PlayerIndex = playerIndex,
                 HasPlayerIndex = playerIndex >= 0,
                 UICamera = uiCamera
             };
+
+#if ENABLE_INPUT_SYSTEM
+            if (eventSystem is MultiplayerEventSystem multiplayerEventSystem)
+            {
+                context.MultiplayerEventSystem = multiplayerEventSystem;
+            }
+
+            if (eventSystem != null)
+            {
+                var inputModule = eventSystem.GetComponent<InputSystemUIInputModule>();
+                if (inputModule != null)
+                {
+                    context.InputModule = inputModule;
+                }
+            }
+#endif
+
+            return context;
         }
 
 #if ENABLE_INPUT_SYSTEM
@@ -43,10 +61,28 @@ namespace JGameFramework.UI.Tooltips
                 context.EventSystem = eventSystem;
             }
 
-            var inputModule = playerInput.GetComponentInChildren<InputSystemUIInputModule>();
+            InputSystemUIInputModule inputModule = playerInput.GetComponentInChildren<InputSystemUIInputModule>();
+            if (inputModule == null)
+            {
+                inputModule = playerInput.uiInputModule;
+            }
+
             if (inputModule != null)
             {
                 context.InputModule = inputModule;
+
+                if (context.EventSystem == null)
+                {
+                    var moduleEventSystem = inputModule.GetComponent<EventSystem>();
+                    if (moduleEventSystem != null)
+                    {
+                        context.EventSystem = moduleEventSystem;
+                        if (context.MultiplayerEventSystem == null)
+                        {
+                            context.MultiplayerEventSystem = moduleEventSystem as MultiplayerEventSystem;
+                        }
+                    }
+                }
             }
 
             if (context.EventSystem == null)

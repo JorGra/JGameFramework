@@ -23,6 +23,7 @@ namespace JGameFramework.UI.Tooltips
 #if ENABLE_INPUT_SYSTEM
         [SerializeField] private PlayerInput _playerInput;
         [SerializeField] private MultiplayerEventSystem _multiplayerEventSystem;
+        [SerializeField] private InputSystemUIInputModule _inputModule;
 #endif
         [SerializeField] private RectTransform _tooltipLayerOverride;
 
@@ -238,16 +239,68 @@ namespace JGameFramework.UI.Tooltips
             _eventSystem = eventSystem;
             _uiCamera = uiCamera;
             _playerIndex = playerIndex;
+
+#if ENABLE_INPUT_SYSTEM
+            if (eventSystem is MultiplayerEventSystem multiplayerEventSystem)
+            {
+                _multiplayerEventSystem = multiplayerEventSystem;
+            }
+
+            if (eventSystem != null)
+            {
+                var module = eventSystem.GetComponent<InputSystemUIInputModule>();
+                if (module != null)
+                {
+                    _inputModule = module;
+                }
+            }
+#endif
         }
 
 #if ENABLE_INPUT_SYSTEM
-        public void SetPlayerContext(PlayerInput playerInput, MultiplayerEventSystem multiplayerEventSystem = null)
+        public void SetPlayerContext(PlayerInput playerInput, MultiplayerEventSystem multiplayerEventSystem = null, InputSystemUIInputModule inputModule = null)
         {
             _playerInput = playerInput;
-            _multiplayerEventSystem = multiplayerEventSystem != null ? multiplayerEventSystem : playerInput.GetComponentInChildren<MultiplayerEventSystem>();
-            _eventSystem = _multiplayerEventSystem != null ? _multiplayerEventSystem : _eventSystem;
-            _uiCamera = playerInput.camera != null ? playerInput.camera : _uiCamera;
-            _playerIndex = playerInput.playerIndex;
+
+            _multiplayerEventSystem = multiplayerEventSystem != null
+                ? multiplayerEventSystem
+                : playerInput != null ? playerInput.GetComponentInChildren<MultiplayerEventSystem>() : null;
+
+            if (_multiplayerEventSystem != null)
+            {
+                _eventSystem = _multiplayerEventSystem;
+            }
+
+            if (inputModule != null)
+            {
+                _inputModule = inputModule;
+            }
+            else
+            {
+                if (_multiplayerEventSystem != null)
+                {
+                    var moduleFromEvent = _multiplayerEventSystem.GetComponent<InputSystemUIInputModule>();
+                    if (moduleFromEvent != null)
+                    {
+                        _inputModule = moduleFromEvent;
+                    }
+                }
+
+                if (_inputModule == null && playerInput != null)
+                {
+                    _inputModule = playerInput.GetComponentInChildren<InputSystemUIInputModule>();
+                }
+            }
+
+            if (playerInput != null)
+            {
+                if (playerInput.camera != null)
+                {
+                    _uiCamera = playerInput.camera;
+                }
+
+                _playerIndex = playerInput.playerIndex;
+            }
         }
 #endif
 
@@ -297,26 +350,36 @@ namespace JGameFramework.UI.Tooltips
             if (_playerInput != null)
             {
                 var context = TooltipPlayerContextUtility.FromPlayerInput(_playerInput, camera);
-
+                if (_inputModule != null && context.InputModule == null)
+                {
+                    context.InputModule = _inputModule;
+                }
                 if (_multiplayerEventSystem != null)
                 {
                     context.MultiplayerEventSystem = _multiplayerEventSystem;
+                    if (context.EventSystem == null)
+                    {
+                        context.EventSystem = _multiplayerEventSystem;
+                    }
                 }
-
                 if (context.EventSystem == null)
                 {
                     context.EventSystem = _eventSystem != null ? _eventSystem : ResolveEventSystem(pointerEvent);
                 }
-
                 return context;
             }
 
             if (_multiplayerEventSystem != null)
             {
-                return TooltipPlayerContextUtility.FromEventSystem(
+                var context = TooltipPlayerContextUtility.FromEventSystem(
                     _multiplayerEventSystem,
                     camera,
                     ResolvePlayerIndex());
+                if (_inputModule != null && context.InputModule == null)
+                {
+                    context.InputModule = _inputModule;
+                }
+                return context;
             }
 #endif
 

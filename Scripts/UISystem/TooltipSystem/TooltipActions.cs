@@ -91,20 +91,16 @@ namespace JGameFramework.UI.Tooltips
                 return false;
             }
 
-            EventSystem moduleEventSystem = module.GetComponent<EventSystem>();
-
-            if (EventSystem != null && moduleEventSystem == EventSystem)
-            {
-                return true;
-            }
+            var moduleEventSystem = module.GetComponent<EventSystem>();
 
 #if ENABLE_INPUT_SYSTEM
+            var resolvedMultiplayer = moduleEventSystem as MultiplayerEventSystem;
+
             if (InputModule != null && ReferenceEquals(module, InputModule))
             {
                 return true;
             }
 
-            var resolvedMultiplayer = moduleEventSystem as MultiplayerEventSystem;
             if (MultiplayerEventSystem != null && resolvedMultiplayer == MultiplayerEventSystem)
             {
                 return true;
@@ -146,6 +142,11 @@ namespace JGameFramework.UI.Tooltips
                 }
             }
 #endif
+
+            if (EventSystem != null && moduleEventSystem == EventSystem)
+            {
+                return true;
+            }
 
             return false;
         }
