@@ -1,9 +1,8 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
-#endif
+
 
 namespace JGameFramework.UI.Tooltips
 {
@@ -19,7 +18,6 @@ namespace JGameFramework.UI.Tooltips
                 UICamera = uiCamera
             };
 
-#if ENABLE_INPUT_SYSTEM
             if (eventSystem is MultiplayerEventSystem multiplayerEventSystem)
             {
                 context.MultiplayerEventSystem = multiplayerEventSystem;
@@ -33,12 +31,11 @@ namespace JGameFramework.UI.Tooltips
                     context.InputModule = inputModule;
                 }
             }
-#endif
+
 
             return context;
         }
 
-#if ENABLE_INPUT_SYSTEM
         public static TooltipPlayerContext FromPlayerInput(PlayerInput playerInput, Camera uiCamera = null)
         {
             if (playerInput == null)
@@ -92,6 +89,6 @@ namespace JGameFramework.UI.Tooltips
 
             return context;
         }
-#endif
+
     }
 }

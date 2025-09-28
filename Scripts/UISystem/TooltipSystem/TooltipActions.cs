@@ -4,10 +4,9 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
-#endif
+
 
 namespace JGameFramework.UI.Tooltips
 {
@@ -44,11 +43,10 @@ namespace JGameFramework.UI.Tooltips
     {
         public int PlayerIndex;
         public bool HasPlayerIndex;
-#if ENABLE_INPUT_SYSTEM
         public PlayerInput PlayerInput;
         public MultiplayerEventSystem MultiplayerEventSystem;
         public InputSystemUIInputModule InputModule;
-#endif
+
         public EventSystem EventSystem;
         public Camera UICamera;
 
@@ -63,12 +61,11 @@ namespace JGameFramework.UI.Tooltips
                     return true;
                 }
 
-#if ENABLE_INPUT_SYSTEM
                 if (PlayerInput != null || MultiplayerEventSystem != null || InputModule != null)
                 {
                     return true;
                 }
-#endif
+
                 return EventSystem != null;
             }
         }
@@ -93,7 +90,6 @@ namespace JGameFramework.UI.Tooltips
 
             var moduleEventSystem = module.GetComponent<EventSystem>();
 
-#if ENABLE_INPUT_SYSTEM
             var resolvedMultiplayer = moduleEventSystem as MultiplayerEventSystem;
 
             if (InputModule != null && ReferenceEquals(module, InputModule))
@@ -141,7 +137,7 @@ namespace JGameFramework.UI.Tooltips
                     return true;
                 }
             }
-#endif
+
 
             if (EventSystem != null && moduleEventSystem == EventSystem)
             {

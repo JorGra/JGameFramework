@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
-#endif
+
 
 namespace JGameFramework.UI.Tooltips
 {
@@ -20,11 +19,10 @@ namespace JGameFramework.UI.Tooltips
         [SerializeField] private EventSystem _eventSystem;
         [SerializeField] private Camera _uiCamera;
         [SerializeField] private int _playerIndex = -1;
-#if ENABLE_INPUT_SYSTEM
         [SerializeField] private PlayerInput _playerInput;
         [SerializeField] private MultiplayerEventSystem _multiplayerEventSystem;
         [SerializeField] private InputSystemUIInputModule _inputModule;
-#endif
+
         [SerializeField] private RectTransform _tooltipLayerOverride;
 
         [Header("Behaviour")]
@@ -240,7 +238,6 @@ namespace JGameFramework.UI.Tooltips
             _uiCamera = uiCamera;
             _playerIndex = playerIndex;
 
-#if ENABLE_INPUT_SYSTEM
             if (eventSystem is MultiplayerEventSystem multiplayerEventSystem)
             {
                 _multiplayerEventSystem = multiplayerEventSystem;
@@ -254,10 +251,9 @@ namespace JGameFramework.UI.Tooltips
                     _inputModule = module;
                 }
             }
-#endif
+
         }
 
-#if ENABLE_INPUT_SYSTEM
         public void SetPlayerContext(PlayerInput playerInput, MultiplayerEventSystem multiplayerEventSystem = null, InputSystemUIInputModule inputModule = null)
         {
             _playerInput = playerInput;
@@ -302,7 +298,7 @@ namespace JGameFramework.UI.Tooltips
                 _playerIndex = playerInput.playerIndex;
             }
         }
-#endif
+
 
         #endregion
 
@@ -342,18 +338,19 @@ namespace JGameFramework.UI.Tooltips
             }
         }
 
-        private TooltipPlayerContext ResolvePlayerContext(PointerEventData pointerEvent)
+                private TooltipPlayerContext ResolvePlayerContext(PointerEventData pointerEvent)
         {
             var camera = ResolveCamera(pointerEvent);
 
-#if ENABLE_INPUT_SYSTEM
             if (_playerInput != null)
             {
                 var context = TooltipPlayerContextUtility.FromPlayerInput(_playerInput, camera);
+
                 if (_inputModule != null && context.InputModule == null)
                 {
                     context.InputModule = _inputModule;
                 }
+
                 if (_multiplayerEventSystem != null)
                 {
                     context.MultiplayerEventSystem = _multiplayerEventSystem;
@@ -362,10 +359,12 @@ namespace JGameFramework.UI.Tooltips
                         context.EventSystem = _multiplayerEventSystem;
                     }
                 }
+
                 if (context.EventSystem == null)
                 {
                     context.EventSystem = _eventSystem != null ? _eventSystem : ResolveEventSystem(pointerEvent);
                 }
+
                 return context;
             }
 
@@ -375,13 +374,14 @@ namespace JGameFramework.UI.Tooltips
                     _multiplayerEventSystem,
                     camera,
                     ResolvePlayerIndex());
+
                 if (_inputModule != null && context.InputModule == null)
                 {
                     context.InputModule = _inputModule;
                 }
+
                 return context;
             }
-#endif
 
             var eventSystem = ResolveEventSystem(pointerEvent);
             return TooltipPlayerContextUtility.FromEventSystem(eventSystem, camera, ResolvePlayerIndex());
@@ -394,7 +394,6 @@ namespace JGameFramework.UI.Tooltips
                 return _playerIndex;
             }
 
-#if ENABLE_INPUT_SYSTEM
             if (_playerInput != null)
             {
                 return _playerInput.playerIndex;
@@ -408,19 +407,18 @@ namespace JGameFramework.UI.Tooltips
                     return input.playerIndex;
                 }
             }
-#endif
+
 
             return -1;
         }
 
         private EventSystem ResolveEventSystem(PointerEventData pointerEvent)
         {
-#if ENABLE_INPUT_SYSTEM
             if (_multiplayerEventSystem != null)
             {
                 return _multiplayerEventSystem;
             }
-#endif
+
             if (_eventSystem != null)
             {
                 return _eventSystem;
