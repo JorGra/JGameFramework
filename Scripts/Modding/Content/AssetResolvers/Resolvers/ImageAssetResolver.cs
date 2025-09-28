@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using UnityEngine;
 using JG.GameContent.AssetResolving;
@@ -6,7 +6,7 @@ using JG.GameContent.AssetResolving;
 namespace JGameFramework.Scripts.Modding.Content.AssetResolvers.Resolvers
 {
     /// Handles image file formats such as PNG and JPG.
-    internal sealed class ImageAssetResolver : IPathAssetResolver
+    internal sealed class ImageAssetResolver : IDescribedPathAssetResolver
     {
         private static readonly string[] exts = new[] { ".png", ".jpg", ".jpeg" };
 
@@ -54,6 +54,22 @@ namespace JGameFramework.Scripts.Modding.Content.AssetResolvers.Resolvers
             var sprite = Resources.Load<Sprite>(resourcesPathNoExt);
             return sprite;
         }
+
+        public AssetResolverDescriptor Describe()
+        {
+            return new AssetResolverDescriptor(
+                id: "image",
+                displayName: "Image File",
+                extensions: exts,
+                previewKind: "image",
+                supportedTypes: new[] { typeof(Texture2D), typeof(Sprite) }
+            );
+        }
     }
 }
+
+
+
+
+
 

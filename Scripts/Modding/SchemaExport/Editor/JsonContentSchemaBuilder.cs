@@ -1,5 +1,6 @@
-#if UNITY_EDITOR
+﻿#if UNITY_EDITOR
 using JG.GameContent;
+using JG.GameContent.AssetResolving;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -23,6 +24,9 @@ namespace JG.GameContent.SchemaExport
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
             Formatting = Formatting.Indented
         });
+
+        private static readonly Lazy<IReadOnlyList<AssetResolverDescriptor>> ResolverDescriptorsLazy =
+            new(() => LoadResolverDescriptors());
 
         public JObject Build(Type rootType, string contentFolder)
         {
@@ -71,6 +75,52 @@ namespace JG.GameContent.SchemaExport
             return document;
         }
 
+        private static IReadOnlyList<AssetResolverDescriptor> LoadResolverDescriptors()
+        {
+            try
+            {
+                return AssetResolverRegistry.GetResolverDescriptors();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[JsonContentSchemaBuilder] Failed to query asset resolvers: {ex.Message}");
+                return Array.Empty<AssetResolverDescriptor>();
+            }
+        }
+
+        private static IReadOnlyList<AssetResolverDescriptor> GetDescriptorsForType(Type memberType)
+        {
+            var descriptors = ResolverDescriptorsLazy.Value ?? Array.Empty<AssetResolverDescriptor>();
+            if (descriptors.Count == 0)
+                return descriptors;
+
+            if (memberType == null)
+                return descriptors;
+
+            var matches = descriptors.Where(d => d.SupportsType(memberType)).ToList();
+            if (matches.Count > 0)
+                return matches;
+
+            var generic = descriptors.Where(d => d.SupportedTypes.Count == 0).ToList();
+            return generic.Count > 0 ? generic : Array.Empty<AssetResolverDescriptor>();
+        }
+
+        private static string DeterminePreviewKind(Type memberType, IReadOnlyList<AssetResolverDescriptor> descriptors)
+        {
+            if (descriptors != null)
+            {
+                foreach (var descriptor in descriptors)
+                {
+                    if (!string.IsNullOrWhiteSpace(descriptor.PreviewKind))
+                        return descriptor.PreviewKind;
+                }
+            }
+
+            if (memberType != null && typeof(Sprite).IsAssignableFrom(memberType))
+                return "image";
+
+            return string.Empty;
+        }
         private JObject BuildObjectSchema(Type type, object instance)
         {
             var properties = new JObject();
@@ -131,6 +181,15 @@ namespace JG.GameContent.SchemaExport
             }
         }
 
+        private static Type GetMemberType(MemberInfo member)
+        {
+            return member switch
+            {
+                FieldInfo field => field.FieldType,
+                PropertyInfo property => property.PropertyType,
+                _ => null
+            };
+        }
         private static Dictionary<string, List<AssetBindingInfo>> BuildAssetBindingsByMember(Type type)
         {
             var map = new Dictionary<string, List<AssetBindingInfo>>(StringComparer.Ordinal);
@@ -146,7 +205,7 @@ namespace JG.GameContent.SchemaExport
                     list = new List<AssetBindingInfo>();
                     map[member.Name] = list;
                 }
-                list.Add(new AssetBindingInfo(member.Name, attr.PathKey, attr.Optional));
+                list.Add(new AssetBindingInfo(member.Name, GetMemberType(member), attr.PathKey, attr.Optional));
             }
             return map;
         }
@@ -498,24 +557,100 @@ namespace JG.GameContent.SchemaExport
 
             if (assetBindingsByMember.TryGetValue(field.Name, out var bindings))
             {
-                schema["x-asset-reference"] = new JArray(bindings.Select(b => new JObject
-                {
-                    ["pathKey"] = b.PathKey,
-                    ["optional"] = b.Optional
-                }));
+                var referenceArray = new JArray(bindings.Select(CreateAssetBindingMetadata));
+                if (referenceArray.Count > 0)
+                    schema["x-asset-reference"] = referenceArray;
                 schema["readOnly"] = true;
             }
 
             if (assetBindingsByKey.TryGetValue(field.Name, out var keyBindings))
             {
-                schema["x-asset-path-key"] = new JArray(keyBindings.Select(b => new JObject
+                var pathArray = new JArray(keyBindings.Select(CreateAssetBindingMetadata));
+                if (pathArray.Count > 0)
                 {
-                    ["assetField"] = b.MemberName,
-                    ["optional"] = b.Optional
-                }));
+                    schema["x-asset-path-key"] = pathArray;
+
+                    string previewKind = null;
+                    foreach (var token in pathArray)
+                    {
+                        if (token is JObject obj && obj.TryGetValue("previewKind", out var previewToken) && previewToken.Type == JTokenType.String)
+                        {
+                            var value = previewToken.Value<string>();
+                            if (!string.IsNullOrWhiteSpace(value))
+                            {
+                                previewKind = value;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(previewKind))
+                        schema["x-preview-kind"] = previewKind;
+                }
             }
         }
+        private JObject CreateAssetBindingMetadata(AssetBindingInfo binding)
+        {
+            var metadata = new JObject
+            {
+                ["assetField"] = binding.MemberName,
+                ["optional"] = binding.Optional,
+                ["pathKey"] = binding.PathKey,
+                ["assetFieldDisplayName"] = ObjectNames.NicifyVariableName(binding.MemberName)
+            };
 
+            if (binding.MemberType != null)
+            {
+                metadata["assetFieldType"] = binding.MemberType.FullName;
+                metadata["assetFieldQualifiedType"] = binding.MemberType.AssemblyQualifiedName;
+                metadata["assetFieldTypeName"] = binding.MemberType.Name;
+            }
+
+            var descriptors = GetDescriptorsForType(binding.MemberType);
+            var supportsResources = descriptors.Count == 0 || descriptors.Any(d => d.SupportsResources);
+            var supportsFileSystem = descriptors.Count == 0 || descriptors.Any(d => d.Extensions.Count > 0);
+
+            metadata["supportsResources"] = supportsResources;
+            metadata["supportsFileSystem"] = supportsFileSystem;
+
+            if (descriptors.Count > 0)
+            {
+                var resolverArray = new JArray();
+                foreach (var descriptor in descriptors)
+                {
+                    var resolverObj = new JObject
+                    {
+                        ["id"] = descriptor.Id,
+                        ["label"] = descriptor.DisplayName
+                    };
+
+                    if (descriptor.Extensions.Count > 0)
+                        resolverObj["extensions"] = new JArray(descriptor.Extensions);
+
+                    if (!string.IsNullOrWhiteSpace(descriptor.PreviewKind))
+                        resolverObj["previewKind"] = descriptor.PreviewKind;
+
+                    if (descriptor.SupportedTypes.Count > 0)
+                    {
+                        resolverObj["supportedTypes"] = new JArray(descriptor.SupportedTypes
+                            .Where(t => t != null)
+                            .Select(t => t.FullName));
+                    }
+
+                    resolverObj["supportsResources"] = descriptor.SupportsResources;
+
+                    resolverArray.Add(resolverObj);
+                }
+
+                metadata["resolvers"] = resolverArray;
+
+                var previewKind = DeterminePreviewKind(binding.MemberType, descriptors);
+                if (!string.IsNullOrWhiteSpace(previewKind))
+                    metadata["previewKind"] = previewKind;
+            }
+
+            return metadata;
+        }
         private void ApplyDefaultValue(JObject schema, object value)
         {
             if (value == null)
@@ -536,17 +671,21 @@ namespace JG.GameContent.SchemaExport
 
         private readonly struct AssetBindingInfo
         {
-            public AssetBindingInfo(string memberName, string pathKey, bool optional)
+            public AssetBindingInfo(string memberName, Type memberType, string pathKey, bool optional)
             {
                 MemberName = memberName;
+                MemberType = memberType;
                 PathKey = pathKey;
                 Optional = optional;
             }
 
             public string MemberName { get; }
+            public Type MemberType { get; }
             public string PathKey { get; }
             public bool Optional { get; }
         }
+
     }
 }
 #endif
+

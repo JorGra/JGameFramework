@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using UnityEngine;
 using JG.GameContent.AssetResolving;
@@ -6,7 +6,7 @@ using JG.GameContent.AssetResolving;
 namespace JGameFramework.Scripts.Modding.Content.AssetResolvers.Resolvers
 {
     /// Resolves common text-like assets (txt, json, csv) to TextAsset.
-    internal sealed class TextAssetResolver : IPathAssetResolver
+    internal sealed class TextAssetResolver : IDescribedPathAssetResolver
     {
         private static readonly string[] exts = new[] { ".txt", ".json", ".csv", ".bytes" };
 
@@ -41,6 +41,20 @@ namespace JGameFramework.Scripts.Modding.Content.AssetResolvers.Resolvers
         {
             return Resources.Load<TextAsset>(resourcesPathNoExt);
         }
+
+        public AssetResolverDescriptor Describe()
+        {
+            return new AssetResolverDescriptor(
+                id: "text",
+                displayName: "Text File",
+                extensions: exts,
+                previewKind: "text",
+                supportedTypes: new[] { typeof(TextAsset) }
+            );
+        }
     }
 }
+
+
+
 
