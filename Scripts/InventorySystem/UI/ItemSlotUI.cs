@@ -1,7 +1,5 @@
-using TMPro;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 using JGameFramework.UI.Tooltips;
 using JG.GameContent;
 
@@ -13,8 +11,7 @@ namespace JG.Inventory.UI
                               IPointerEnterHandler, IPointerExitHandler,
                               ISelectHandler, IDeselectHandler
     {
-        [SerializeField] private Image icon;
-        [SerializeField] private TMP_Text qtyText;
+        [SerializeField] private ItemViewWidget itemView;
         [SerializeField] private Vector2 tooltipOffset = new Vector2(18f, 18f);
 
         private ItemStack stack;
@@ -23,6 +20,22 @@ namespace JG.Inventory.UI
         private PlayerTooltipController tooltipController;
 
         public RectTransform RectTransform => transform as RectTransform;
+
+        private void Awake()
+        {
+            if (!itemView)
+            {
+                itemView = GetComponent<ItemViewWidget>();
+            }
+        }
+
+        private void OnValidate()
+        {
+            if (!itemView)
+            {
+                itemView = GetComponent<ItemViewWidget>();
+            }
+        }
 
         public void Init(ItemStack s, IContextMenuHost o, ItemDetailPanelUI panel)
         {
@@ -39,32 +52,25 @@ namespace JG.Inventory.UI
 
         private void RefreshVisuals()
         {
-            if (stack == null || stack.Data == null)
+            if (itemView == null)
             {
-                if (icon != null)
-                {
-                    icon.enabled = false;
-                    icon.sprite = null;
-                }
-
-                if (qtyText != null)
-                {
-                    qtyText.text = string.Empty;
-                }
-
                 return;
             }
 
-            if (icon != null)
+            if (stack == null || stack.Data == null)
             {
-                icon.sprite = stack.Data.Icon;
-                icon.enabled = icon.sprite != null;
+                itemView.Clear();
+                return;
             }
 
-            if (qtyText != null)
+            if (!TryResolveItemDef(out var itemDef))
             {
-                qtyText.text = stack.Count > 1 ? stack.Count.ToString() : string.Empty;
+                itemView.Clear();
+                return;
             }
+
+            var data = ItemViewData.FromItemDef(itemDef, stackCount: stack.Count, hideStackIfOne: true);
+            itemView.Apply(data);
         }
 
         public void OnPointerClick(PointerEventData ev)
@@ -112,7 +118,7 @@ namespace JG.Inventory.UI
             stack = null;
             owner = null;
             detailPanel = null;
-            RefreshVisuals();
+            itemView?.Clear();
             HideTooltip();
         }
 
@@ -167,4 +173,3 @@ namespace JG.Inventory.UI
         }
     }
 }
-

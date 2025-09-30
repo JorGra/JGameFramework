@@ -1,7 +1,6 @@
-using JGameFramework.UI.Tooltips;
+﻿using JGameFramework.UI.Tooltips;
 using System;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -18,8 +17,7 @@ namespace JG.Inventory.UI
         {
             public Button button;
             public EquipmentSlotComponent slotComponent;
-            public Image icon;
-            public TMP_Text qty;
+            public ItemViewWidget itemView;
         }
 
         [Header("Auto-populated")]
@@ -35,6 +33,7 @@ namespace JG.Inventory.UI
         [Header("Item Tooltip")]
         [SerializeField] private bool showSlotTooltips = true;
         [SerializeField] private Vector2 tooltipOffset = new Vector2(24f, 16f);
+        [SerializeField] private RarityColorSettings rarityColorSettings;
 
         public EquipmentHub hub;
 
@@ -232,6 +231,174 @@ namespace JG.Inventory.UI
                 followTarget: false);
         }
 
+        private void HideSlotTooltip(EquipmentSlotComponent slotComponent)
+        {
+            if (slotComponent == null || tooltipController == null)
+            {
+                return;
+            }
+
+            tooltipController.CloseTooltip(slotComponent);
+        }
+
+        private void ShowSlotTooltip(SlotBinding binding, BaseEventData eventData)
+        {
+            if (!showSlotTooltips || tooltipController == null)
+            {
+                return;
+            }
+
+            var slotComponent = binding.slotComponent;
+            if (slotComponent == null)
+            {
+                return;
+            }
+
+            if (!TryGetEquippedItem(slotComponent, out var itemDef) || itemDef == null)
+            {
+                return;
+            }
+
+            var anchor = ResolveTooltipAnchor(binding);
+            var context = new ItemTooltipContext(
+                owner: slotComponent,
+                item: itemDef,
+                anchor: anchor,
+                eventData: eventData,
+                fallbackOffset: tooltipOffset);
+
+            tooltipController.ShowItemTooltip(context);
+        }
+
+        private RectTransform ResolveTooltipAnchor(SlotBinding binding)
+        {
+            if (binding.itemView != null)
+            {
+                return binding.itemView.transform as RectTransform;
+            }
+
+            if (binding.button != null)
+            {
+                return binding.button.transform as RectTransform;
+            }
+
+            return binding.slotComponent != null ? binding.slotComponent.transform as RectTransform : null;
+        }
+
+        private void ConfigureTooltip(SlotBinding binding)
+        {
+            var slotComponent = binding.slotComponent;
+            RemoveTooltipBinding(slotComponent);
+
+            if (!showSlotTooltips || tooltipController == null || slotComponent == null)
+            {
+                return;
+            }
+
+            var targetGO = binding.button != null
+                ? binding.button.gameObject
+                : binding.itemView != null
+                    ? binding.itemView.gameObject
+                    : slotComponent.gameObject;
+
+            if (targetGO == null)
+            {
+                return;
+            }
+
+            var trigger = targetGO.GetComponent<EventTrigger>();
+            if (trigger == null)
+            {
+                trigger = targetGO.AddComponent<EventTrigger>();
+            }
+
+            var entries = trigger.triggers;
+            if (entries == null)
+            {
+                entries = new List<EventTrigger.Entry>();
+                trigger.triggers = entries;
+            }
+
+            var localBinding = binding;
+
+            EventTrigger.Entry AddEntry(EventTriggerType type, UnityAction<BaseEventData> callback)
+            {
+                var entry = new EventTrigger.Entry
+                {
+                    eventID = type,
+                    callback = new EventTrigger.TriggerEvent()
+                };
+                entry.callback.AddListener(callback);
+                entries.Add(entry);
+                return entry;
+            }
+
+            var pointerEnter = AddEntry(EventTriggerType.PointerEnter, data => ShowSlotTooltip(localBinding, data));
+            var pointerExit = AddEntry(EventTriggerType.PointerExit, data => HideSlotTooltip(localBinding.slotComponent));
+            var select = AddEntry(EventTriggerType.Select, data => ShowSlotTooltip(localBinding, data));
+            var deselect = AddEntry(EventTriggerType.Deselect, data => HideSlotTooltip(localBinding.slotComponent));
+
+            tooltipBindings[slotComponent] = new SlotTooltipBinding
+            {
+                trigger = trigger,
+                pointerEnter = pointerEnter,
+                pointerExit = pointerExit,
+                select = select,
+                deselect = deselect
+            };
+        }
+
+        private void RemoveTooltipBinding(EquipmentSlotComponent component)
+        {
+            if (component == null)
+            {
+                return;
+            }
+
+            if (!tooltipBindings.TryGetValue(component, out var binding))
+            {
+                return;
+            }
+
+            var trigger = binding.trigger;
+            if (trigger != null && trigger.triggers != null)
+            {
+                trigger.triggers.Remove(binding.pointerEnter);
+                trigger.triggers.Remove(binding.pointerExit);
+                trigger.triggers.Remove(binding.select);
+                trigger.triggers.Remove(binding.deselect);
+            }
+
+            tooltipBindings.Remove(component);
+        }
+
+        private bool TryGetEquippedItem(EquipmentSlotComponent component, out ItemDef itemDef)
+        {
+            itemDef = null;
+
+            var slot = component?.Slot;
+            var stack = slot?.Equipped;
+            var data = stack?.Data;
+            if (data == null)
+            {
+                return false;
+            }
+
+            if (data is ItemDef directDef)
+            {
+                itemDef = directDef;
+                return true;
+            }
+
+            if (!string.IsNullOrEmpty(data.Id) && ContentCatalogue.Instance.TryGet<ItemDef>(data.Id, out var resolved))
+            {
+                itemDef = resolved;
+                return true;
+            }
+
+            return false;
+        }
+
         private bool ValidateBinding(SlotBinding binding)
         {
             if (binding.slotComponent == null)
@@ -317,212 +484,32 @@ namespace JG.Inventory.UI
             }
 
             var equipped = slotInstance.Equipped;
-            bool hasItem = equipped != null;
+            bool hasItem = equipped != null && equipped.Data != null;
 
             if (!hasItem)
             {
                 tooltipController?.CloseContextMenu(binding.slotComponent);
                 HideSlotTooltip(binding.slotComponent);
+                binding.itemView?.Clear();
+                return;
             }
 
-            if (binding.icon != null)
-            {
-                binding.icon.enabled = hasItem;
-                binding.icon.sprite = hasItem ? equipped.Data.Icon : null;
-            }
-
-            if (binding.qty != null)
-            {
-                binding.qty.text = hasItem && equipped.Count > 1 ? equipped.Count.ToString() : string.Empty;
-            }
-        }
-
-        //public void RebuildBindings()(SlotBinding binding)
-        //{
-        //    var equipped = binding.slotComponent.Slot.Equipped;
-        //    bool hasItem = equipped != null;
-
-        //    if (!hasItem)
-        //    {
-        //        tooltipController?.CloseContextMenu(binding.slotComponent);
-        //    }
-
-        //    if (binding.icon != null)
-        //    {
-        //        binding.icon.enabled = hasItem;
-        //        binding.icon.sprite = hasItem ? equipped.Data.Icon : null;
-        //    }
-
-        //    if (binding.qty != null)
-        //    {
-        //        binding.qty.text = hasItem && equipped.Count > 1 ? equipped.Count.ToString() : string.Empty;
-        //    }
-        //}
-
-        private void ConfigureTooltip(SlotBinding binding)
-        {
-            var slotComponent = binding.slotComponent;
-            if (slotComponent == null)
+            if (binding.itemView == null)
             {
                 return;
             }
 
-            RemoveTooltipBinding(slotComponent);
-
-            if (!showSlotTooltips)
+            if (!TryGetEquippedItem(binding.slotComponent, out var itemDef) || itemDef == null)
             {
+                binding.itemView.Clear();
                 return;
             }
 
-            var targetGO = binding.button != null ? binding.button.gameObject : slotComponent.gameObject;
-            if (targetGO == null)
-            {
-                return;
-            }
-
-            var trigger = targetGO.GetComponent<EventTrigger>();
-            if (trigger == null)
-            {
-                trigger = targetGO.AddComponent<EventTrigger>();
-            }
-
-            var capturedBinding = binding;
-            var pointerEnter = AddTriggerEntry(trigger, EventTriggerType.PointerEnter, data => ShowSlotTooltip(capturedBinding, data));
-            var pointerExit = AddTriggerEntry(trigger, EventTriggerType.PointerExit, data => HideSlotTooltip(capturedBinding.slotComponent));
-            var select = AddTriggerEntry(trigger, EventTriggerType.Select, data => ShowSlotTooltip(capturedBinding, data));
-            var deselect = AddTriggerEntry(trigger, EventTriggerType.Deselect, data => HideSlotTooltip(capturedBinding.slotComponent));
-
-            tooltipBindings[slotComponent] = new SlotTooltipBinding
-            {
-                trigger = trigger,
-                pointerEnter = pointerEnter,
-                pointerExit = pointerExit,
-                select = select,
-                deselect = deselect
-            };
+            var data = ItemViewData.FromItemDef(itemDef, stackCount: equipped.Count, hideStackIfOne: true);
+            binding.itemView.Apply(data);
         }
 
-        private EventTrigger.Entry AddTriggerEntry(EventTrigger trigger, EventTriggerType type, Action<BaseEventData> callback)
-        {
-            if (trigger == null || callback == null)
-            {
-                return null;
-            }
-
-            if (trigger.triggers == null)
-            {
-                trigger.triggers = new List<EventTrigger.Entry>();
-            }
-
-            var entry = new EventTrigger.Entry { eventID = type };
-            entry.callback.AddListener(data => callback(data));
-            trigger.triggers.Add(entry);
-            return entry;
-        }
-
-        private void RemoveTooltipBinding(EquipmentSlotComponent slotComponent)
-        {
-            if (slotComponent == null)
-            {
-                return;
-            }
-
-            if (!tooltipBindings.TryGetValue(slotComponent, out var binding))
-            {
-                return;
-            }
-
-            RemoveTriggerEntry(binding.trigger, binding.pointerEnter);
-            RemoveTriggerEntry(binding.trigger, binding.pointerExit);
-            RemoveTriggerEntry(binding.trigger, binding.select);
-            RemoveTriggerEntry(binding.trigger, binding.deselect);
-            tooltipBindings.Remove(slotComponent);
-        }
-
-        private static void RemoveTriggerEntry(EventTrigger trigger, EventTrigger.Entry entry)
-        {
-            if (trigger == null || entry == null)
-            {
-                return;
-            }
-
-            if (trigger.triggers != null)
-            {
-                trigger.triggers.Remove(entry);
-            }
-        }
-
-        private void ShowSlotTooltip(SlotBinding binding, BaseEventData eventData)
-        {
-            if (!showSlotTooltips || tooltipController == null)
-            {
-                return;
-            }
-
-            var slotComponent = binding.slotComponent;
-            if (!TryGetEquippedItem(slotComponent, out var itemDef))
-            {
-                HideSlotTooltip(slotComponent);
-                return;
-            }
-
-            var anchor = ResolveTooltipAnchor(binding);
-            var context = new ItemTooltipContext(
-                owner: slotComponent,
-                item: itemDef,
-                anchor: anchor,
-                eventData: eventData,
-                fallbackOffset: tooltipOffset);
-
-            tooltipController.ShowItemTooltip(context);
-        }
-
-        private void HideSlotTooltip(EquipmentSlotComponent slotComponent)
-        {
-            if (slotComponent == null)
-            {
-                return;
-            }
-
-            tooltipController?.CloseTooltip(slotComponent);
-        }
-
-        private RectTransform ResolveTooltipAnchor(SlotBinding binding)
-        {
-            if (binding.button != null)
-            {
-                return binding.button.transform as RectTransform;
-            }
-
-            return binding.slotComponent != null ? binding.slotComponent.GetComponent<RectTransform>() : null;
-        }
-
-        private bool TryGetEquippedItem(EquipmentSlotComponent slotComponent, out ItemDef itemDef)
-        {
-            itemDef = null;
-
-            var slot = slotComponent?.Slot;
-            var equipped = slot?.Equipped;
-            if (equipped == null || equipped.Data == null)
-            {
-                return false;
-            }
-
-            if (equipped.Data is ItemDef directDef)
-            {
-                itemDef = directDef;
-                return true;
-            }
-
-            if (ContentCatalogue.Instance.TryGet(equipped.Data.Id, out itemDef))
-            {
-                return itemDef != null;
-            }
-
-            return false;
-        }
-
-        public void RebuildBindings()
+                public void RebuildBindings()
         {
             ResetSlotListeners();
             Slots.Clear();
@@ -533,7 +520,10 @@ namespace JG.Inventory.UI
 
             foreach (var root in roots)
             {
-                if (root == null) continue;
+                if (root == null)
+                {
+                    continue;
+                }
 
                 var components = root.GetComponentsInChildren<EquipmentSlotComponent>(true);
                 foreach (var component in components)
@@ -541,52 +531,42 @@ namespace JG.Inventory.UI
                     var slotGO = component.gameObject;
 
                     var button = slotGO.GetComponentInChildren<Button>(true);
-
-                    Image icon = null;
-                    var images = slotGO.GetComponentsInChildren<Image>(true);
-                    foreach (var img in images)
-                    {
-                        if (button != null && img.transform.IsChildOf(button.transform)) continue;
-                        if (img.transform.parent == slotGO.transform)
-                        {
-                            icon = img;
-                            break;
-                        }
-                    }
-                    if (icon == null)
-                    {
-                        foreach (var img in images)
-                        {
-                            if (button != null && img.transform.IsChildOf(button.transform)) continue;
-                            icon = img;
-                            break;
-                        }
-                    }
-
-                    TMP_Text qty = null;
-                    if (button != null)
-                    {
-                        qty = button.GetComponentInChildren<TMP_Text>(true);
-                    }
+                    var view = slotGO.GetComponentInChildren<ItemViewWidget>(true);
 
                     if (button == null)
+                    {
                         Debug.LogWarning($"[EquipmentUI] No Button found under '{component.name}'.", component);
-                    if (icon == null)
-                        Debug.LogWarning($"[EquipmentUI] No Image (icon) found under '{component.name}'.", component);
-                    if (qty == null)
-                        Debug.LogWarning($"[EquipmentUI] No TMP_Text (qty) under the Button in '{component.name}'.", component);
+                    }
+
+                    if (view == null)
+                    {
+                        Debug.LogWarning($"[EquipmentUI] No ItemViewWidget found under '{component.name}'.", component);
+                    }
+                    else
+                    {
+                        if (button != null)
+                        {
+                            view.SetSelectableTintTarget(button);
+                        }
+
+                        if (rarityColorSettings != null)
+                        {
+                            view.SetRaritySettings(rarityColorSettings);
+                        }
+
+                        view.Clear();
+                    }
 
                     Slots.Add(new SlotBinding
                     {
                         button = button,
                         slotComponent = component,
-                        icon = icon,
-                        qty = qty
+                        itemView = view
                     });
                 }
             }
         }
+
     }
 }
-
 
