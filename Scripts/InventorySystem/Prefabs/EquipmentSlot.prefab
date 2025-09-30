@@ -346,7 +346,8 @@ GameObject:
   - component: {fileID: 3493949514678186974}
   - component: {fileID: 5953263352432863172}
   - component: {fileID: 7185019929416477154}
-  - component: {fileID: 1710171650362412069}
+  - component: {fileID: 2967865373473433367}
+  - component: {fileID: 8925365288884460339}
   m_Layer: 5
   m_Name: EquipmentSlot
   m_TagString: Untagged
@@ -418,7 +419,7 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
---- !u!114 &1710171650362412069
+--- !u!114 &2967865373473433367
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -427,10 +428,34 @@ MonoBehaviour:
   m_GameObject: {fileID: 9088936529419868317}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: f802969628e01244a8633b3f98dbe8c6, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::ItemViewWidget
+  titleLabel: {fileID: 0}
+  subtitleLabel: {fileID: 0}
+  stackLabel: {fileID: 2008860283678527035}
+  priceLabel: {fileID: 0}
+  iconImage: {fileID: 3362191174119210137}
+  rarityHighlightImage: {fileID: 0}
+  rarityColorSettings: {fileID: 11400000, guid: fecb285f24ffb2246a7b6469190015b4, type: 2}
+  selectableTintTarget: {fileID: 4941966135751953824}
+  collapseSubtitleWhenEmpty: 1
+  collapseStackWhenEmpty: 1
+  collapsePriceWhenEmpty: 1
+  emptyIconColor: {r: 1, g: 1, b: 1, a: 0}
+--- !u!114 &8925365288884460339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9088936529419868317}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 196bb08d6c2d3c9499c04e1281fd4ad3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LeTai.TranslucentImage::LeTai.Asset.TranslucentImage.TranslucentImage
+  m_Material: {fileID: 2100000, guid: 054655f77b63d404fa28c310d4db8bbb, type: 2}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
@@ -447,4 +472,6 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 1.5
+  _source: {fileID: 0}
+  m_spriteBlending: 0.4

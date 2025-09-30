@@ -1,4 +1,4 @@
-#if UNITY_EDITOR
+﻿#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -37,7 +37,9 @@ namespace JG.GameContent.SchemaExport
                     return;
                 }
 
-                var outputPath = ResolveOutputPath();
+                var settings = ContentSchemaExporterSettings.LoadOrCreate();
+                var projectRoot = Path.GetDirectoryName(Application.dataPath) ?? Directory.GetCurrentDirectory();
+                var outputPath = settings.ResolveOutputPath(projectRoot, DefaultOutputRelativeSegments);
                 var outputDirectory = Path.GetDirectoryName(outputPath);
                 if (string.IsNullOrWhiteSpace(outputDirectory))
                     outputDirectory = Path.GetDirectoryName(Application.dataPath) ?? Directory.GetCurrentDirectory();
@@ -50,7 +52,7 @@ namespace JG.GameContent.SchemaExport
                 var index = new SchemaIndex
                 {
                     exportedAtUtc = DateTime.UtcNow.ToString("o"),
-                    schemaVersion = 1
+                    schemaVersion = settings.GetSchemaVersion()
                 };
 
                 foreach (var def in defs)
@@ -75,6 +77,9 @@ namespace JG.GameContent.SchemaExport
                 var indexJson = JsonConvert.SerializeObject(index, Formatting.Indented);
                 File.WriteAllText(outputPath, indexJson);
 
+                var metadataDirectory = Path.Combine(outputDirectory, "metadata");
+                WriteMetadata(metadataDirectory, settings, index, projectRoot);
+
                 Debug.Log($"[ContentSchemaExporter] Exported {index.definitions.Count} schemas to {outputDirectory}.");
                 EditorUtility.DisplayDialog(
                     "Content Schema Export",
@@ -86,6 +91,103 @@ namespace JG.GameContent.SchemaExport
                 Debug.LogError($"[ContentSchemaExporter] Export failed: {ex}");
                 EditorUtility.DisplayDialog("Content Schema Export", "Export failed. See console for details.", "OK");
             }
+        }
+
+        private static void WriteMetadata(string metadataDirectory, ContentSchemaExporterSettings settings, SchemaIndex index, string projectRoot)
+        {
+            Directory.CreateDirectory(metadataDirectory);
+
+            var distinctTags = new List<string>();
+            var tagSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var tag in settings.EnumerateTags())
+            {
+                if (tagSet.Add(tag))
+                    distinctTags.Add(tag);
+            }
+
+            var additional = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in settings.EnumerateAdditionalMetadata())
+            {
+                if (string.IsNullOrEmpty(pair.Key))
+                    continue;
+
+                additional[pair.Key] = pair.Value;
+            }
+
+            var iconFileName = ExportIcon(metadataDirectory, settings.GetGameIcon(), projectRoot);
+            var iconRelativePath = string.IsNullOrEmpty(iconFileName)
+                ? null
+                : NormalizePathSeparators(Path.Combine("metadata", iconFileName));
+
+            var manifest = new SchemaMetadataManifest
+            {
+                schemaVersion = settings.GetSchemaVersion(),
+                exportedAtUtc = index.exportedAtUtc,
+                definitionsCount = index.definitions.Count,
+                game = new SchemaMetadataGameSection
+                {
+                    name = settings.GetGameName(),
+                    version = settings.GetGameVersion(),
+                    publisher = settings.GetPublisherName(),
+                    description = settings.GetGameDescription(),
+                    websiteUrl = settings.GetWebsiteUrl(),
+                    supportUrl = settings.GetSupportUrl(),
+                    icon = iconRelativePath,
+                    tags = distinctTags
+                },
+                additionalMetadata = additional
+            };
+
+            var manifestJson = JsonConvert.SerializeObject(manifest, Formatting.Indented);
+            File.WriteAllText(Path.Combine(metadataDirectory, "metadata.json"), manifestJson);
+        }
+
+        private static string ExportIcon(string metadataDirectory, Texture2D icon, string projectRoot)
+        {
+            if (icon == null)
+                return string.Empty;
+
+            var assetPath = AssetDatabase.GetAssetPath(icon);
+            if (!string.IsNullOrEmpty(assetPath))
+            {
+                var normalizedAssetPath = assetPath.Replace('/', Path.DirectorySeparatorChar);
+                var absoluteSource = Path.IsPathRooted(normalizedAssetPath)
+                    ? normalizedAssetPath
+                    : Path.Combine(projectRoot, normalizedAssetPath);
+
+                if (File.Exists(absoluteSource))
+                {
+                    var fileName = Path.GetFileName(absoluteSource);
+                    var destination = Path.Combine(metadataDirectory, fileName);
+                    try
+                    {
+                        File.Copy(absoluteSource, destination, true);
+                        return fileName;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[ContentSchemaExporter] Failed to copy game icon asset: {ex.Message}");
+                    }
+                }
+            }
+
+            try
+            {
+                var png = icon.EncodeToPNG();
+                if (png != null && png.Length > 0)
+                {
+                    const string fallbackFileName = "game-icon.png";
+                    var destination = Path.Combine(metadataDirectory, fallbackFileName);
+                    File.WriteAllBytes(destination, png);
+                    return fallbackFileName;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[ContentSchemaExporter] Failed to encode game icon texture: {ex.Message}");
+            }
+
+            return string.Empty;
         }
 
         private static List<ContentDefInfo> DiscoverContentDefs()
@@ -143,13 +245,6 @@ namespace JG.GameContent.SchemaExport
                 .OrderBy(r => r.ContentFolder, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(r => r.Type.FullName, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-        }
-
-        private static string ResolveOutputPath()
-        {
-            var projectRoot = Path.GetDirectoryName(Application.dataPath) ?? Directory.GetCurrentDirectory();
-            var settings = ContentSchemaExporterSettings.LoadOrCreate();
-            return settings.ResolveOutputPath(projectRoot, DefaultOutputRelativeSegments);
         }
 
         private static string BuildSchemaRelativePath(ContentDefInfo def)
@@ -210,6 +305,27 @@ namespace JG.GameContent.SchemaExport
             public string contentFolder;
             public string schemaFile;
             public string displayName;
+        }
+
+        private sealed class SchemaMetadataManifest
+        {
+            public int schemaVersion;
+            public string exportedAtUtc;
+            public int definitionsCount;
+            public SchemaMetadataGameSection game = new();
+            public Dictionary<string, string> additionalMetadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private sealed class SchemaMetadataGameSection
+        {
+            public string name;
+            public string version;
+            public string publisher;
+            public string description;
+            public string websiteUrl;
+            public string supportUrl;
+            public string icon;
+            public List<string> tags = new();
         }
     }
 }
