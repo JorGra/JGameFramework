@@ -159,17 +159,23 @@ namespace JG.GameContent.SchemaExport
 
         private static IEnumerable<MemberInfo> EnumerateSerializableMembers(Type type)
         {
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var stack = new Stack<Type>();
             var current = type;
             while (current != null && current != typeof(ScriptableObject) && current != typeof(UnityEngine.Object))
             {
-                foreach (var member in EnumerateDeclaredSerializableMembers(current))
+                stack.Push(current);
+                current = current.BaseType;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            while (stack.Count > 0)
+            {
+                var levelType = stack.Pop();
+                foreach (var member in EnumerateDeclaredSerializableMembers(levelType))
                 {
                     if (seen.Add(member.Name))
                         yield return member;
                 }
-
-                current = current.BaseType;
             }
         }
 

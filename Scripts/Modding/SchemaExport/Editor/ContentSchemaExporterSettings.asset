@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp-Editor::JG.GameContent.SchemaExport.ContentSchemaExporterSettings
   outputPathIsRelative: 1
   outputPath: ModCreator/ModCreator/svelte/public/schemas/schema-index.json
-  schemaVersion: 1
+  schemaVersion: 2
   gameName: Circle of Defense
   gameVersion: pre-alpha-0.4
   publisherName: JGProduction
