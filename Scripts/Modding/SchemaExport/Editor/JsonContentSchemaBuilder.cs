@@ -126,21 +126,21 @@ namespace JG.GameContent.SchemaExport
             var properties = new JObject();
             var required = new JArray();
 
-            var fields = EnumerateSerializableFields(type).ToList();
+            var members = EnumerateSerializableMembers(type).ToList();
             var assetBindingsByMember = BuildAssetBindingsByMember(type);
             var assetBindingsByKey = BuildAssetBindingsByKey(assetBindingsByMember);
 
-            foreach (var field in fields)
+            foreach (var member in members)
             {
-                var value = instance != null ? field.GetValue(instance) : null;
-                var schema = BuildSchemaForField(field, value, assetBindingsByMember, assetBindingsByKey);
+                var value = instance != null ? GetMemberValue(member, instance) : null;
+                var schema = BuildSchemaForMember(member, value, assetBindingsByMember, assetBindingsByKey);
                 if (schema == null)
                     continue;
 
-                var jsonName = field.Name;
+                var jsonName = member.Name;
                 properties[jsonName] = schema;
 
-                if (IsFieldRequired(field))
+                if (IsMemberRequired(member))
                     required.Add(jsonName);
             }
 
@@ -157,27 +157,110 @@ namespace JG.GameContent.SchemaExport
             return obj;
         }
 
-        private static IEnumerable<FieldInfo> EnumerateSerializableFields(Type type)
+        private static IEnumerable<MemberInfo> EnumerateSerializableMembers(Type type)
         {
-            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var current = type;
             while (current != null && current != typeof(ScriptableObject) && current != typeof(UnityEngine.Object))
             {
-                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-                foreach (var field in current.GetFields(flags))
+                foreach (var member in EnumerateDeclaredSerializableMembers(current))
                 {
-                    if (field.IsStatic || field.IsInitOnly)
-                        continue;
-                    if (field.IsDefined(typeof(NonSerializedAttribute), true))
-                        continue;
-                    if (!field.IsPublic && !field.IsDefined(typeof(SerializeField), true))
-                        continue;
-                    if (!seen.Add(field.Name))
-                        continue;
-
-                    yield return field;
+                    if (seen.Add(member.Name))
+                        yield return member;
                 }
+
                 current = current.BaseType;
+            }
+        }
+
+        private static IEnumerable<MemberInfo> EnumerateDeclaredSerializableMembers(Type type)
+        {
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            var members = new List<MemberInfo>();
+
+            foreach (var field in type.GetFields(flags))
+            {
+                if (!IsSerializableField(field))
+                    continue;
+                members.Add(field);
+            }
+
+            foreach (var property in type.GetProperties(flags))
+            {
+                if (!IsSerializableProperty(property))
+                    continue;
+                members.Add(property);
+            }
+
+            members.Sort(CompareByMetadataToken);
+            return members;
+        }
+
+        private static int CompareByMetadataToken(MemberInfo left, MemberInfo right)
+        {
+            try
+            {
+                return left.MetadataToken.CompareTo(right.MetadataToken);
+            }
+            catch (InvalidOperationException)
+            {
+                return string.Compare(left.Name, right.Name, StringComparison.Ordinal);
+            }
+        }
+
+        private static bool IsSerializableField(FieldInfo field)
+        {
+            if (field.IsStatic || field.IsInitOnly)
+                return false;
+            if (field.IsDefined(typeof(NonSerializedAttribute), true))
+                return false;
+            if (!field.IsPublic && !field.IsDefined(typeof(SerializeField), true))
+                return false;
+            return true;
+        }
+
+        private static bool IsSerializableProperty(PropertyInfo property)
+        {
+            if (property == null)
+                return false;
+
+            if (property.GetIndexParameters().Length > 0)
+                return false;
+
+            var getter = property.GetGetMethod(true);
+            var setter = property.GetSetMethod(true);
+            if (getter == null || setter == null)
+                return false;
+
+            if (getter.IsStatic || setter.IsStatic)
+                return false;
+
+            if (property.IsDefined(typeof(JsonIgnoreAttribute), true))
+                return false;
+
+            if (property.IsDefined(typeof(IgnoreDataMemberAttribute), true))
+                return false;
+
+            return true;
+        }
+
+        private static object GetMemberValue(MemberInfo member, object instance)
+        {
+            if (instance == null)
+                return null;
+
+            try
+            {
+                return member switch
+                {
+                    FieldInfo field => field.GetValue(instance),
+                    PropertyInfo property => property.GetGetMethod(true)?.Invoke(instance, null),
+                    _ => null
+                };
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -190,6 +273,7 @@ namespace JG.GameContent.SchemaExport
                 _ => null
             };
         }
+
         private static Dictionary<string, List<AssetBindingInfo>> BuildAssetBindingsByMember(Type type)
         {
             var map = new Dictionary<string, List<AssetBindingInfo>>(StringComparer.Ordinal);
@@ -230,20 +314,21 @@ namespace JG.GameContent.SchemaExport
             return map;
         }
 
-        private JObject BuildSchemaForField(FieldInfo field,
-                                            object value,
-                                            Dictionary<string, List<AssetBindingInfo>> assetBindingsByMember,
-                                            Dictionary<string, List<AssetBindingInfo>> assetBindingsByKey)
+        private JObject BuildSchemaForMember(MemberInfo member,
+                                             object value,
+                                             Dictionary<string, List<AssetBindingInfo>> assetBindingsByMember,
+                                             Dictionary<string, List<AssetBindingInfo>> assetBindingsByKey)
         {
-            var schema = BuildSchemaForType(field.FieldType, value);
+            var memberType = GetMemberType(member);
+            var schema = BuildSchemaForType(memberType, value);
             if (schema == null)
                 return null;
 
-            schema["title"] = ObjectNames.NicifyVariableName(field.Name);
+            schema["title"] = ObjectNames.NicifyVariableName(member.Name);
 
-            ApplyDocumentation(schema, field);
-            ApplyValidationAttributes(schema, field);
-            ApplyCustomMetadata(schema, field, assetBindingsByMember, assetBindingsByKey);
+            ApplyDocumentation(schema, member);
+            ApplyValidationAttributes(schema, member);
+            ApplyCustomMetadata(schema, member, assetBindingsByMember, assetBindingsByKey);
             ApplyDefaultValue(schema, value);
 
             return schema;
@@ -500,18 +585,18 @@ namespace JG.GameContent.SchemaExport
             return new string(chars);
         }
 
-        private static bool IsFieldRequired(FieldInfo field)
-            => string.Equals(field.Name, "id", StringComparison.OrdinalIgnoreCase);
+        private static bool IsMemberRequired(MemberInfo member)
+            => string.Equals(member.Name, "id", StringComparison.OrdinalIgnoreCase);
 
-        private void ApplyDocumentation(JObject schema, FieldInfo field)
+        private void ApplyDocumentation(JObject schema, MemberInfo member)
         {
-            if (field.GetCustomAttribute<TooltipAttribute>() is TooltipAttribute tooltip && !string.IsNullOrWhiteSpace(tooltip.tooltip))
+            if (member.GetCustomAttribute<TooltipAttribute>() is TooltipAttribute tooltip && !string.IsNullOrWhiteSpace(tooltip.tooltip))
                 schema["description"] = tooltip.tooltip;
 
-            if (field.GetCustomAttribute<HeaderAttribute>() is HeaderAttribute header && !string.IsNullOrWhiteSpace(header.header))
+            if (member.GetCustomAttribute<HeaderAttribute>() is HeaderAttribute header && !string.IsNullOrWhiteSpace(header.header))
                 schema["x-unity-header"] = header.header;
 
-            if (field.GetCustomAttribute<TextAreaAttribute>() is TextAreaAttribute textArea)
+            if (member.GetCustomAttribute<TextAreaAttribute>() is TextAreaAttribute textArea)
             {
                 schema["x-unity-text-area"] = new JObject
                 {
@@ -520,19 +605,19 @@ namespace JG.GameContent.SchemaExport
                 };
             }
 
-            if (field.GetCustomAttribute<MultilineAttribute>() is MultilineAttribute multi)
+            if (member.GetCustomAttribute<MultilineAttribute>() is MultilineAttribute multi)
                 schema["x-unity-multiline"] = multi.lines;
         }
 
-        private void ApplyValidationAttributes(JObject schema, FieldInfo field)
+        private void ApplyValidationAttributes(JObject schema, MemberInfo member)
         {
-            if (field.GetCustomAttribute<RangeAttribute>() is RangeAttribute range)
+            if (member.GetCustomAttribute<RangeAttribute>() is RangeAttribute range)
             {
                 schema["minimum"] = (double)range.min;
                 schema["maximum"] = (double)range.max;
             }
 
-            if (field.GetCustomAttribute<MinAttribute>() is MinAttribute min)
+            if (member.GetCustomAttribute<MinAttribute>() is MinAttribute min)
             {
                 var existing = schema.TryGetValue("minimum", out var minToken) ? (double?)minToken : null;
                 var next = (double)min.min;
@@ -541,11 +626,11 @@ namespace JG.GameContent.SchemaExport
         }
 
         private void ApplyCustomMetadata(JObject schema,
-                                         FieldInfo field,
+                                         MemberInfo member,
                                          Dictionary<string, List<AssetBindingInfo>> assetBindingsByMember,
                                          Dictionary<string, List<AssetBindingInfo>> assetBindingsByKey)
         {
-            if (field.GetCustomAttribute<IdReferenceAttribute>() is IdReferenceAttribute idRef)
+            if (member.GetCustomAttribute<IdReferenceAttribute>() is IdReferenceAttribute idRef)
             {
                 var meta = new JObject
                 {
@@ -555,7 +640,7 @@ namespace JG.GameContent.SchemaExport
                 schema["x-id-reference"] = meta;
             }
 
-            if (assetBindingsByMember.TryGetValue(field.Name, out var bindings))
+            if (assetBindingsByMember.TryGetValue(member.Name, out var bindings))
             {
                 var referenceArray = new JArray(bindings.Select(CreateAssetBindingMetadata));
                 if (referenceArray.Count > 0)
@@ -563,7 +648,7 @@ namespace JG.GameContent.SchemaExport
                 schema["readOnly"] = true;
             }
 
-            if (assetBindingsByKey.TryGetValue(field.Name, out var keyBindings))
+            if (assetBindingsByKey.TryGetValue(member.Name, out var keyBindings))
             {
                 var pathArray = new JArray(keyBindings.Select(CreateAssetBindingMetadata));
                 if (pathArray.Count > 0)

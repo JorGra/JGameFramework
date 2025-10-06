@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Newtonsoft.Json;
+using UnityEngine;
 
 namespace JG.GameContent
 {
@@ -26,6 +27,7 @@ namespace JG.GameContent
             get => id;
             set => id = value;
         }
+        [JsonIgnore]
         public string SourceFile { get => sourceFile; set => sourceFile = value; }
     }
 }
