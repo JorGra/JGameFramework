@@ -1,5 +1,4 @@
 ﻿// ───────────────────────────────────────────────────────── ThemeableButton.cs
-﻿// ��������������������������������������������������������� ThemeableButton.cs
 using UnityEngine;
 using UnityEngine.UI;
 
