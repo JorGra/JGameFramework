@@ -62,6 +62,11 @@ public class StatsProfile : ScriptableObject
     public static StatsProfile BuildStatsProfile(List<StatSpec> def)
     {
         var profile = CreateInstance<StatsProfile>();
+        var provider = StatRegistryProvider.Instance;
+        var registry = provider.Registry;
+
+        if (registry.Count == 0)
+            provider.RefreshFromContent();
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in def)
@@ -72,9 +77,12 @@ public class StatsProfile : ScriptableObject
             if (!seen.Add(s.statId))
                 throw new Exception($"BuildStatsProfile: duplicate statId '{s.statId}' in baseStats.");
 
-            var stat = StatRegistryProvider.Instance.Registry.Get(s.statId);
-            if (stat == null)
-                throw new Exception($"BuildStatsProfile: unknown statId '{s.statId}'.");
+            if (!registry.TryGet(s.statId, out var stat) || stat == null)
+            {
+                provider.RefreshFromContent();
+                if (!registry.TryGet(s.statId, out stat) || stat == null)
+                    throw new Exception($"BuildStatsProfile: unknown statId '{s.statId}'.");
+            }
 
             profile.statEntries.Add(new StatEntry
             {
@@ -95,3 +103,4 @@ public struct StatSpec
     public string statId;     // e.g. "maxhealth"
     public float baseValue;   // e.g. 120
 }
+

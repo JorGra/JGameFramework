@@ -1,47 +1,116 @@
-﻿using JG.GameContent;
+using JG.GameContent;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 internal static class AssetResolver
 {
-    // Prefix that switches the resolver into Resources.Load() mode.
     private const string RESOURCES_PREFIX = "Resources:";
+    private static readonly ReferenceEqualityComparer ReferenceComparer = new();
 
-    /// Injects assets into fields/properties marked with [AssetFromPath] on a definition.
     public static void InjectAssets(IContentDef def, string modRoot, string modId)
     {
         if (def == null) throw new ArgumentNullException(nameof(def));
         if (modRoot == null) modRoot = string.Empty;
 
-        var t = def.GetType();
-        var members = t.GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        var visited = new HashSet<object>(ReferenceComparer);
+        ProcessObject(def, def.GetType(), def.SourceFile, modRoot, modId ?? string.Empty, visited);
+    }
 
+    private static void ProcessObject(
+        object target,
+        Type targetType,
+        string sourceFile,
+        string modRoot,
+        string modId,
+        HashSet<object> visited)
+    {
+        if (target == null || targetType == null)
+            return;
+
+        if (target is UnityEngine.Object && target is not IContentDef)
+            return;
+
+        if (!visited.Add(target))
+            return;
+
+        var members = targetType.GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         foreach (var mem in members)
         {
-            var memberType = GetMemberType(mem);
-            if (memberType == null || !typeof(UnityEngine.Object).IsAssignableFrom(memberType))
-                continue; // only bind UnityEngine.Object values
+            if (mem is not FieldInfo && mem is not PropertyInfo)
+                continue;
 
-            var attrPath = mem.GetCustomAttribute<AssetFromPathAttribute>();
-            if (attrPath != null)
+            var memberType = GetMemberType(mem);
+            if (memberType == null)
+                continue;
+
+            if (typeof(UnityEngine.Object).IsAssignableFrom(memberType) &&
+                mem.GetCustomAttribute<AssetFromPathAttribute>() is AssetFromPathAttribute attrPath)
             {
-                ResolveFromPathAttribute(def, mem, memberType, attrPath, modRoot, modId);
+                ResolveFromPathAttribute(target, targetType, mem, memberType, attrPath, modRoot, modId, sourceFile);
                 continue;
             }
 
-            // No legacy path: only [AssetFromPath] is supported now.
+            if (mem.GetCustomAttribute<AssetsFromDirectoryAttribute>() is AssetsFromDirectoryAttribute directoryAttr)
+            {
+                ResolveFromDirectoryAttribute(target, targetType, mem, memberType, directoryAttr, modRoot, modId, sourceFile);
+                continue;
+            }
+
+            var memberValue = GetMemberValue(target, mem);
+            if (memberValue == null)
+                continue;
+
+            if (memberValue is UnityEngine.Object || memberValue is string)
+                continue;
+
+            if (memberValue is IEnumerable enumerable)
+            {
+                foreach (var item in enumerable)
+                {
+                    if (item == null || item is UnityEngine.Object || item is string)
+                        continue;
+
+                    var itemType = item.GetType();
+                    if (!ShouldRecurseInto(itemType))
+                        continue;
+
+                    var childSource = sourceFile;
+                    if (item is IContentDef childDef && !string.IsNullOrWhiteSpace(childDef.SourceFile))
+                        childSource = childDef.SourceFile;
+
+                    ProcessObject(item, itemType, childSource, modRoot, modId, visited);
+                }
+            }
+            else if (ShouldRecurseInto(memberType))
+            {
+                var childSource = sourceFile;
+                if (memberValue is IContentDef childDef && !string.IsNullOrWhiteSpace(childDef.SourceFile))
+                    childSource = childDef.SourceFile;
+
+                ProcessObject(memberValue, memberType, childSource, modRoot, modId, visited);
+            }
         }
     }
 
-    // ------------ Helpers ------------
+    private static bool ShouldRecurseInto(Type type)
+    {
+        if (type == null) return false;
+        if (type.IsPrimitive || type.IsEnum) return false;
+        if (type == typeof(string)) return false;
+        if (typeof(UnityEngine.Object).IsAssignableFrom(type)) return false;
+        if (typeof(Newtonsoft.Json.Linq.JToken).IsAssignableFrom(type)) return false;
+        if (type.IsValueType) return false;
+        return true;
+    }
 
     private static bool IsResourcesKey(string key)
         => !string.IsNullOrEmpty(key) && key.StartsWith(RESOURCES_PREFIX, StringComparison.OrdinalIgnoreCase);
-
-    // No BuildResourcesPath needed; new path mode builds directly.
 
     private static Type GetMemberType(MemberInfo mem) =>
         mem switch
@@ -51,36 +120,81 @@ internal static class AssetResolver
             _ => null
         };
 
-    private static void SetMemberValue(object inst, MemberInfo mem, UnityEngine.Object value)
+    private static object GetMemberValue(object inst, MemberInfo mem) =>
+        mem switch
+        {
+            FieldInfo f => f.GetValue(inst),
+            PropertyInfo p when p.CanRead && p.GetIndexParameters().Length == 0 => GetPropertyValueSafe(p, inst),
+            _ => null
+        };
+
+    private static object GetPropertyValueSafe(PropertyInfo property, object instance)
+    {
+        try
+        {
+            return property.GetValue(instance);
+        }
+        catch (TargetInvocationException)
+        {
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void SetMemberValue(object inst, MemberInfo mem, object value)
     {
         switch (mem)
         {
             case FieldInfo f:
                 f.SetValue(inst, value);
                 break;
+            case PropertyInfo p when p.CanWrite && p.GetIndexParameters().Length == 0:
+                p.SetValue(inst, value);
+                break;
             case PropertyInfo p:
-                if (p.CanWrite) p.SetValue(inst, value);
-                else Debug.LogWarning($"Property {inst.GetType().Name}.{p.Name} is read-only; skipping value set.");
+                Debug.LogWarning($"Property {inst.GetType().Name}.{p.Name} is read-only; skipping value set.");
                 break;
         }
     }
 
-    private static string ResolveName(IContentDef def, Type t, string keyName, string modId, string context, bool optional)
+    private static MemberInfo FindMember(Type type, string memberName)
+    {
+        if (type == null || string.IsNullOrWhiteSpace(memberName))
+            return null;
+
+        return type.GetMember(memberName,
+                              BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                   .FirstOrDefault();
+    }
+
+    private static string ResolveName(object target,
+                                      Type targetType,
+                                      string keyName,
+                                      string modId,
+                                      string context,
+                                      bool optional)
     {
         if (string.IsNullOrEmpty(keyName))
-            return def.Id;
+        {
+            if (target is IContentDef def)
+                return def.Id;
+            return null;
+        }
 
-        var keyMember = t.GetMember(keyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).FirstOrDefault();
+        var keyMember = FindMember(targetType, keyName);
         if (keyMember == null)
         {
-            Debug.LogError($"[{modId}] FileNameKey \"{keyName}\" not found on {t.Name}.");
+            Debug.LogError($"[{modId}] FileNameKey \"{keyName}\" not found on {targetType.Name}.");
             return null;
         }
 
         string val = keyMember switch
         {
-            FieldInfo f => f.GetValue(def) as string,
-            PropertyInfo p => p.GetValue(def) as string,
+            FieldInfo f => f.GetValue(target) as string,
+            PropertyInfo p => p.GetValue(target) as string,
             _ => null
         };
 
@@ -94,35 +208,31 @@ internal static class AssetResolver
         return val;
     }
 
-    // Legacy file loaders removed; file loading is handled by extension plugins.
-
-    // -------------------- New path-based resolution --------------------
     private static void ResolveFromPathAttribute(
-        IContentDef def,
+        object target,
+        Type targetType,
         MemberInfo mem,
         Type memberType,
         AssetFromPathAttribute attr,
         string modRoot,
-        string modId)
+        string modId,
+        string sourceFile)
     {
-        var t = def.GetType();
-        var key = ResolveName(def, t, attr.PathKey, modId, $"{t.Name}.{mem.Name}", attr.Optional);
+        var key = ResolveName(target, targetType, attr.PathKey, modId, $"{targetType.Name}.{mem.Name}", attr.Optional);
         if (string.IsNullOrWhiteSpace(key)) return;
 
         var raw = key.Trim();
         var isResources = IsResourcesKey(raw);
-        string ext = Path.GetExtension(raw);
+        var ext = Path.GetExtension(raw);
 
-        // Normalize paths
         if (isResources)
         {
             var resPath = raw.Substring(RESOURCES_PREFIX.Length).Trim().TrimStart('/', '\\').Replace('\\', '/');
             var resPathNoExt = Path.ChangeExtension(resPath, null);
 
-            // If extension is known, try plugin; else fallback to direct Resources.Load by member type.
             if (!string.IsNullOrEmpty(ext) && JG.GameContent.AssetResolving.AssetResolverRegistry.TryGetByExtension(ext, out var plug))
             {
-                TryLoadWithPlugin(() => plug.LoadFromResources(resPathNoExt, memberType), def, mem, memberType, modId, raw, attr.Optional);
+                TryLoadWithPlugin(() => plug.LoadFromResources(resPathNoExt, memberType), target, mem, memberType, modId, raw, attr.Optional);
             }
             else
             {
@@ -135,18 +245,20 @@ internal static class AssetResolver
                             Debug.LogWarning($"[{modId}] Resources asset not found: Resources/{resPathNoExt} (type {memberType.Name})");
                         return;
                     }
-                    SetMemberValue(def, mem, asset);
+                    SetMemberValue(target, mem, asset);
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[{modId}] Failed to load Resources {memberType.Name} for {t.Name}.{mem.Name} at '{resPathNoExt}':\n{ex}");
+                    Debug.LogError($"[{modId}] Failed to load Resources {memberType.Name} for {targetType.Name}.{mem.Name} at '{resPathNoExt}':\n{ex}");
                 }
             }
         }
         else
         {
-            // File mode, path is relative to current content folder (directory of the JSON file)
-            var contentRoot = Path.GetDirectoryName(def.SourceFile);
+            var contentRoot = !string.IsNullOrWhiteSpace(sourceFile)
+                ? Path.GetDirectoryName(sourceFile)
+                : null;
+
             var rel = raw.TrimStart('/', '\\');
             var abs = Path.Combine(contentRoot ?? modRoot ?? string.Empty,
                                    rel.Replace('/', Path.DirectorySeparatorChar)
@@ -161,16 +273,16 @@ internal static class AssetResolver
 
             if (!JG.GameContent.AssetResolving.AssetResolverRegistry.TryGetByExtension(ext, out var plug))
             {
-                Debug.LogError($"[{modId}] No resolver registered for extension '{ext}' referenced by {t.Name}.{mem.Name} → '{raw}'.");
+                Debug.LogError($"[{modId}] No resolver registered for extension '{ext}' referenced by {targetType.Name}.{mem.Name} → '{raw}'.");
                 return;
             }
 
-            TryLoadWithPlugin(() => plug.LoadFromFile(abs, memberType), def, mem, memberType, modId, abs, attr.Optional);
+            TryLoadWithPlugin(() => plug.LoadFromFile(abs, memberType), target, mem, memberType, modId, abs, attr.Optional);
         }
     }
 
     private static void TryLoadWithPlugin(Func<UnityEngine.Object> load,
-                                          IContentDef def,
+                                          object target,
                                           MemberInfo mem,
                                           Type memberType,
                                           string modId,
@@ -186,7 +298,7 @@ internal static class AssetResolver
                     Debug.LogWarning($"[{modId}] Resolver returned null for {where} (expected {memberType.Name}).");
                 return;
             }
-            SetMemberValue(def, mem, asset);
+            SetMemberValue(target, mem, asset);
         }
         catch (Exception ex)
         {
@@ -194,5 +306,349 @@ internal static class AssetResolver
         }
     }
 
-    // Legacy support removed; migrate to [AssetFromPath].
+    private static void ResolveFromDirectoryAttribute(
+        object target,
+        Type targetType,
+        MemberInfo mem,
+        Type memberType,
+        AssetsFromDirectoryAttribute attr,
+        string modRoot,
+        string modId,
+        string sourceFile)
+    {
+        var context = $"{targetType.Name}.{mem.Name}";
+
+        if (!TryGetCollectionElementType(memberType, out var elementType, out var isArray))
+        {
+            Debug.LogError($"[{modId}] {context}: Type {memberType.Name} is not a supported collection. Use arrays or IList implementations.");
+            return;
+        }
+
+        if (!typeof(UnityEngine.Object).IsAssignableFrom(elementType))
+        {
+            Debug.LogError($"[{modId}] {context}: Element type {elementType.Name} is not a UnityEngine.Object.");
+            return;
+        }
+
+        var directoryMember = FindMember(targetType, attr.DirectoryKey);
+        if (directoryMember == null)
+        {
+            Debug.LogError($"[{modId}] {context}: Directory member '{attr.DirectoryKey}' not found on {targetType.Name}.");
+            return;
+        }
+
+        var directoryValue = GetMemberValue(target, directoryMember) as string;
+        if (string.IsNullOrWhiteSpace(directoryValue))
+        {
+            if (!attr.Optional)
+                Debug.LogWarning($"[{modId}] {context}: Directory value from '{attr.DirectoryKey}' is empty.");
+            AssignCollection(target, mem, memberType, elementType, isArray, Array.Empty<UnityEngine.Object>());
+            return;
+        }
+
+        var relativeDirectory = directoryValue.Replace('\\', '/').Trim().TrimEnd('/');
+        if (string.IsNullOrEmpty(relativeDirectory))
+        {
+            if (!attr.Optional)
+                Debug.LogWarning($"[{modId}] {context}: Directory value from '{attr.DirectoryKey}' resolves to an empty path.");
+            AssignCollection(target, mem, memberType, elementType, isArray, Array.Empty<UnityEngine.Object>());
+            return;
+        }
+
+        var baseRoot = !string.IsNullOrWhiteSpace(sourceFile)
+            ? Path.GetDirectoryName(sourceFile)
+            : modRoot;
+
+        if (string.IsNullOrWhiteSpace(baseRoot))
+        {
+            Debug.LogError($"[{modId}] {context}: Unable to resolve base content directory.");
+            return;
+        }
+
+        var absoluteDirectory = Path.GetFullPath(Path.Combine(baseRoot, relativeDirectory.Replace('/', Path.DirectorySeparatorChar)));
+        if (!Directory.Exists(absoluteDirectory))
+        {
+            if (!attr.Optional)
+                Debug.LogWarning($"[{modId}] Directory '{absoluteDirectory}' not found for {context}.");
+            AssignCollection(target, mem, memberType, elementType, isArray, Array.Empty<UnityEngine.Object>());
+            return;
+        }
+
+        string extensionValue = null;
+        if (!string.IsNullOrWhiteSpace(attr.ExtensionKey))
+        {
+            var extensionMember = FindMember(targetType, attr.ExtensionKey);
+            if (extensionMember == null)
+            {
+                Debug.LogError($"[{modId}] {context}: Extension member '{attr.ExtensionKey}' not found on {targetType.Name}.");
+                return;
+            }
+
+            extensionValue = GetMemberValue(target, extensionMember) as string;
+        }
+
+        var extensions = ParseExtensions(extensionValue);
+        if (extensions.Count == 0)
+        {
+            Debug.LogWarning($"[{modId}] {context}: No valid extensions were provided via '{attr.ExtensionKey}'.");
+            AssignCollection(target, mem, memberType, elementType, isArray, Array.Empty<UnityEngine.Object>());
+            return;
+        }
+
+        bool includeSubdirectories = false;
+        if (!string.IsNullOrWhiteSpace(attr.IncludeSubdirectoriesKey))
+        {
+            var includeMember = FindMember(targetType, attr.IncludeSubdirectoriesKey);
+            if (includeMember != null)
+            {
+                includeSubdirectories = ExtractBoolValue(target, includeMember);
+            }
+        }
+
+        var searchOption = includeSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+
+        var files = Directory
+            .EnumerateFiles(absoluteDirectory, "*", searchOption)
+            .Where(f => extensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (files.Count == 0)
+        {
+            if (!attr.Optional)
+                Debug.LogWarning($"[{modId}] {context}: No files with extensions {string.Join(", ", extensions)} found in '{absoluteDirectory}'.");
+            AssignCollection(target, mem, memberType, elementType, isArray, Array.Empty<UnityEngine.Object>());
+            return;
+        }
+
+        var loadedAssets = new List<UnityEngine.Object>();
+        foreach (var file in files)
+        {
+            var extension = Path.GetExtension(file);
+            if (!JG.GameContent.AssetResolving.AssetResolverRegistry.TryGetByExtension(extension, out var resolver))
+            {
+                Debug.LogWarning($"[{modId}] {context}: No resolver registered for extension '{extension}'.");
+                continue;
+            }
+
+            try
+            {
+                var asset = resolver.LoadFromFile(file, elementType);
+                asset = EnsureAssetMatchesType(asset, elementType);
+                if (!asset)
+                {
+                    Debug.LogWarning($"[{modId}] {context}: Resolver returned incompatible asset for '{file}'.");
+                    continue;
+                }
+
+                ApplyDefaultAssetName(asset, baseRoot, file);
+                loadedAssets.Add(asset);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[{modId}] {context}: Failed to load {elementType.Name} from '{file}':\n{ex}");
+            }
+        }
+
+        AssignCollection(target, mem, memberType, elementType, isArray, loadedAssets);
+    }
+
+    private static bool ExtractBoolValue(object target, MemberInfo member)
+    {
+        var raw = GetMemberValue(target, member);
+        if (raw is bool b) return b;
+
+        if (raw is IConvertible convertible)
+        {
+            try
+            {
+                return convertible.ToBoolean(null);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    private static IReadOnlyList<string> ParseExtensions(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return new[] { ".png" };
+
+        var parts = value.Split(new[] { ';', ',', '|', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var part in parts)
+        {
+            var ext = part.Trim();
+            if (ext.Length == 0)
+                continue;
+
+            if (!ext.StartsWith("."))
+                ext = "." + ext;
+
+            set.Add(ext.ToLowerInvariant());
+        }
+
+        if (set.Count == 0)
+            set.Add(".png");
+
+        return set.ToArray();
+    }
+
+    private static UnityEngine.Object EnsureAssetMatchesType(UnityEngine.Object asset, Type elementType)
+    {
+        if (!asset)
+            return null;
+
+        if (elementType.IsInstanceOfType(asset))
+            return asset;
+
+        if (elementType == typeof(Sprite) && asset is Texture2D tex)
+        {
+            var sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            sprite.name = tex.name;
+            return sprite;
+        }
+
+        if (elementType == typeof(Texture2D) && asset is Sprite spriteAsset && spriteAsset.texture != null)
+        {
+            return spriteAsset.texture;
+        }
+
+        return null;
+    }
+
+    private static void ApplyDefaultAssetName(UnityEngine.Object asset, string baseRoot, string absolutePath)
+    {
+        if (!asset)
+            return;
+
+        var relative = BuildRelativeKey(baseRoot, absolutePath);
+        switch (asset)
+        {
+            case Sprite sprite:
+                sprite.name = relative;
+                break;
+            case Texture2D texture:
+                texture.name = relative;
+                break;
+            default:
+                asset.name = relative;
+                break;
+        }
+    }
+
+    private static string BuildRelativeKey(string baseRoot, string absoluteFile)
+    {
+        try
+        {
+            var relative = Path.GetRelativePath(baseRoot, absoluteFile);
+            return relative.Replace('\\', '/');
+        }
+        catch
+        {
+            return Path.GetFileName(absoluteFile);
+        }
+    }
+
+    private static void AssignCollection(object target,
+                                         MemberInfo mem,
+                                         Type memberType,
+                                         Type elementType,
+                                         bool isArray,
+                                         IReadOnlyList<UnityEngine.Object> assets)
+    {
+        if (isArray)
+        {
+            var array = Array.CreateInstance(elementType, assets.Count);
+            for (int i = 0; i < assets.Count; i++)
+                array.SetValue(assets[i], i);
+            SetMemberValue(target, mem, array);
+            return;
+        }
+
+        var current = GetMemberValue(target, mem) as IList;
+        var requiresSet = false;
+
+        if (current == null || current.IsFixedSize || current.IsReadOnly || !memberType.IsInstanceOfType(current))
+        {
+            var concreteType = GetConcreteListType(memberType, elementType);
+            current = Activator.CreateInstance(concreteType) as IList;
+            requiresSet = true;
+        }
+        else
+        {
+            current.Clear();
+        }
+
+        if (current == null)
+            return;
+
+        foreach (var asset in assets)
+            current.Add(asset);
+
+        if (requiresSet)
+            SetMemberValue(target, mem, current);
+    }
+
+    private static Type GetConcreteListType(Type declaredType, Type elementType)
+    {
+        if (declaredType.IsInterface || declaredType.IsAbstract)
+            return typeof(List<>).MakeGenericType(elementType);
+
+        return declaredType;
+    }
+
+    private static bool TryGetCollectionElementType(Type collectionType, out Type elementType, out bool isArray)
+    {
+        elementType = null;
+        isArray = false;
+
+        if (collectionType.IsArray)
+        {
+            isArray = true;
+            elementType = collectionType.GetElementType();
+            return elementType != null;
+        }
+
+        if (collectionType.IsGenericType)
+        {
+            var args = collectionType.GetGenericArguments();
+            if (args.Length == 1)
+            {
+                elementType = args[0];
+                return true;
+            }
+        }
+
+        var enumerableType = collectionType.GetInterfaces()
+                                           .Concat(new[] { collectionType })
+                                           .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+
+        if (enumerableType != null)
+        {
+            elementType = enumerableType.GetGenericArguments()[0];
+            return true;
+        }
+
+        return false;
+    }
+
+    private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
+    {
+        public new bool Equals(object x, object y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
+    }
 }
+
+
+
+
+
+
+
