@@ -10,11 +10,12 @@ namespace UI.Theming
     /// </summary>
     public sealed class ThemeableImage : MonoBehaviour, IThemeable
     {
+        [ThemeKey(typeof(ImageStyleParameters))]
         [SerializeField] private string styleKey = "Icon";
 
         Image image;
 
-        void Awake() => image = GetComponent<Image>();
+        void Awake() => CacheReferences();
 
         void OnEnable()
         {
@@ -24,11 +25,17 @@ namespace UI.Theming
                 ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
 
+        void CacheReferences() => image = image ? image : GetComponent<Image>();
+
         // ---------------------------------------------------------------------
         // IThemeable
         // ---------------------------------------------------------------------
         public void ApplyTheme(ThemeAsset theme)
         {
+            CacheReferences();
+            if (image == null)
+                return;
+
             if (theme == null ||
                 !theme.TryGetStyle(styleKey, out ImageStyleParameters style))
                 return;

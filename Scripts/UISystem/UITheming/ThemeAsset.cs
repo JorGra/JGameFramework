@@ -31,7 +31,11 @@ namespace UI.Theming
         [Tooltip("Optional base theme. Look-ups walk up this chain until the key is found.")]
         [SerializeField] private ThemeAsset baseTheme;
 
-        [Header("Colours")][SerializeField] private List<ColorSwatch> colors = new();
+        [Header("Palette")]
+        [SerializeField] private ThemeColorPalette palette;
+
+        [Header("Colour Overrides")]
+        [SerializeField] private List<ColorSwatch> colors = new();
         [Header("Sprites")][SerializeField] private List<SpriteEntry> sprites = new();
         [Header("Fonts")][SerializeField] private List<FontEntry> fonts = new();
 
@@ -44,7 +48,7 @@ namespace UI.Theming
         /// <summary>Return a colour by key; throws if missing in entire chain.</summary>
         public Color GetColor(string key) => TryGetColor(key, out var c)
             ? c
-            : throw new KeyNotFoundException($"[ThemeAsset] Missing colour key '{key}' in '{name}' and its base chain.");
+            : throw new KeyNotFoundException($"[ThemeAsset] Missing colour key '{key}' in '{name}' palette chain.");
 
         /// <summary>Return a sprite by key; throws if missing.</summary>
         public Sprite GetSprite(string key) => TryGetSprite(key, out var s)
@@ -101,8 +105,50 @@ namespace UI.Theming
         }
 
         // ─────────────────────────────────────────────── internal linear look-ups ──
-        bool TryGetColor(string key, out Color c) =>
-            ScanList(this, t => t.colors, key, e => e.key, e => e.color, out c);
+        bool TryGetColor(string key, out Color c)
+        {
+            ThemeAsset current = this;
+            HashSet<ThemeAsset> visited = null;
+
+            while (current != null)
+            {
+                if (TryGetLocalColor(current, key, out c))
+                {
+                    return true;
+                }
+
+                if (current.palette != null && current.palette.TryGetColor(key, out c))
+                {
+                    return true;
+                }
+
+                visited ??= new HashSet<ThemeAsset>(4);
+                if (!visited.Add(current)) break;
+                current = current.baseTheme;
+            }
+
+            c = default;
+            return false;
+        }
+
+        static bool TryGetLocalColor(ThemeAsset asset, string key, out Color value)
+        {
+            var list = asset.colors;
+            if (list != null)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (list[i].key == key)
+                    {
+                        value = list[i].color;
+                        return true;
+                    }
+                }
+            }
+
+            value = default;
+            return false;
+        }
 
         bool TryGetSprite(string key, out Sprite s) =>
             ScanList(this, t => t.sprites, key, e => e.key, e => e.sprite, out s);

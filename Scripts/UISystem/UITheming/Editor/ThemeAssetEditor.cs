@@ -35,7 +35,7 @@ namespace UI.Theming.Editor
         readonly Dictionary<string, bool> spriteFoldouts = new();
         void OnEnable()
         {
-            colorsList = BuildList("colors", "Colours");
+            colorsList = BuildList("colors", "Colour Overrides");
             spritesList = BuildSpriteList();
             fontsList = BuildList("fonts", "Fonts");
 
@@ -47,6 +47,7 @@ namespace UI.Theming.Editor
             serializedObject.Update();
 
             EditorGUILayout.PropertyField(serializedObject.FindProperty("baseTheme"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("palette"));
             EditorGUILayout.Space(4);
 
             colorsList.DoLayoutList();

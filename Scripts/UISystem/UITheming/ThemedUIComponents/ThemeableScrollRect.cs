@@ -12,6 +12,7 @@ namespace UI.Theming
     [RequireComponent(typeof(ScrollRect))]
     public sealed class ThemeableScrollRect : MonoBehaviour, IThemeable
     {
+        [ThemeKey(typeof(ScrollRectStyleParameters))]
         [SerializeField] private string styleKey = "Default";
 
         ScrollRect scrollRect;
@@ -27,19 +28,9 @@ namespace UI.Theming
         Sprite originalVBackgroundSprite, originalVHandleSprite;
         ColorBlock originalVColors;
 
-        void Awake()
-        {
-            scrollRect = GetComponent<ScrollRect>();
-            panelImage = scrollRect.GetComponent<Image>();
+        bool cacheInitialized;
 
-            CacheScrollbarReferences(scrollRect.horizontalScrollbar, ref hScrollbar,
-                ref hBackground, ref hHandle, ref originalHBackgroundSprite,
-                ref originalHHandleSprite, ref originalHColors);
-
-            CacheScrollbarReferences(scrollRect.verticalScrollbar, ref vScrollbar,
-                ref vBackground, ref vHandle, ref originalVBackgroundSprite,
-                ref originalVHandleSprite, ref originalVColors);
-        }
+        void Awake() => EnsureCache();
 
         void CacheScrollbarReferences(Scrollbar scrollbar, ref Scrollbar cachedScrollbar,
             ref Image background, ref Image handle, ref Sprite originalBgSprite,
@@ -71,6 +62,10 @@ namespace UI.Theming
 
         public void ApplyTheme(ThemeAsset theme)
         {
+            EnsureCache();
+            if (!cacheInitialized || scrollRect == null)
+                return;
+
             if (theme == null || !theme.TryGetStyle(styleKey, out ScrollRectStyleParameters style))
                 return;
 
@@ -83,6 +78,28 @@ namespace UI.Theming
             if (vScrollbar)
                 ApplyScrollbarStyle(vScrollbar, theme, style, vBackground, vHandle,
                     originalVBackgroundSprite, originalVHandleSprite, originalVColors, false);
+        }
+
+        void EnsureCache()
+        {
+            if (cacheInitialized)
+                return;
+
+            scrollRect = GetComponent<ScrollRect>();
+            if (!scrollRect)
+                return;
+
+            panelImage = scrollRect.GetComponent<Image>();
+
+            CacheScrollbarReferences(scrollRect.horizontalScrollbar, ref hScrollbar,
+                ref hBackground, ref hHandle, ref originalHBackgroundSprite,
+                ref originalHHandleSprite, ref originalHColors);
+
+            CacheScrollbarReferences(scrollRect.verticalScrollbar, ref vScrollbar,
+                ref vBackground, ref vHandle, ref originalVBackgroundSprite,
+                ref originalVHandleSprite, ref originalVColors);
+
+            cacheInitialized = true;
         }
 
         void ApplyPanelStyle(ThemeAsset theme, ScrollRectStyleParameters style)

@@ -7,18 +7,14 @@ namespace UI.Theming
     [RequireComponent(typeof(Toggle))]
     public sealed class ThemeableToggle : MonoBehaviour, IThemeable
     {
+        [ThemeKey(typeof(ToggleStyleParameters))]
         [SerializeField] private string styleKey = "Default";
 
         Toggle toggle;
         Image background;
         Image checkmark;
 
-        void Awake()
-        {
-            toggle = GetComponent<Toggle>();
-            background = toggle.targetGraphic as Image;
-            checkmark = toggle.graphic as Image;
-        }
+        void Awake() => CacheReferences();
 
         void OnEnable()
         {
@@ -26,8 +22,26 @@ namespace UI.Theming
             ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
 
+        void CacheReferences()
+        {
+            if (!toggle)
+            {
+                toggle = GetComponent<Toggle>();
+            }
+
+            if (!toggle) return;
+
+            background = toggle.targetGraphic as Image;
+            checkmark = toggle.graphic as Image;
+        }
+
         public void ApplyTheme(ThemeAsset theme)
         {
+            CacheReferences();
+
+            if (!toggle)
+                return;
+
             if (theme == null ||
                 !theme.TryGetStyle(styleKey, out ToggleStyleParameters s)) return;
 

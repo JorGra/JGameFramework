@@ -10,7 +10,8 @@ At runtime, **ThemeManager** keeps the active theme and notifies all components 
 
 Key runtime classes
 
-* **ThemeAsset** — root ScriptableObject. It owns colour / sprite / font lists and an array of `StyleSheetBase` items, plus an optional `baseTheme` for single-level inheritance .
+* **ThemeAsset** — root ScriptableObject. It references a shared colour palette, optional overrides, sprite / font lists and an array of `StyleSheetBase` items, plus an optional `baseTheme` for single-level inheritance .
+* **ThemeColorPalette** — swatch collection (`Primary`, `Accent`, `OnDanger`…) that keeps colour changes centralised across multiple themes.
 * **StyleSheetBase** ➜ **StyleSheet<T>** — generic wrappers that hold a typed list (`List<T>`). Unity serialises them inside the asset; no extra files needed.
 * **StyleModuleParameters** — base class for every style entry. It only stores the public `StyleKey` string .
 * **ThemeManager** — lightweight singleton; swaps themes and raises `ThemeChangedEvent` through your existing `EventBus` .
@@ -32,8 +33,9 @@ Give it a descriptive name such as **“LightTheme”**.
 ### 2. Fill the base resources
 
 1. Open the asset in the Inspector.
-2. Under **Colours**, **Sprites** and **Fonts** press **+** to add rows.
-3. Type a *unique* **key** (e.g. `Primary`, `Icon/Close`, `Bold`) and assign the value (colour picker, sprite reference, TMP font asset).
+2. Assign a **Theme Color Palette** (Create ➜ UI ➜ Theme ➜ Color Palette) to centralise swatches.
+3. Under **Colour Overrides**, **Sprites** and **Fonts** press **+** to add rows.
+4. Type a *unique* **key** (e.g. `Primary`, `Icon/Close`, `Bold`) and assign the value (colour picker, sprite reference, TMP font asset). Overrides replace palette entries with matching keys.
 
 ### 3. Add typed style-sheets
 
@@ -41,7 +43,8 @@ Give it a descriptive name such as **“LightTheme”**.
 2. Pick one of the available sheets, e.g. **Text Style Sheet**.
 3. Inside that sheet click **+** to add individual style entries, then fill their fields.
 
-   * Most fields reference the keys you defined in step 2, making everything fully data-driven.
+   * Most fields reference the keys you defined in the base resources step, keeping everything data-driven.
+   * Every key field now exposes a picker button (`...`) with live previews for colours, sprites, fonts and styles, so you never have to copy string tokens by hand.
 4. Repeat for every sheet you need (Toggle, Image, etc.).
 
    * Only unused sheets are offered in the **Add ▼** menu, so the list stays tidy.
@@ -60,8 +63,8 @@ If you want a theme that tweaks just a few values:
 
 1. Drop a **ThemeManager** in the first scene that shows UI.
 2. Assign the desired ThemeAsset to **Default Theme**.
-3. Add `Themeable…` components to your UI prefabs (e.g. `ThemeableText`, `ThemeableToggle`).
-4. Set each component’s **Style Key** so it knows which entry to pull from the theme.
+3. Add `Themeable…` components to your UI prefabs (e.g. `ThemeableText`, `ThemeableButton`, `ThemeableToggle`).
+4. Set each component’s **Style Key** so it knows which entry to pull from the theme (Primary, Secondary, Ghost…).
 5. Play — the elements will immediately style themselves and will update live if you call `ThemeManager.SetTheme(newAsset)` at runtime.
 
 That’s it — no prefabs, no code editing, just keys and references in the Inspector.
@@ -153,7 +156,21 @@ Suppose you want to theme a **Slider**.
 
 No other code needs to change — the new sheet automatically appears in the **Add ▼** menu of every ThemeAsset.
 
-### B. Expanding an existing style type
+### B. Authoring animated buttons (without Animator controllers)
+
+1. In your ThemeAsset add or open the **Button Style Sheet** and create entries such as `Button/Primary`, `Button/Secondary`.
+2. Configure the shared label style and animation settings (duration, easing, scaled vs. unscaled time).
+3. For each interaction state (Normal, Highlighted, Pressed, Selected, Disabled) fill the fields you want to drive:
+   * Reference palette keys for background and label colours.
+   * Toggle **Animate Scale** or **Animate Size Delta** to pulse or squash the button on hover/press.
+   * Use **Label Style Override** when a state needs a distinct text preset (e.g. all‑caps focus variant).
+   * Enable **Include Icon** if your prefab has a companion graphic, fill its colour keys, and assign the icon reference on `ThemeableButton` so it animates with the label.
+4. Drop `ThemeableButton` on your button prefab, assign the same **Style Key**, and optionally point `Icon` to the graphic you want tinted alongside the label (plus override `TMP_Text` / `RectTransform` if the defaults do not fit).
+5. Play — the component animates between states with a single data source, no Animator controller required.
+
+Changing a colour in the shared palette (e.g. updating `Primary`) immediately updates every themed button variant because each state resolves colours through the new `ThemeColorPalette` reference.
+
+### C. Expanding an existing style type
 
 Need an outline colour for text?
 
@@ -172,7 +189,7 @@ Need an outline colour for text?
 
 3. Designers edit existing Text entries in the asset and set the new field. Old assets stay valid because Unity ignores unknown fields until they appear in code.
 
-### C. Performance tweak (optional)
+### D. Performance tweak (optional)
 
 If your lists grow into hundreds of entries, add a dictionary cache in `ThemeAsset.OnEnable()`; all public APIs remain unchanged.
 

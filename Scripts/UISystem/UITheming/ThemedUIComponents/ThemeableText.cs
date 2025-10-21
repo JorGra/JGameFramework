@@ -7,12 +7,13 @@ namespace UI.Theming
     [RequireComponent(typeof(TMP_Text))]
     public sealed class ThemeableText : MonoBehaviour, IThemeable
     {
+        [ThemeKey(typeof(TextStyleParameters))]
         [SerializeField] private string styleKey = "body";
         [SerializeField] bool CustomFontSize = false;
 
         TMP_Text text;
 
-        void Awake() => text = GetComponent<TMP_Text>();
+        void Awake() => CacheReferences();
 
         void OnEnable()
         {
@@ -20,9 +21,15 @@ namespace UI.Theming
             ApplyTheme(ThemeManager.Instance.CurrentTheme);
         }
 
+        void CacheReferences() => text = text ? text : GetComponent<TMP_Text>();
+
         /// <inheritdoc/>
         public void ApplyTheme(ThemeAsset theme)
         {
+            CacheReferences();
+            if (text == null)
+                return;
+
             if (theme == null ||
                 !theme.TryGetStyle(styleKey, out TextStyleParameters style))
                 return;
