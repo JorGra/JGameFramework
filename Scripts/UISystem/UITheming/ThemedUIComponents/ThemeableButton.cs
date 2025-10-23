@@ -68,6 +68,8 @@ namespace UI.Theming
         bool pointerInside;
         bool pointerDown;
         bool hasSelection;
+        bool DrivesBackgroundColor => style == null || style.SelectableTransition != Selectable.Transition.ColorTint;
+        bool DrivesBackgroundSprite => style == null || style.SelectableTransition != Selectable.Transition.SpriteSwap;
 
         void Awake() => CacheReferences();
 
@@ -111,6 +113,7 @@ namespace UI.Theming
 
             style = parameters;
             ResolveStates();
+            ConfigureSelectableTransition();
             ApplyLabelStyleForState(normal);
             ApplyIconStyle();
             if (style.IncludeIcon && icon == null)
@@ -231,7 +234,6 @@ namespace UI.Theming
 
             if (button != null)
             {
-                button.transition = Selectable.Transition.None;
             }
         }
 
@@ -243,6 +245,107 @@ namespace UI.Theming
             pressed = Resolve(style.Pressed, style.Normal);
             selected = Resolve(style.Selected, style.Normal);
             disabled = Resolve(style.Disabled, style.Normal);
+        }
+
+        void ConfigureSelectableTransition()
+        {
+            if (!button || style == null)
+            {
+                return;
+            }
+
+            if (!style.UsesUnitySelectableTransition)
+            {
+                button.transition = Selectable.Transition.None;
+                button.spriteState = default;
+                return;
+            }
+
+            if (!button.targetGraphic && background)
+            {
+                button.targetGraphic = background;
+            }
+
+            button.transition = style.SelectableTransition;
+
+            if (style.SelectableTransition == Selectable.Transition.ColorTint)
+            {
+                var colors = button.colors;
+
+                colors.normalColor = ResolveTransitionColor(normal, colors.normalColor);
+                colors.highlightedColor = ResolveTransitionColor(highlighted, colors.highlightedColor);
+                colors.pressedColor = ResolveTransitionColor(pressed, colors.pressedColor);
+                colors.selectedColor = ResolveTransitionColor(selected, colors.selectedColor);
+                colors.disabledColor = ResolveTransitionColor(disabled, colors.disabledColor);
+
+                button.colors = colors;
+
+                if (button.targetGraphic)
+                {
+                    button.targetGraphic.color = colors.normalColor;
+                }
+            }
+            else if (style.SelectableTransition == Selectable.Transition.SpriteSwap)
+            {
+                var spriteState = button.spriteState;
+                spriteState.highlightedSprite = ResolveTransitionSprite(highlighted, spriteState.highlightedSprite);
+                spriteState.pressedSprite = ResolveTransitionSprite(pressed, spriteState.pressedSprite);
+                spriteState.selectedSprite = ResolveTransitionSprite(selected, spriteState.selectedSprite);
+                spriteState.disabledSprite = ResolveTransitionSprite(disabled, spriteState.disabledSprite);
+                button.spriteState = spriteState;
+            }
+
+            ApplySelectableBaseline(style.SelectableTransition);
+        }
+
+        Color ResolveTransitionColor(ResolvedButtonState state, Color fallback)
+        {
+            var color = ResolveBackgroundColor(state, true);
+            if (color.HasValue)
+            {
+                return color.Value;
+            }
+
+            return fallback;
+        }
+
+        Sprite ResolveTransitionSprite(ResolvedButtonState state, Sprite fallback)
+        {
+            var sprite = ResolveSprite(state, true, out _);
+            return sprite ? sprite : fallback;
+        }
+
+        void ApplySelectableBaseline(Selectable.Transition transition)
+        {
+            if (transition == Selectable.Transition.None || !background)
+            {
+                return;
+            }
+
+            if (normal.BackgroundSprite)
+            {
+                background.sprite = normal.BackgroundSprite;
+            }
+
+            if (normal.BackgroundImageType.HasValue)
+            {
+                background.type = normal.BackgroundImageType.Value;
+            }
+
+            if (normal.BackgroundPixelPerUnit.HasValue && !customPixelPerUnit)
+            {
+                background.pixelsPerUnitMultiplier = Mathf.Max(0.001f, normal.BackgroundPixelPerUnit.Value);
+            }
+
+            if (transition == Selectable.Transition.ColorTint)
+            {
+                var baseColor = ResolveTransitionColor(normal, background.color);
+                background.color = baseColor;
+                if (button && button.targetGraphic == background)
+                {
+                    button.targetGraphic.color = baseColor;
+                }
+            }
         }
 
         ResolvedButtonState ResolveDefaults(ButtonStyleParameters.ButtonDefaults defaultsConfig)
@@ -540,8 +643,13 @@ namespace UI.Theming
             var curve = settings.Easing;
             bool useUnscaled = settings.UseUnscaledTime;
 
-            Color? startBackgroundColor = background ? background.color : null;
-            Color? targetBackgroundColor = ResolveBackgroundColor(target, fallbackToNormal);
+            Color? startBackgroundColor = null;
+            Color? targetBackgroundColor = null;
+            if (background && DrivesBackgroundColor)
+            {
+                startBackgroundColor = background.color;
+                targetBackgroundColor = ResolveBackgroundColor(target, fallbackToNormal);
+            }
             Color? startLabelColor = label ? label.color : null;
             Color? targetLabelColor = null;
 
@@ -568,21 +676,28 @@ namespace UI.Theming
 
             if (background)
             {
-                var sprite = ResolveSprite(target, fallbackToNormal, out var pixelPerUnit);
-                if (sprite)
+                if (DrivesBackgroundSprite)
                 {
-                    background.sprite = sprite;
-                }
+                    var sprite = ResolveSprite(target, fallbackToNormal, out var pixelPerUnit);
+                    if (sprite)
+                    {
+                        background.sprite = sprite;
+                    }
 
-                if (pixelPerUnit.HasValue && !customPixelPerUnit)
-                {
-                    background.pixelsPerUnitMultiplier = Mathf.Max(0.001f, pixelPerUnit.Value);
-                }
+                    if (pixelPerUnit.HasValue && !customPixelPerUnit)
+                    {
+                        background.pixelsPerUnitMultiplier = Mathf.Max(0.001f, pixelPerUnit.Value);
+                    }
 
-                var type = ResolveImageType(target, fallbackToNormal);
-                if (type.HasValue)
+                    var type = ResolveImageType(target, fallbackToNormal);
+                    if (type.HasValue)
+                    {
+                        background.type = type.Value;
+                    }
+                }
+                else if (!customPixelPerUnit && normal.BackgroundPixelPerUnit.HasValue)
                 {
-                    background.type = type.Value;
+                    background.pixelsPerUnitMultiplier = Mathf.Max(0.001f, normal.BackgroundPixelPerUnit.Value);
                 }
             }
 
@@ -591,7 +706,7 @@ namespace UI.Theming
             {
                 float t = duration > 0f ? curve.Evaluate(Mathf.Clamp01(time / duration)) : 1f;
 
-                if (background && startBackgroundColor.HasValue && targetBackgroundColor.HasValue)
+                if (background && DrivesBackgroundColor && startBackgroundColor.HasValue && targetBackgroundColor.HasValue)
                 {
                     background.color = Color.LerpUnclamped(startBackgroundColor.Value, targetBackgroundColor.Value, t);
                 }
@@ -620,7 +735,7 @@ namespace UI.Theming
                 yield return null;
             }
 
-            if (background && targetBackgroundColor.HasValue)
+            if (background && DrivesBackgroundColor && targetBackgroundColor.HasValue)
             {
                 background.color = targetBackgroundColor.Value;
             }
@@ -658,30 +773,36 @@ namespace UI.Theming
 
             if (background)
             {
-                var sprite = ResolveSprite(state, fallbackToNormal, out var pixelPerUnit);
-                if (sprite)
+                if (DrivesBackgroundSprite)
                 {
-                    background.sprite = sprite;
-                    if (pixelPerUnit.HasValue && !customPixelPerUnit)
+                    var sprite = ResolveSprite(state, fallbackToNormal, out var pixelPerUnit);
+                    if (sprite)
+                    {
+                        background.sprite = sprite;
+                        if (pixelPerUnit.HasValue && !customPixelPerUnit)
+                        {
+                            background.pixelsPerUnitMultiplier = Mathf.Max(0.001f, pixelPerUnit.Value);
+                        }
+
+                        var type = ResolveImageType(state, fallbackToNormal);
+                        if (type.HasValue)
+                        {
+                            background.type = type.Value;
+                        }
+                    }
+                    else if (pixelPerUnit.HasValue && !customPixelPerUnit)
                     {
                         background.pixelsPerUnitMultiplier = Mathf.Max(0.001f, pixelPerUnit.Value);
                     }
+                }
 
-                    var type = ResolveImageType(state, fallbackToNormal);
-                    if (type.HasValue)
+                if (DrivesBackgroundColor)
+                {
+                    var color = ResolveBackgroundColor(state, fallbackToNormal);
+                    if (color.HasValue)
                     {
-                        background.type = type.Value;
+                        background.color = color.Value;
                     }
-                }
-                else if (pixelPerUnit.HasValue && !customPixelPerUnit)
-                {
-                    background.pixelsPerUnitMultiplier = Mathf.Max(0.001f, pixelPerUnit.Value);
-                }
-
-                var color = ResolveBackgroundColor(state, fallbackToNormal);
-                if (color.HasValue)
-                {
-                    background.color = color.Value;
                 }
             }
 

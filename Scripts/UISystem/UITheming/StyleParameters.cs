@@ -123,6 +123,10 @@ namespace UI.Theming
         [Tooltip("Global easing configuration used when blending between interaction states.")]
         [SerializeField] private AnimationSettings animation = AnimationSettings.Default();
 
+        [Header("Selectable Transition")]
+        [Tooltip("Optional Unity selectable transition applied to the Button component. Keep None to use the custom animator.")]
+        [SerializeField] private Selectable.Transition selectableTransition = Selectable.Transition.None;
+
         [Header("Defaults")]
         [Tooltip("Values shared by all button states when a property is not overridden.")]
         [SerializeField] private ButtonDefaults defaults = new ButtonDefaults();
@@ -144,6 +148,10 @@ namespace UI.Theming
         public bool IncludeIcon => includeIcon;
         public string IconStyleKey => iconStyleKey;
         public AnimationSettings Animation => animation;
+        public Selectable.Transition SelectableTransition => selectableTransition;
+        public bool UsesUnitySelectableTransition =>
+            selectableTransition == Selectable.Transition.ColorTint ||
+            selectableTransition == Selectable.Transition.SpriteSwap;
         public ButtonDefaults Defaults => defaults;
         public ButtonVisualState Normal => normal;
         public ButtonVisualState Highlighted => highlighted;
