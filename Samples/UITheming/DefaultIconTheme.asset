@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e6dfb9a66a07e624aa63b895c98dfda4, type: 3}
   m_Name: DefaultIconTheme
   m_EditorClassIdentifier: 
-  baseTheme: {fileID: 11400000, guid: e5f5c54a9a0d4aa46b6603d9dcd9cb6f, type: 2}
+  baseTheme: {fileID: 11400000, guid: b902cfdea75ff7049a2c8ee124a45c0e, type: 2}
+  palette: {fileID: 0}
   colors:
   - key: IconTint
     color: {r: 0, g: 0, b: 0, a: 0.34117648}
@@ -27,6 +28,14 @@ MonoBehaviour:
     pixelPerUnit: 0
   - key: IconAllert
     sprite: {fileID: 21300000, guid: 2ea6d89c3fb05c24f8fb2c11ff000f08, type: 3}
+    imageType: 0
+    pixelPerUnit: 0
+  - key: IconSell
+    sprite: {fileID: -1353904963553496230, guid: 75e976e76e2aaf640993bb4718b9d09a, type: 3}
+    imageType: 0
+    pixelPerUnit: 0
+  - key: IconUpgrade
+    sprite: {fileID: -1551200533590106951, guid: be3edf39fdb100343a416be6a87a4cc7, type: 3}
     imageType: 0
     pixelPerUnit: 0
   fonts: []
@@ -47,4 +56,10 @@ MonoBehaviour:
           tintColorKey: IconTint
         - styleKey: IconAllert
           spriteKey: IconAllert
+          tintColorKey: IconTint
+        - styleKey: IconSell
+          spriteKey: IconSell
+          tintColorKey: IconTint
+        - styleKey: IconUpgrade
+          spriteKey: IconUpgrade
           tintColorKey: IconTint

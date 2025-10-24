@@ -1,11 +1,12 @@
-﻿using JGameFramework.UI.Tooltips;
+﻿using JG.GameContent;
+using JGameFramework.UI.Tooltips;
 using System;
 using System.Collections.Generic;
+using UI.Theming;
 using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.EventSystems;
 using UnityEngine.Events;
-using JG.GameContent;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace JG.Inventory.UI
 {
@@ -166,6 +167,7 @@ namespace JG.Inventory.UI
                     {
                         builder.AddAction(new TooltipActionData(
                             label: "Combine",
+                            icon: ThemeManager.Instance.CurrentTheme.GetSprite("IconUpgrade"),
                             callback: (handle, ctx) =>
                             {
                                 if (!(hub?.TryCombineWeapon(binding.slotComponent) ?? false))
@@ -177,6 +179,7 @@ namespace JG.Inventory.UI
 
                         builder.AddAction(new TooltipActionData(
                             label: "Sell",
+                            icon: ThemeManager.Instance.CurrentTheme.GetSprite("IconSell"),
                             callback: (handle, ctx) =>
                             {
                                 if (!(hub?.TrySellWeapon(binding.slotComponent) ?? false))
@@ -224,6 +227,7 @@ namespace JG.Inventory.UI
 
                     builder.AddAction(new TooltipActionData(
                         label: "Cancel",
+                        icon: ThemeManager.Instance.CurrentTheme.GetSprite("IconClose"),
                         callback: (handle, ctx) => handle.Close()));
                 },
                 eventData: null,
@@ -509,7 +513,7 @@ namespace JG.Inventory.UI
             binding.itemView.Apply(data);
         }
 
-                public void RebuildBindings()
+        public void RebuildBindings()
         {
             ResetSlotListeners();
             Slots.Clear();
