@@ -272,17 +272,26 @@ namespace UI.Theming
             {
                 var colors = button.colors;
 
-                colors.normalColor = ResolveTransitionColor(normal, colors.normalColor);
-                colors.highlightedColor = ResolveTransitionColor(highlighted, colors.highlightedColor);
-                colors.pressedColor = ResolveTransitionColor(pressed, colors.pressedColor);
-                colors.selectedColor = ResolveTransitionColor(selected, colors.selectedColor);
-                colors.disabledColor = ResolveTransitionColor(disabled, colors.disabledColor);
+                // Respect only explicit per-state tint keys; leave others untouched
+                if (style.Normal != null && style.Normal.HasBackgroundColor && currentTheme != null)
+                    colors.normalColor = currentTheme.GetColor(style.Normal.BackgroundColorKey);
+                if (style.Highlighted != null && style.Highlighted.HasBackgroundColor && currentTheme != null)
+                    colors.highlightedColor = currentTheme.GetColor(style.Highlighted.BackgroundColorKey);
+                if (style.Pressed != null && style.Pressed.HasBackgroundColor && currentTheme != null)
+                    colors.pressedColor = currentTheme.GetColor(style.Pressed.BackgroundColorKey);
+                if (style.Selected != null && style.Selected.HasBackgroundColor && currentTheme != null)
+                    colors.selectedColor = currentTheme.GetColor(style.Selected.BackgroundColorKey);
+                if (style.Disabled != null && style.Disabled.HasBackgroundColor && currentTheme != null)
+                    colors.disabledColor = currentTheme.GetColor(style.Disabled.BackgroundColorKey);
 
                 button.colors = colors;
 
-                if (button.targetGraphic)
+                // Only set the target graphic color when the theme explicitly
+                // provides a normal background color; otherwise keep the Image's
+                // existing tint to avoid unintended overrides.
+                if (button.targetGraphic && style.Normal != null && style.Normal.HasBackgroundColor && currentTheme != null)
                 {
-                    button.targetGraphic.color = colors.normalColor;
+                    button.targetGraphic.color = currentTheme.GetColor(style.Normal.BackgroundColorKey);
                 }
             }
             else if (style.SelectableTransition == Selectable.Transition.SpriteSwap)
@@ -300,10 +309,12 @@ namespace UI.Theming
 
         Color ResolveTransitionColor(ResolvedButtonState state, Color fallback)
         {
-            var color = ResolveBackgroundColor(state, true);
-            if (color.HasValue)
+            // Only apply a color when the theme explicitly provides one.
+            // When left blank, preserve the existing Selectable colors
+            // configured on the Button (i.e., use the provided fallback).
+            if (state.BackgroundColor.HasValue)
             {
-                return color.Value;
+                return state.BackgroundColor.Value;
             }
 
             return fallback;
@@ -339,11 +350,15 @@ namespace UI.Theming
 
             if (transition == Selectable.Transition.ColorTint)
             {
-                var baseColor = ResolveTransitionColor(normal, background.color);
-                background.color = baseColor;
-                if (button && button.targetGraphic == background)
+                // Respect only explicit per-state tint for base color; otherwise keep current
+                if (style != null && style.Normal != null && style.Normal.HasBackgroundColor && currentTheme != null)
                 {
-                    button.targetGraphic.color = baseColor;
+                    var baseColor = currentTheme.GetColor(style.Normal.BackgroundColorKey);
+                    background.color = baseColor;
+                    if (button && button.targetGraphic == background)
+                    {
+                        button.targetGraphic.color = baseColor;
+                    }
                 }
             }
         }
