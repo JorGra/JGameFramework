@@ -1,3 +1,4 @@
+using JG.GameContent;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -100,6 +101,7 @@ public class StatsProfile : ScriptableObject
 [Serializable]
 public struct StatSpec
 {
+    [IdReference(typeof(StatDef))]
     public string statId;     // e.g. "maxhealth"
     public float baseValue;   // e.g. 120
 }
