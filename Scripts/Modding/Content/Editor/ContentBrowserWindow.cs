@@ -442,8 +442,7 @@ namespace JG.GameContent.EditorTools
                     if (_selectedObj is IInventoryItem invItem)
                     {
                         var typed = invItem.Effects;
-                        var legacy = invItem.LegacyEffects;
-                        bool hasAny = (typed != null && typed.Count > 0) || (legacy != null && legacy.Count > 0);
+                        bool hasAny = typed != null && typed.Count > 0;
                         if (hasAny)
                         {
                             EditorGUILayout.Space(6);
@@ -462,27 +461,6 @@ namespace JG.GameContent.EditorTools
                                                 EditorGUILayout.LabelField($"#{idx} Type", eff?.GetType().Name ?? "(null)", EditorStyles.boldLabel);
                                                 var json = eff != null ? Newtonsoft.Json.JsonConvert.SerializeObject(eff, Newtonsoft.Json.Formatting.Indented) : "(null)";
                                                 EditorGUILayout.TextArea(json, GUILayout.MinHeight(44));
-                                            }
-                                            idx++;
-                                        }
-                                    }
-
-                                    if (legacy != null)
-                                    {
-                                        foreach (var eff in legacy)
-                                        {
-                                            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-                                            {
-                                                EditorGUILayout.LabelField($"#{idx} Type", eff?.effectType ?? "(null)", EditorStyles.boldLabel);
-                                                if (eff != null && eff.effectParams != null)
-                                                {
-                                                    string json = eff.effectParams.ToString(Newtonsoft.Json.Formatting.Indented);
-                                                    EditorGUILayout.TextArea(json, GUILayout.MinHeight(44));
-                                                }
-                                                else
-                                                {
-                                                    EditorGUILayout.LabelField("Params", "(null)");
-                                                }
                                             }
                                             idx++;
                                         }

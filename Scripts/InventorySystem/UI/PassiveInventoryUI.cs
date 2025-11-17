@@ -94,7 +94,7 @@ namespace JG.Inventory.UI
                         Value = stack.Count.ToString()
                     });
 
-                    bool hasEffects = ((stack.Data.Effects?.Count ?? 0) > 0) || ((stack.Data.LegacyEffects?.Count ?? 0) > 0);
+                    bool hasEffects = ((stack.Data.Effects?.Count ?? 0) > 0);
                     if (hasEffects)
                     {
                         builder.AddAction(new TooltipActionData(

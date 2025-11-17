@@ -10,5 +10,4 @@ public interface IInventoryItem : IContentDef   // from the mod system
     int MaxStack { get; }
     IReadOnlyList<string> EquipTags { get; }
     IReadOnlyList<ItemEffectDef> Effects { get; }
-    IReadOnlyList<ItemEffectDefinition> LegacyEffects { get; }
 }

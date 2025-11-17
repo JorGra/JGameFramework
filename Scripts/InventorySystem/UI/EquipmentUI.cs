@@ -191,7 +191,7 @@ namespace JG.Inventory.UI
                     }
                     else
                     {
-                        bool canUse = (((equipped.Data.Effects?.Count ?? 0) > 0) || ((equipped.Data.LegacyEffects?.Count ?? 0) > 0)) && equipped.Data.EquipTags.Count == 0;
+                        bool canUse = ((equipped.Data.Effects?.Count ?? 0) > 0) && equipped.Data.EquipTags.Count == 0;
 
                         {
                             builder.AddAction(new TooltipActionData(
@@ -572,4 +572,3 @@ namespace JG.Inventory.UI
 
     }
 }
-

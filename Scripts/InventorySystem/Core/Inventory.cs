@@ -73,11 +73,6 @@ namespace JG.Inventory
                     foreach (var def in slot.Stack.Data.Effects)
                         def?.BuildEffect()?.Apply(ctx);
                 }
-                else if (slot.Stack.Data.LegacyEffects != null)
-                {
-                    foreach (var legacy in slot.Stack.Data.LegacyEffects)
-                        ItemEffectRegistry.Build(legacy.effectType, legacy.effectParams)?.Apply(ctx);
-                }
 
                 RemoveItem(itemId, 1);                         // fires Changed
                 return true;

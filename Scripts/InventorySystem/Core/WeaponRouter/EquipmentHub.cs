@@ -285,40 +285,6 @@ namespace JG.Inventory
                     }
                 }
             }
-
-            if (item?.LegacyEffects != null)
-            {
-                foreach (var effect in item.LegacyEffects)
-                {
-                    if (!string.Equals(effect.effectType, "EquippWeapon", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    string id = null;
-                    var token = effect.effectParams;
-                    if (token == null || token.Type == JTokenType.Null || token.Type == JTokenType.Undefined)
-                        continue;
-
-                    if (token.Type == JTokenType.String)
-                    {
-                        id = token.Value<string>();
-                    }
-                    else if (token is JObject obj)
-                    {
-                        id = obj["weaponID"]?.ToString() ?? obj["id"]?.ToString();
-                    }
-
-                    if (string.IsNullOrWhiteSpace(id))
-                        continue;
-
-                    weaponId = id;
-                    if (!ContentCatalogue.Instance.TryGet(id, out weaponDef))
-                    {
-                        Debug.LogWarning($"[EquipmentHub] WeaponDef '{id}' referenced by item '{item.Id}' not found.");
-                        return false;
-                    }
-                    return true;
-                }
-            }
             return false;
         }
 
@@ -364,6 +330,5 @@ namespace JG.Inventory
         }
     }
 }
-
 
 

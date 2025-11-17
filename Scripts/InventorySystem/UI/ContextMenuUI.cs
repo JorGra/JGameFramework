@@ -40,7 +40,7 @@ namespace JG.Inventory.UI
 
             /* --- button visibility (unchanged) --- */
             bool canEquip = !IsEquipped && stack.Data.EquipTags.Count > 0 && this.hub != null;
-            bool canUse = (((stack.Data.Effects?.Count ?? 0) > 0) || ((stack.Data.LegacyEffects?.Count ?? 0) > 0)) && stack.Data.EquipTags.Count == 0;
+            bool canUse = ((stack.Data.Effects?.Count ?? 0) > 0) && stack.Data.EquipTags.Count == 0;
             bool canUnequip = IsEquipped;
 
             equipBtn.gameObject.SetActive(canEquip);

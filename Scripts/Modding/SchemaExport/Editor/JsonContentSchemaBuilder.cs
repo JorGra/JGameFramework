@@ -522,9 +522,18 @@ namespace JG.GameContent.SchemaExport
                 return string.Empty;
 
             // Prefer ItemEffectAttribute.Id when present, else fall back to the CLR name.
-            var attr = subType.GetCustomAttribute<JG.Inventory.ItemEffectAttribute>();
-            if (attr != null && !string.IsNullOrWhiteSpace(attr.Id))
-                return attr.Id;
+            var prop = subType.GetProperty("TypeId", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
+            if (prop != null && typeof(string).IsAssignableFrom(prop.PropertyType))
+            {
+                try
+                {
+                    var instance = Activator.CreateInstance(subType);
+                    var value = prop.GetValue(instance) as string;
+                    if (!string.IsNullOrWhiteSpace(value))
+                        return value;
+                }
+                catch { }
+            }
 
             return subType.Name;
         }
