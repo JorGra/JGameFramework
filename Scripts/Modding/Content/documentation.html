@@ -250,5 +250,20 @@ void   Clear();  // editor hot‑reload
   © 2025 JG Studios – Content System Docs &nbsp;|&nbsp; Last update 23 Jul 2025
 </footer>
 
+
+<h2>Polymorphic data with DiscriminatorConverter</h2>
+<p>Use the generic <code>DiscriminatorConverter&lt;TBase&gt;</code> when a content definition needs to serialize/deserialize mixed subtypes. Apply it to the abstract/interface base type and ensure every JSON object includes a <code>type</code> discriminator matching the subtype's <code>TypeId</code> (or class name if TypeId isn't overridden).</p>
+<ul>
+  <li>Annotate the base type: <code>[JsonConverter(typeof(DiscriminatorConverter&lt;ItemEffectDef&gt;))]</code>.</li>
+  <li>Each subtype sets <code>TypeId</code> (or uses its class name) and is discovered automatically.</li>
+  <li>JSON must include <code>"type": "YourTypeId"</code> on each entry (e.g., item effect list elements).</li>
+  <li>The converter removes the discriminator before populating, avoiding unknown-member errors with strict settings.</li>
+</ul>
+<p>Example JSON list:</p>
+<pre><code>"Effects": [
+  { "type": "EquippWeapon", "weaponId": "core.weapon.blaster" },
+  { "type": "WeaponUpgrade", "entries": [ { "id": "my_upgrade", "stacks": 1 } ] }
+]</code></pre>
+<p>Do not rely on type inference; the <code>type</code> field is required.</p>
 </body>
 </html>

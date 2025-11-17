@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using JG.Inventory;
+using JG.GameContent;
 
 namespace JG.GameContent
 {
