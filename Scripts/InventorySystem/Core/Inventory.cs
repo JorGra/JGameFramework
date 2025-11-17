@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace JG.Inventory
 {
-    /// <summary>Ordered, dynamically growing inventory – each element is a stack.</summary>
+    /// <summary>Ordered, dynamically growing inventory  each element is a stack.</summary>
     public class Inventory
     {
         public event System.Action Changed;
@@ -68,8 +68,16 @@ namespace JG.Inventory
                 var slot = slots[i];
                 if (slot.IsEmpty || slot.Stack.Data.Id != itemId) continue;
 
-                foreach (var def in slot.Stack.Data.Effects)
-                    ItemEffectRegistry.Build(def.effectType, def.effectParams)?.Apply(ctx);
+                if (slot.Stack.Data.Effects != null)
+                {
+                    foreach (var def in slot.Stack.Data.Effects)
+                        def?.BuildEffect()?.Apply(ctx);
+                }
+                else if (slot.Stack.Data.LegacyEffects != null)
+                {
+                    foreach (var legacy in slot.Stack.Data.LegacyEffects)
+                        ItemEffectRegistry.Build(legacy.effectType, legacy.effectParams)?.Apply(ctx);
+                }
 
                 RemoveItem(itemId, 1);                         // fires Changed
                 return true;

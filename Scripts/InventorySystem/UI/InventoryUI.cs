@@ -88,10 +88,10 @@ namespace JG.Inventory.UI
                         Value = stack.Count.ToString()
                     });
 
-                    bool hasEffects = stack.Data.Effects != null && stack.Data.Effects.Count > 0;
+                    bool hasEffects = ((stack.Data.Effects?.Count ?? 0) > 0) || ((stack.Data.LegacyEffects?.Count ?? 0) > 0);
                     bool hasEquipTags = stack.Data.EquipTags != null && stack.Data.EquipTags.Count > 0;
                     bool canEquip = equipmentHub != null && hasEquipTags;
-                    bool canUse = hasEffects;
+                    bool canUse = hasEffects && !hasEquipTags;
 
                     if (canUse)
                     {

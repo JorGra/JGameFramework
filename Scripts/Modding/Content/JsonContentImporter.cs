@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using JG.Inventory;
 
 namespace JG.GameContent
 {
@@ -31,7 +32,7 @@ namespace JG.GameContent
         private static readonly JsonSerializer _json =
             JsonSerializer.Create(new JsonSerializerSettings
             {
-                Converters = { new UnityScriptableObjectConverter(), new UnityColorJsonConverter(), new UnityVector2JsonConverter(), new UnityVector3JsonConverter() },
+                Converters = { new UnityScriptableObjectConverter(), new UnityColorJsonConverter(), new UnityVector2JsonConverter(), new UnityVector3JsonConverter(), new ItemEffectDefConverter() },
                 MissingMemberHandling = MissingMemberHandling.Error,
                 NullValueHandling = NullValueHandling.Ignore,
                 Formatting = Formatting.None,

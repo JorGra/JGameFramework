@@ -23,20 +23,35 @@ namespace JG.Inventory
 
         void Apply(IInventoryItem data, int qty, IInventoryContext ctx)
         {
-            if (data.Effects == null) return;
+            if (data.Effects == null && data.LegacyEffects == null) return;
 
             if (!active.TryGetValue(data.Id, out var list))
                 active[data.Id] = list = new List<IItemEffect>();
 
 
             for (int i = 0; i < qty; i++)
-                foreach (var def in data?.Effects)
+            {
+                if (data?.Effects != null)
                 {
-                    var fx = ItemEffectRegistry.Build(def.effectType, def.effectParams);
-                    if (fx == null) continue;
-                    fx.Apply(ctx);
-                    list.Add(fx);
+                    foreach (var def in data.Effects)
+                    {
+                        var fx = def?.BuildEffect();
+                        if (fx == null) continue;
+                        fx.Apply(ctx);
+                        list.Add(fx);
+                    }
                 }
+                else if (data?.LegacyEffects != null)
+                {
+                    foreach (var def in data.LegacyEffects)
+                    {
+                        var fx = ItemEffectRegistry.Build(def.effectType, def.effectParams);
+                        if (fx == null) continue;
+                        fx.Apply(ctx);
+                        list.Add(fx);
+                    }
+                }
+            }
         }
 
         void Remove(IInventoryItem data, int qty, IInventoryContext ctx)

@@ -383,11 +383,150 @@ namespace JG.GameContent.SchemaExport
             if (type.IsArray)
                 return BuildArraySchema(type, type.GetElementType(), value);
 
+            if (type.IsInterface || type.IsAbstract)
+            {
+                var polymorphic = BuildPolymorphicSchema(type, value);
+                if (polymorphic != null)
+                    return polymorphic;
+            }
+
             if (IsSerializableClassOrStruct(type))
                 return BuildReferenceSchema(type, value);
 
             Debug.LogWarning($"[JsonContentSchemaBuilder] Unsupported field type {type.FullName}. It will be treated as a free-form object.");
             return new JObject { ["type"] = "object" };
+        }
+
+        private JObject BuildPolymorphicSchema(Type baseType, object value)
+        {
+            var subTypes = DiscoverConcreteSubtypes(baseType);
+            if (subTypes.Count == 0)
+                return null;
+
+            var oneOf = new JArray();
+            var mapping = new JObject();
+
+            foreach (var subType in subTypes)
+            {
+                var refSchema = BuildReferenceSchema(subType, value);
+                if (!_definitionKeys.TryGetValue(subType, out var key))
+                    continue;
+
+                var discriminatorValue = DetermineDiscriminatorValue(subType);
+
+                if (_definitions.TryGetValue(key, out var defSchema))
+                    EnsureDiscriminatorOnDefinition(defSchema, discriminatorValue);
+
+                oneOf.Add(refSchema);
+                mapping[discriminatorValue] = $"#/$defs/{key}";
+            }
+
+            if (oneOf.Count == 0)
+                return null;
+
+            var discriminator = new JObject
+            {
+                ["propertyName"] = "type",
+                ["mapping"] = mapping
+            };
+
+            return new JObject
+            {
+                ["oneOf"] = oneOf,
+                ["discriminator"] = discriminator
+            };
+        }
+
+        private static IReadOnlyList<Type> DiscoverConcreteSubtypes(Type baseType)
+        {
+            try
+            {
+                var results = new List<Type>();
+                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                foreach (var assembly in assemblies)
+                {
+                    if (assembly.IsDynamic)
+                        continue;
+
+                    Type[] types;
+                    try
+                    {
+                        types = assembly.GetTypes();
+                    }
+                    catch (ReflectionTypeLoadException rtlEx)
+                    {
+                        types = rtlEx.Types;
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
+                    if (types == null)
+                        continue;
+
+                    foreach (var type in types)
+                    {
+                        if (type == null || type.IsAbstract || type.IsInterface)
+                            continue;
+
+                        if (baseType.IsAssignableFrom(type))
+                            results.Add(type);
+                    }
+                }
+
+                return results
+                    .Distinct()
+                    .OrderBy(t => t.FullName, StringComparer.Ordinal)
+                    .ToList();
+            }
+            catch
+            {
+                return Array.Empty<Type>();
+            }
+        }
+
+        private static void EnsureDiscriminatorOnDefinition(JObject schema, string discriminatorValue)
+        {
+            if (schema == null)
+                return;
+
+            if (!(schema["properties"] is JObject props))
+            {
+                props = new JObject();
+                schema["properties"] = props;
+            }
+
+            if (!props.TryGetValue("type", out var typeToken) || typeToken.Type != JTokenType.Object)
+            {
+                props["type"] = new JObject { ["const"] = discriminatorValue, ["title"] = "Type" };
+            }
+            else if (typeToken is JObject typeObj)
+            {
+                typeObj["const"] = discriminatorValue;
+            }
+
+            if (!(schema["required"] is JArray required))
+            {
+                required = new JArray();
+                schema["required"] = required;
+            }
+
+            if (!required.Any(t => t.Type == JTokenType.String && string.Equals(t.Value<string>(), "type", StringComparison.Ordinal)))
+                required.Add("type");
+        }
+
+        private static string DetermineDiscriminatorValue(Type subType)
+        {
+            if (subType == null)
+                return string.Empty;
+
+            // Prefer ItemEffectAttribute.Id when present, else fall back to the CLR name.
+            var attr = subType.GetCustomAttribute<JG.Inventory.ItemEffectAttribute>();
+            if (attr != null && !string.IsNullOrWhiteSpace(attr.Id))
+                return attr.Id;
+
+            return subType.Name;
         }
 
         private JObject BuildEnumSchema(Type enumType, object currentValue)
@@ -473,7 +612,7 @@ namespace JG.GameContent.SchemaExport
             {
                 ["type"] = "array",
                 ["items"] = itemsSchema,
-                ["x-unity-collection"] = collectionType.IsArray ? "array" : collectionType.FullName
+                ["x-unity-collection"] = GetCollectionKind(collectionType)
             };
 
             if (value is IList list && list.Count > 0)
@@ -486,6 +625,32 @@ namespace JG.GameContent.SchemaExport
             }
 
             return schema;
+        }
+
+        private static string GetCollectionKind(Type collectionType)
+        {
+            if (collectionType == null)
+                return string.Empty;
+
+            if (collectionType.IsArray)
+                return "array";
+
+            // Normalize common and BCL generics/interfaces to "array" for UI simplicity
+            if (collectionType.IsGenericType)
+            {
+                var genDef = collectionType.GetGenericTypeDefinition();
+                if (genDef == typeof(List<>) ||
+                    genDef == typeof(IList<>) ||
+                    genDef == typeof(IReadOnlyList<>) ||
+                    genDef == typeof(IEnumerable<>))
+                    return "array";
+            }
+
+            // Any System.* collection types should render as a plain array
+            if (collectionType.Namespace != null && collectionType.Namespace.StartsWith("System", StringComparison.Ordinal))
+                return "array";
+
+            return collectionType.FullName;
         }
 
         private JObject BuildReferenceSchema(Type complexType, object value)

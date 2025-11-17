@@ -17,9 +17,9 @@ namespace JG.Inventory
     [ItemEffect("WeaponUpgrade")]
     public sealed class WeaponUpgradeEffect : IItemEffect
     {
-        private readonly List<Entry> entries = new();
+        private readonly List<WeaponUpgradeEffectDef.Entry> entries = new();
 
-        public WeaponUpgradeEffect(IEnumerable<Entry> items)
+        public WeaponUpgradeEffect(IEnumerable<WeaponUpgradeEffectDef.Entry> items)
         {
             if (items != null) entries.AddRange(items);
         }
@@ -69,10 +69,10 @@ namespace JG.Inventory
             if (token.Type == JTokenType.String)
             {
                 var id = token.Value<string>();
-                return new WeaponUpgradeEffect(new[] { new Entry { id = id, stacks = 1 } });
+                return new WeaponUpgradeEffect(new[] { new WeaponUpgradeEffectDef.Entry { id = id, stacks = 1 } });
             }
 
-            var list = new List<Entry>();
+            var list = new List<WeaponUpgradeEffectDef.Entry>();
 
             // Object with upgradeId/stacks or entries[]
             if (token.Type == JTokenType.Object)
@@ -98,13 +98,13 @@ namespace JG.Inventory
             return new WeaponUpgradeEffect(list);
         }
 
-        private static Entry ParseEntry(JObject obj)
+        private static WeaponUpgradeEffectDef.Entry ParseEntry(JObject obj)
         {
             if (obj == null) return default;
             var id = obj["upgradeId"]?.ToString() ?? obj["id"]?.ToString();
             int stacks = obj["stacks"]?.Value<int?>() ?? 1;
             var group = obj["group"]?.ToString();
-            return new Entry
+            return new WeaponUpgradeEffectDef.Entry
             {
                 id = id,
                 stacks = stacks,
@@ -128,13 +128,6 @@ namespace JG.Inventory
 
         static WeaponUpgradeEffect() => ItemEffectRegistry.Register<WeaponUpgradeEffect>(FromJson);
 
-        public struct Entry
-        {
-            public string id;
-            public int stacks;
-            public WeaponUpgradeTarget? targetOverride;
-        }
     }
 }
-
 

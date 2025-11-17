@@ -9,5 +9,6 @@ public interface IInventoryItem : IContentDef   // from the mod system
     Sprite Icon { get; }
     int MaxStack { get; }
     IReadOnlyList<string> EquipTags { get; }
-    IReadOnlyList<ItemEffectDefinition> Effects { get; }
+    IReadOnlyList<ItemEffectDef> Effects { get; }
+    IReadOnlyList<ItemEffectDefinition> LegacyEffects { get; }
 }

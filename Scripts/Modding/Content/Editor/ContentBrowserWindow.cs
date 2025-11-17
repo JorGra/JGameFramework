@@ -439,36 +439,59 @@ namespace JG.GameContent.EditorTools
                     }
 
                     // Render item effects (read-only) if this def has them
-                    if (_selectedObj is IInventoryItem invItem && invItem.Effects != null)
+                    if (_selectedObj is IInventoryItem invItem)
                     {
-                        EditorGUILayout.Space(6);
-                        _effectsFoldout = EditorGUILayout.Foldout(_effectsFoldout, "Item Effects", true);
-                        if (_effectsFoldout)
+                        var typed = invItem.Effects;
+                        var legacy = invItem.LegacyEffects;
+                        bool hasAny = (typed != null && typed.Count > 0) || (legacy != null && legacy.Count > 0);
+                        if (hasAny)
                         {
-                            using (new EditorGUI.IndentLevelScope())
+                            EditorGUILayout.Space(6);
+                            _effectsFoldout = EditorGUILayout.Foldout(_effectsFoldout, "Item Effects", true);
+                            if (_effectsFoldout)
                             {
-                                int idx = 0;
-                                foreach (var eff in invItem.Effects)
+                                using (new EditorGUI.IndentLevelScope())
                                 {
-                                    using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                                    int idx = 0;
+                                    if (typed != null)
                                     {
-                                        EditorGUILayout.LabelField($"#{idx} Type", eff?.effectType ?? "(null)", EditorStyles.boldLabel);
-                                        if (eff != null && eff.effectParams != null)
+                                        foreach (var eff in typed)
                                         {
-                                            // Pretty-print the JToken params
-                                            string json = eff.effectParams.ToString(Newtonsoft.Json.Formatting.Indented);
-                                            EditorGUILayout.TextArea(json, GUILayout.MinHeight(44));
-                                        }
-                                        else
-                                        {
-                                            EditorGUILayout.LabelField("Params", "(null)");
+                                            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                                            {
+                                                EditorGUILayout.LabelField($"#{idx} Type", eff?.GetType().Name ?? "(null)", EditorStyles.boldLabel);
+                                                var json = eff != null ? Newtonsoft.Json.JsonConvert.SerializeObject(eff, Newtonsoft.Json.Formatting.Indented) : "(null)";
+                                                EditorGUILayout.TextArea(json, GUILayout.MinHeight(44));
+                                            }
+                                            idx++;
                                         }
                                     }
-                                    idx++;
-                                }
-                                if (idx == 0)
-                                {
-                                    EditorGUILayout.LabelField("(no effects)");
+
+                                    if (legacy != null)
+                                    {
+                                        foreach (var eff in legacy)
+                                        {
+                                            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                                            {
+                                                EditorGUILayout.LabelField($"#{idx} Type", eff?.effectType ?? "(null)", EditorStyles.boldLabel);
+                                                if (eff != null && eff.effectParams != null)
+                                                {
+                                                    string json = eff.effectParams.ToString(Newtonsoft.Json.Formatting.Indented);
+                                                    EditorGUILayout.TextArea(json, GUILayout.MinHeight(44));
+                                                }
+                                                else
+                                                {
+                                                    EditorGUILayout.LabelField("Params", "(null)");
+                                                }
+                                            }
+                                            idx++;
+                                        }
+                                    }
+
+                                    if (idx == 0)
+                                    {
+                                        EditorGUILayout.LabelField("(no effects)");
+                                    }
                                 }
                             }
                         }

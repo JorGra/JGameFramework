@@ -33,18 +33,34 @@ namespace JG.Inventory
 
         void OnEquipped(ItemEquippedEvent e)
         {
-            if (!IsMine(e.Context) || e.Stack.Data.Effects == null) return;
+            if (!IsMine(e.Context)) return;
 
             var list = new List<IItemEffect>();
-            foreach (var def in e.Stack.Data.Effects)
+            if (e.Stack.Data.Effects != null)
             {
-                var fx = ItemEffectRegistry.Build(def.effectType, def.effectParams);
-                if (fx == null) continue;
+                foreach (var def in e.Stack.Data.Effects)
+                {
+                    var fx = def?.BuildEffect();
+                    if (fx == null) continue;
 
-                fx.Apply(e.Context);
-                list.Add(fx);
+                    fx.Apply(e.Context);
+                    list.Add(fx);
+                }
             }
-            active[e.Slot] = list;
+            else if (e.Stack.Data.LegacyEffects != null)
+            {
+                foreach (var def in e.Stack.Data.LegacyEffects)
+                {
+                    var fx = ItemEffectRegistry.Build(def.effectType, def.effectParams);
+                    if (fx == null) continue;
+
+                    fx.Apply(e.Context);
+                    list.Add(fx);
+                }
+            }
+
+            if (list.Count > 0)
+                active[e.Slot] = list;
         }
 
         void OnUnequipped(ItemUnequippedEvent e)

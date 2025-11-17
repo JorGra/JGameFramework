@@ -34,7 +34,6 @@ namespace JG.Inventory.UI
                 Setup();
             }
         }
-
         public void Setup()
         {
             if (passiveInventory == null)
@@ -95,8 +94,7 @@ namespace JG.Inventory.UI
                         Value = stack.Count.ToString()
                     });
 
-                    bool hasEffects = stack.Data.Effects != null && stack.Data.Effects.Count > 0;
-
+                    bool hasEffects = ((stack.Data.Effects?.Count ?? 0) > 0) || ((stack.Data.LegacyEffects?.Count ?? 0) > 0);
                     if (hasEffects)
                     {
                         builder.AddAction(new TooltipActionData(

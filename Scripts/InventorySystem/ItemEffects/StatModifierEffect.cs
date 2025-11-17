@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json.Linq;
+using JG.GameContent;
 
 namespace JG.Inventory
 {
@@ -105,9 +106,12 @@ namespace JG.Inventory
         [System.Serializable]
         struct Entry
         {
+            [IdReference(typeof(StatDef))]
             public string stat;
+            [Tooltip("Operation to perform on the stat: 0 = Add, 1 = Mulitply, 2 = Percentage")]
             public OperatorType op;
             public float value;
+            [Tooltip("Leave 0 for permanent modifier (while item is equipped).")]
             public float duration;     // 0 = permanent (while equipped)
         }
     }

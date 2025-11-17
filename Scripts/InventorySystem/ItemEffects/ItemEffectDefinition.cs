@@ -1,12 +1,10 @@
+// Kept for backward compatibility with existing JSON files. Prefer ItemEffectDef.
 using System;
 using UnityEngine;
 using Newtonsoft.Json.Linq;
 
 namespace JG.Inventory
 {
-    /// <summary>
-    /// POCO used inside <see cref="IInventoryItem"/> to describe an effect and its JSON-serialised parameters.
-    /// </summary>
     [Serializable]
     public class ItemEffectDefinition
     {
