@@ -15,6 +15,7 @@ namespace JG.GameContent.AssetResolving
             // Built-ins
             Register(new ImageAssetResolver());
             Register(new TextAssetResolver());
+            Register(new SoundEffectResolver());
         }
 
         public static void Register(IPathAssetResolver plugin)
