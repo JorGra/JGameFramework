@@ -9,6 +9,8 @@ namespace JG.Audio
     [System.Serializable]
     public class SoundData
     {
+        public string clipPathKey;
+        [AssetFromPath(nameof(clipPathKey))]
         public AudioClip clip;
         public AudioMixerGroup mixerGroup;
         public bool loop;
