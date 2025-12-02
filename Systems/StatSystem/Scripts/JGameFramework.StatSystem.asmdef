@@ -1,0 +1,16 @@
+{
+    "name": "JGameFramework.StatSystem",
+    "rootNamespace": "",
+    "references": [
+        "GUID:9bb2f1aeac1466243a0e183dc3e8768e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

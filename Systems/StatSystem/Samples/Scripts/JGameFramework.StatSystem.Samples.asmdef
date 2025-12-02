@@ -1,0 +1,19 @@
+{
+    "name": "JGameFramework.StatSystem.Samples",
+    "rootNamespace": "",
+    "references": [
+        "GUID:af0b84152781e584ca077c97f8ea1c4d",
+        "GUID:9bb2f1aeac1466243a0e183dc3e8768e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [
+        "Editor"
+    ],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
