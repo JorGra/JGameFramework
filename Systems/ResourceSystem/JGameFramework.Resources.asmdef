@@ -1,11 +1,10 @@
 {
-    "name": "JGameFramwork.Content",
+    "name": "JGameFramework.Resources",
     "rootNamespace": "",
     "references": [
+        "GUID:58efea46974a20641a5d33e7a23f6390",
         "GUID:9bb2f1aeac1466243a0e183dc3e8768e",
-        "GUID:f7306f98ff138db41a17545e44fdedbf",
-        "GUID:6055be8ebefd69e48b49212b09b47b2f",
-        "GUID:20fe69549424e4040934b520aecc90dd"
+        "GUID:6055be8ebefd69e48b49212b09b47b2f"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

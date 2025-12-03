@@ -9,7 +9,7 @@ namespace JGameFramework.UI.Tooltips
     public readonly struct TooltipHandle
     {
         private readonly TooltipSystemRoot _system;
-        internal readonly TooltipView View;
+        public readonly TooltipView View;
 
         internal TooltipHandle(TooltipSystemRoot system, TooltipView view)
         {

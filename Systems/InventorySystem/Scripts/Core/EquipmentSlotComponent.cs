@@ -1,6 +1,6 @@
-using Weapons;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace JG.Inventory
 {
@@ -13,10 +13,11 @@ namespace JG.Inventory
         [Tooltip("Any item that contains at least ONE of these tags can be equipped here.")]
         [SerializeField] private List<string> acceptedTags = new() { "Head" };
 
-        [Tooltip("Determines which weapon group this slot belongs to (used for auto-equip/combine).")]
-        [SerializeField] private WeaponSlotCategory slotCategory = WeaponSlotCategory.Primary;
+        [Tooltip("Logical category id for grouping slots (e.g., \"Primary\", \"Secondary\", \"Head\").")]
+        [FormerlySerializedAs("slotCategory")]
+        [SerializeField] private string slotCategoryId = "Primary";
 
-        public WeaponSlotCategory SlotCategory => slotCategory;
+        public string SlotCategoryId => slotCategoryId;
 
         public EquipmentSlot Slot { get; private set; }
 
@@ -33,7 +34,13 @@ namespace JG.Inventory
                 Slot = new EquipmentSlot(acceptedTags);
         }
 
+        private void OnValidate()
+        {
+            if (string.IsNullOrWhiteSpace(slotCategoryId))
+            {
+                slotCategoryId = "Primary";
+            }
+        }
 
     }
 }
-

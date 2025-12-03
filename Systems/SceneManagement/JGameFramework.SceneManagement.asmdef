@@ -2,11 +2,11 @@
     "name": "JGameFramework.SceneManagement",
     "rootNamespace": "",
     "references": [
-        "JG.Tools",
         "JGameFramework.Core",
         "Unity.TextMeshPro",
         "Eflatun.SceneReference",
-        "DOTween.Modules"
+        "DOTween.Modules",
+        "JG.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
