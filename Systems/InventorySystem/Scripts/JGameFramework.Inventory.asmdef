@@ -1,0 +1,20 @@
+{
+    "name": "JGameFramework.Inventory",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f7306f98ff138db41a17545e44fdedbf",
+        "GUID:58efea46974a20641a5d33e7a23f6390",
+        "GUID:75469ad4d38634e559750d17036d5f7c",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f",
+        "GUID:af0b84152781e584ca077c97f8ea1c4d"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

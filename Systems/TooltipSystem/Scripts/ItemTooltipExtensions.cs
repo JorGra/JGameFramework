@@ -1,5 +1,4 @@
 using System;
-using JG.GameContent;
 
 namespace JGameFramework.UI.Tooltips
 {
