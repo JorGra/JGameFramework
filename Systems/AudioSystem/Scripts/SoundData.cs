@@ -25,6 +25,10 @@ namespace JG.Audio
         public int priority = 128;
         public float volume = 1f;
         public float pitch = 1f;
+        [Tooltip("Apply a random pitch offset when this sound plays.")]
+        public bool randomizePitch;
+        [Tooltip("Pitch delta applied when randomizePitch is enabled.")]
+        public Vector2 randomPitchRange = new Vector2(-0.05f, 0.05f);
         public float panStereo;
         public float spatialBlend;
         public float reverbZoneMix = 1f;

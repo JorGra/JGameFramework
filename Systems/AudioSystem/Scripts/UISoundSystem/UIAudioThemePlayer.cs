@@ -25,12 +25,11 @@ public class UIAudioThemePlayer : MonoBehaviour
 
         if (theme.TryGetSound(e.Profile, e.Action, out var snd))
         {
-            EventBus<PlaySoundEvent>.Raise(
-                new PlaySoundEvent(
-                    snd.SoundData,
-                    e.Position,
-                    snd.RandomPitch,
-                    snd.RandomPitchRange));
+            var soundEvent = snd.RandomPitch
+                ? new PlaySoundEvent(snd.SoundData, e.Position, snd.RandomPitchRange)
+                : new PlaySoundEvent(snd.SoundData, e.Position);
+
+            EventBus<PlaySoundEvent>.Raise(soundEvent);
         }
     }
 }

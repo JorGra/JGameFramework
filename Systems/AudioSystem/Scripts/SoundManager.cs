@@ -36,11 +36,16 @@ namespace JG.Audio
 
         void OnPlaySoundEvent(PlaySoundEvent e)
         {
-            CreateSound()
+            var builder = CreateSound()
                 .WithSoundData(e.SoundData)
-                .WithPosition(e.Position)
-                .WithRadnomPitch(e.RandomPitchRange.x, e.RandomPitchRange.y)
-                .Play();
+                .WithPosition(e.Position);
+
+            if (e.HasRandomPitchOverride)
+            {
+                builder.WithRadnomPitch(e.RandomPitchRange.x, e.RandomPitchRange.y);
+            }
+
+            builder.Play();
         }
 
         public SoundBuilder CreateSound() => new SoundBuilder(this);
@@ -121,13 +126,22 @@ namespace JG.Audio
     {
         public SoundData SoundData { get; private set; }
         public Vector3 Position { get; private set; }
-        public bool RandomPitch { get; private set; }
+        public bool HasRandomPitchOverride { get; private set; }
         public Vector2 RandomPitchRange { get; private set; }
-        public PlaySoundEvent(SoundData soundData, Vector3 position, bool randomPitch, Vector2 randomPitchRange)
+
+        public PlaySoundEvent(SoundData soundData, Vector3 position)
         {
             SoundData = soundData;
             Position = position;
-            RandomPitch = randomPitch;
+            HasRandomPitchOverride = false;
+            RandomPitchRange = Vector2.zero;
+        }
+
+        public PlaySoundEvent(SoundData soundData, Vector3 position, Vector2 randomPitchRange)
+        {
+            SoundData = soundData;
+            Position = position;
+            HasRandomPitchOverride = true;
             RandomPitchRange = randomPitchRange;
         }
     }

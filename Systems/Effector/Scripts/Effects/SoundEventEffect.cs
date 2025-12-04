@@ -15,7 +15,11 @@ public class SoundEventEffect : EffectBase
 
     protected override IEnumerator PlayEffectLogic()
     {
-        EventBus<PlaySoundEvent>.Raise(new PlaySoundEvent(soundData, transform.position, randomPitch, randomPitchRange));
+        var soundEvent = randomPitch
+            ? new PlaySoundEvent(soundData, transform.position, randomPitchRange)
+            : new PlaySoundEvent(soundData, transform.position);
+
+        EventBus<PlaySoundEvent>.Raise(soundEvent);
         yield return null;
     }
 }

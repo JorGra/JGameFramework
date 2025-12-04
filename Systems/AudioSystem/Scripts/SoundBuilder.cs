@@ -46,9 +46,18 @@ namespace JG.Audio
             soundEmitter.transform.position = position;
             soundEmitter.transform.parent = SoundManager.Instance.transform;
 
-            if (randomPitch)
+            bool applyRandomPitch = randomPitch;
+            Vector2 pitchRange = randomPitchRange;
+
+            if (!applyRandomPitch && soundData != null && soundData.randomizePitch)
             {
-                soundEmitter.WithRandomPitch(randomPitchRange);
+                applyRandomPitch = true;
+                pitchRange = soundData.randomPitchRange;
+            }
+
+            if (applyRandomPitch)
+            {
+                soundEmitter.WithRandomPitch(pitchRange);
             }
 
             if (soundData.frequent)
