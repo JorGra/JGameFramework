@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -48,13 +49,38 @@ namespace JG.GameContent
 
         static JsonContentImporter()
         {
-            _defTypes = Assembly.GetExecutingAssembly()
-                                .GetTypes()
-                                .Where(t => !t.IsAbstract &&
-                                            typeof(IContentDef).IsAssignableFrom(t) &&
-                                            t.GetCustomAttribute<ContentFolderAttribute>() != null)
-                                .ToArray();
+            // Content definitions can live in multiple assemblies (main game, mods, framework, etc.),
+            // so scan every loaded runtime assembly instead of just this one.
+            _defTypes = AppDomain.CurrentDomain
+                                 .GetAssemblies()
+                                 .Where(a => !a.IsDynamic)
+                                 .SelectMany(GetTypesSafe)
+                                 .Where(IsValidContentDef)
+                                 .Distinct()
+                                 .ToArray();
         }
+
+        private static IEnumerable<Type> GetTypesSafe(Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                return ex.Types.Where(t => t != null);
+            }
+            catch
+            {
+                return Array.Empty<Type>();
+            }
+        }
+
+        private static bool IsValidContentDef(Type type) =>
+            type != null &&
+            !type.IsAbstract &&
+            typeof(IContentDef).IsAssignableFrom(type) &&
+            type.GetCustomAttribute<ContentFolderAttribute>() != null;
 
         public void Import(IModHandle h)
         {

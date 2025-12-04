@@ -92,7 +92,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 18
+  m_fontSize: 30.19
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -220,11 +220,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 444833467248299967}
+  - component: {fileID: 1732191048916856638}
+  - component: {fileID: 2816499814180670612}
   - component: {fileID: 5410344586837583414}
-  - component: {fileID: 2548599100065414123}
   - component: {fileID: -2319581209239771915}
   - component: {fileID: 3610023439763871512}
-  - component: {fileID: 2816499814180670612}
   - component: {fileID: 2534450888831870020}
   m_Layer: 5
   m_Name: ItemSlotUI
@@ -254,15 +254,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!222 &5410344586837583414
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8595256771052035549}
-  m_CullTransparentMesh: 1
---- !u!114 &2548599100065414123
+--- !u!114 &1732191048916856638
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -271,11 +263,43 @@ MonoBehaviour:
   m_GameObject: {fileID: 8595256771052035549}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c90fb6e8b4c033543b4592da88a95c4d, type: 3}
+  m_Script: {fileID: 11500000, guid: c77a063852e5fca45a2624839b3866e2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::JG.Inventory.UI.ItemSlotUI
   itemView: {fileID: 2816499814180670612}
   tooltipOffset: {x: 18, y: 18}
+--- !u!114 &2816499814180670612
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8595256771052035549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f802969628e01244a8633b3f98dbe8c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ItemViewWidget
+  titleLabel: {fileID: 0}
+  subtitleLabel: {fileID: 0}
+  stackLabel: {fileID: 268118499982488221}
+  priceLabel: {fileID: 0}
+  iconImage: {fileID: 8121698705404167716}
+  rarityHighlightImage: {fileID: 3610023439763871512}
+  rarityColorSettings: {fileID: 11400000, guid: fecb285f24ffb2246a7b6469190015b4, type: 2}
+  selectableTintTarget: {fileID: 2534450888831870020}
+  collapseSubtitleWhenEmpty: 1
+  collapseStackWhenEmpty: 1
+  collapsePriceWhenEmpty: 1
+  emptyIconColor: {r: 1, g: 1, b: 1, a: 0}
+--- !u!222 &5410344586837583414
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8595256771052035549}
+  m_CullTransparentMesh: 1
 --- !u!114 &-2319581209239771915
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -328,30 +352,6 @@ MonoBehaviour:
   m_PixelsPerUnitMultiplier: 1.5
   _source: {fileID: 0}
   m_spriteBlending: 0.73
---- !u!114 &2816499814180670612
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8595256771052035549}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f802969628e01244a8633b3f98dbe8c6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ItemViewWidget
-  titleLabel: {fileID: 0}
-  subtitleLabel: {fileID: 0}
-  stackLabel: {fileID: 268118499982488221}
-  priceLabel: {fileID: 0}
-  iconImage: {fileID: 8121698705404167716}
-  rarityHighlightImage: {fileID: 3610023439763871512}
-  rarityColorSettings: {fileID: 11400000, guid: fecb285f24ffb2246a7b6469190015b4, type: 2}
-  selectableTintTarget: {fileID: 2534450888831870020}
-  collapseSubtitleWhenEmpty: 1
-  collapseStackWhenEmpty: 1
-  collapsePriceWhenEmpty: 1
-  emptyIconColor: {r: 1, g: 1, b: 1, a: 0}
 --- !u!114 &2534450888831870020
 MonoBehaviour:
   m_ObjectHideFlags: 0

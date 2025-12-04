@@ -17,7 +17,7 @@ namespace JG.Inventory
         [FormerlySerializedAs("slotCategory")]
         [SerializeField] private string slotCategoryId = "Primary";
 
-        public string SlotCategoryId => slotCategoryId;
+        public string SlotCategoryId => string.IsNullOrWhiteSpace(slotCategoryId) ? "Primary" : slotCategoryId;
 
         public EquipmentSlot Slot { get; private set; }
 
@@ -41,6 +41,5 @@ namespace JG.Inventory
                 slotCategoryId = "Primary";
             }
         }
-
     }
 }
