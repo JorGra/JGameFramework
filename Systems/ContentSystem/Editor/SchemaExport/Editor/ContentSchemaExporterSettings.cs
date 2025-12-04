@@ -9,17 +9,17 @@ namespace JG.GameContent.SchemaExport
 {
     internal sealed class ContentSchemaExporterSettings : ScriptableObject
     {
-        private const string AssetPath = "Assets/JGameFramework/Scripts/Modding/SchemaExport/Editor/ContentSchemaExporterSettings.asset";
+        private const string AssetPath = "Assets/JGameFramework/Systems/ContentSystem/Editor/SchemaExport/Editor/ContentSchemaExporterSettings.asset";
 
         [SerializeField] private bool outputPathIsRelative = true;
         [SerializeField] private string outputPath = string.Join("/", ContentSchemaExporter.DefaultOutputRelativeSegments);
 
         [Header("Metadata")]
-        [SerializeField] [Min(1)] private int schemaVersion = 1;
+        [SerializeField][Min(1)] private int schemaVersion = 1;
         [SerializeField] private string gameName = string.Empty;
         [SerializeField] private string gameVersion = string.Empty;
         [SerializeField] private string publisherName = string.Empty;
-        [SerializeField] [TextArea] private string gameDescription = string.Empty;
+        [SerializeField][TextArea] private string gameDescription = string.Empty;
         [SerializeField] private Texture2D gameIcon;
         [SerializeField] private string websiteUrl = string.Empty;
         [SerializeField] private string supportUrl = string.Empty;
