@@ -6,13 +6,24 @@ using UnityEngine.Audio;
 
 namespace JG.Audio
 {
+    public enum SoundMixerGroup
+    {
+        Master,
+        Music,
+        Effects,
+        UI
+    }
+
     [System.Serializable]
     public class SoundData
     {
         public string clipPathKey;
         [AssetFromPath(nameof(clipPathKey))]
         public AudioClip clip;
+        [Tooltip("Optional override for routing audio to a specific mixer group asset.")]
         public AudioMixerGroup mixerGroup;
+        [Tooltip("Fallback category used when no explicit mixer group asset is assigned.")]
+        public SoundMixerGroup mixerGroupType = SoundMixerGroup.Effects;
         public bool loop;
         public bool playOnAwake;
         public bool frequent;

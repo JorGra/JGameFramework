@@ -24,7 +24,12 @@ namespace JG.Audio
         {
             Data = data;
             audioSource.clip = data.clip;
-            audioSource.outputAudioMixerGroup = data.mixerGroup;
+            var outputGroup = data.mixerGroup;
+            if (outputGroup == null && SoundManager.Instance != null)
+            {
+                outputGroup = SoundManager.Instance.ResolveMixerGroup(data.mixerGroupType);
+            }
+            audioSource.outputAudioMixerGroup = outputGroup;
             audioSource.loop = data.loop;
             audioSource.playOnAwake = data.playOnAwake;
 

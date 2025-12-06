@@ -1,6 +1,7 @@
 ﻿using JG.Tools;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Audio;
 using UnityEngine.Pool;
 using UnityEngine.UIElements;
 
@@ -15,6 +16,11 @@ namespace JG.Audio
         public readonly Queue<SoundEmitter> FrequentSoundEmitters = new Queue<SoundEmitter>();
 
         [SerializeField] SoundEmitter soundEmitterPrefab;
+        [Header("Mixer Groups")]
+        [SerializeField] AudioMixerGroup masterMixerGroup;
+        [SerializeField] AudioMixerGroup musicMixerGroup;
+        [SerializeField] AudioMixerGroup effectsMixerGroup;
+        [SerializeField] AudioMixerGroup uiMixerGroup;
         [SerializeField] bool collecitonCheck = true;
         [SerializeField] int defaultCapacity = 10;
         [SerializeField] int maxPoolSize = 100;
@@ -117,6 +123,17 @@ namespace JG.Audio
             var soundEmitter = Instantiate(soundEmitterPrefab);
             soundEmitter.gameObject.SetActive(false);
             return soundEmitter;
+        }
+
+        public AudioMixerGroup ResolveMixerGroup(SoundMixerGroup mixerGroup)
+        {
+            return mixerGroup switch
+            {
+                SoundMixerGroup.Music when musicMixerGroup != null => musicMixerGroup,
+                SoundMixerGroup.Effects when effectsMixerGroup != null => effectsMixerGroup,
+                SoundMixerGroup.UI when uiMixerGroup != null => uiMixerGroup,
+                _ => masterMixerGroup
+            };
         }
 
 

@@ -36,12 +36,15 @@ namespace JG.Audio
         [SerializeField] private PlaylistSO defaultPlaylist;
         [SerializeField] private AudioMixerGroup audioMixerGroup;
         [SerializeField] private float startFadeInDuration = 2f;
+        [SerializeField] private float focusFadeDuration = 0.5f;
 
         private MusicController musicController;
         private IMusicCommand currentCommand;
 
         private PlaylistSO currentPlaylist;
         private int currentTrackIndex;
+        private bool awaitingFocusResume;
+        private bool focusPauseActive;
 
         EventSubscription<ChangePlaylistEvent> changePlaylistSubscription;
         EventSubscription<NextTrackEvent> nextTrackSubscription;
@@ -74,6 +77,20 @@ namespace JG.Audio
 
         private void Update()
         {
+            if (awaitingFocusResume)
+            {
+                if (musicController.IsPlaying)
+                {
+                    awaitingFocusResume = false;
+                    focusPauseActive = false;
+                }
+                else
+                {
+                    // Skip crossfades until audio resumes after focus loss
+                    return;
+                }
+            }
+
             // Check if current track finished playing and move to next track if so
             if (!musicController.IsPlaying && currentPlaylist != null && currentPlaylist.Tracks.Length > 0)
             {
@@ -180,6 +197,57 @@ namespace JG.Audio
                 currentCommand.Cancel();
             }
             currentCommand = null;
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus)
+            {
+                ResumeAfterFocusReturn();
+            }
+            else
+            {
+                PauseForFocusLoss();
+            }
+        }
+
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (pauseStatus)
+            {
+                PauseForFocusLoss();
+            }
+            else
+            {
+                ResumeAfterFocusReturn();
+            }
+        }
+
+        private void PauseForFocusLoss()
+        {
+            if (focusPauseActive || musicController == null)
+            {
+                awaitingFocusResume = true;
+                return;
+            }
+
+            awaitingFocusResume = true;
+            focusPauseActive = true;
+            CancelCurrentCommand();
+            currentCommand = new PauseCommand(musicController, this, focusFadeDuration);
+            currentCommand.Execute();
+        }
+
+        private void ResumeAfterFocusReturn()
+        {
+            if (!focusPauseActive || musicController == null)
+            {
+                return;
+            }
+
+            CancelCurrentCommand();
+            currentCommand = new ResumeCommand(musicController, this, focusFadeDuration);
+            currentCommand.Execute();
         }
     }
 }

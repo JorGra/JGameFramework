@@ -46,12 +46,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   AutoUnparentOnAwake: 1
-  soundEmitterPrefab: {fileID: 4482855701002851912, guid: b8cc16ad389e9ad428026739501ba254,
-    type: 3}
+  soundEmitterPrefab: {fileID: 4482855701002851912, guid: b8cc16ad389e9ad428026739501ba254, type: 3}
+  masterMixerGroup: {fileID: 24300002, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
+  musicMixerGroup: {fileID: -1232543491382213792, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
+  effectsMixerGroup: {fileID: 302619736032222012, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
+  uiMixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
   collecitonCheck: 1
-  defaultCapacity: 20
+  defaultCapacity: 40
   maxPoolSize: 100
-  maxSoundInstances: 40
+  maxSoundInstances: 60
 --- !u!114 &1719112269533875886
 MonoBehaviour:
   m_ObjectHideFlags: 0
