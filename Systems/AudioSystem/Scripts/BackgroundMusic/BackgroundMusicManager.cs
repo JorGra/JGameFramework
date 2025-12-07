@@ -79,10 +79,15 @@ namespace JG.Audio
         {
             if (awaitingFocusResume)
             {
+                if (focusPauseActive)
+                {
+                    // Wait until the focus pause/resume cycle completes before resuming normal updates
+                    return;
+                }
+
                 if (musicController.IsPlaying)
                 {
                     awaitingFocusResume = false;
-                    focusPauseActive = false;
                 }
                 else
                 {
@@ -246,6 +251,7 @@ namespace JG.Audio
             }
 
             CancelCurrentCommand();
+            focusPauseActive = false;
             currentCommand = new ResumeCommand(musicController, this, focusFadeDuration);
             currentCommand.Execute();
         }
