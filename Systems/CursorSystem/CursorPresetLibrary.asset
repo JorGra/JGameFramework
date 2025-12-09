@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5737851de6e3e94e8576641922c3788, type: 3}
+  m_Name: CursorPresetLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::JG.CursorSystem.CursorPresetLibrary
+  cursorSets:
+  - setId: Main
+    defaultPreset:
+      presetId: Default
+      cursorTexture: {fileID: 2800000, guid: d89b1d3e87841254385dcabf18dacd68, type: 3}
+      hotSpot: {x: 0, y: 0}
+      cursorMode: 0
+      overrideCursorVisibility: 0
+      cursorVisible: 0
+    cursorPresets: []
+  - setId: Gameplay
+    defaultPreset:
+      presetId: Default
+      cursorTexture: {fileID: 2800000, guid: f8e0e7e0e4b2b6f46887a509cde17935, type: 3}
+      hotSpot: {x: 256, y: 256}
+      cursorMode: 0
+      overrideCursorVisibility: 0
+      cursorVisible: 0
+    cursorPresets:
+    - presetId: UI
+      cursorTexture: {fileID: 2800000, guid: d89b1d3e87841254385dcabf18dacd68, type: 3}
+      hotSpot: {x: 256, y: 256}
+      cursorMode: 0
+      overrideCursorVisibility: 0
+      cursorVisible: 0
