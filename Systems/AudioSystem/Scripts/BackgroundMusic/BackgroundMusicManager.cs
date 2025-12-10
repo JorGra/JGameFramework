@@ -1,6 +1,7 @@
 ﻿using JG.Tools;
 using UnityEngine;
 using UnityEngine.Audio;
+using System.Collections.Generic;
 
 namespace JG.Audio
 {
@@ -37,6 +38,7 @@ namespace JG.Audio
         [SerializeField] private AudioMixerGroup audioMixerGroup;
         [SerializeField] private float startFadeInDuration = 2f;
         [SerializeField] private float focusFadeDuration = 0.5f;
+        [SerializeField] private bool pauseOnFocusLoss = true;
 
         private MusicController musicController;
         private IMusicCommand currentCommand;
@@ -45,6 +47,7 @@ namespace JG.Audio
         private int currentTrackIndex;
         private bool awaitingFocusResume;
         private bool focusPauseActive;
+        private readonly Stack<int> shuffleHistory = new Stack<int>();
 
         EventSubscription<ChangePlaylistEvent> changePlaylistSubscription;
         EventSubscription<NextTrackEvent> nextTrackSubscription;
@@ -125,25 +128,96 @@ namespace JG.Audio
         private void SetPlaylist(PlaylistSO playlist)
         {
             currentPlaylist = playlist != null ? playlist : defaultPlaylist;
-            currentTrackIndex = 0;
+            shuffleHistory.Clear();
+
+            if (currentPlaylist == null || currentPlaylist.Tracks == null || currentPlaylist.Tracks.Length == 0)
+            {
+                currentTrackIndex = 0;
+                return;
+            }
+
+            currentTrackIndex = currentPlaylist.Shuffle
+                ? Random.Range(0, currentPlaylist.Tracks.Length)
+                : 0;
         }
 
         private void PlayNextTrack()
         {
-            currentTrackIndex = (currentTrackIndex + 1) % currentPlaylist.Tracks.Length;
+            if (currentPlaylist == null || currentPlaylist.Tracks == null || currentPlaylist.Tracks.Length == 0)
+            {
+                return;
+            }
+
+            if (currentPlaylist.Shuffle)
+            {
+                if (currentPlaylist.Tracks.Length > 1)
+                {
+                    shuffleHistory.Push(currentTrackIndex);
+                    currentTrackIndex = GetRandomTrackIndexExcludingCurrent();
+                }
+            }
+            else
+            {
+                currentTrackIndex = (currentTrackIndex + 1) % currentPlaylist.Tracks.Length;
+            }
+
             musicController.CrossfadeToClip(currentPlaylist.Tracks[currentTrackIndex], 2f);
         }
 
         private void PlayPreviousTrack()
         {
-            currentTrackIndex = (currentTrackIndex - 1 + currentPlaylist.Tracks.Length) % currentPlaylist.Tracks.Length;
+            if (currentPlaylist == null || currentPlaylist.Tracks == null || currentPlaylist.Tracks.Length == 0)
+            {
+                return;
+            }
+
+            if (currentPlaylist.Shuffle)
+            {
+                if (shuffleHistory.Count > 0)
+                {
+                    currentTrackIndex = shuffleHistory.Pop();
+                }
+                else if (currentPlaylist.Tracks.Length > 1)
+                {
+                    currentTrackIndex = GetRandomTrackIndexExcludingCurrent();
+                }
+            }
+            else
+            {
+                currentTrackIndex = (currentTrackIndex - 1 + currentPlaylist.Tracks.Length) % currentPlaylist.Tracks.Length;
+            }
+
             musicController.CrossfadeToClip(currentPlaylist.Tracks[currentTrackIndex], 2f);
+        }
+
+        private int GetRandomTrackIndexExcludingCurrent()
+        {
+            int trackCount = currentPlaylist != null && currentPlaylist.Tracks != null
+                ? currentPlaylist.Tracks.Length
+                : 0;
+
+            if (trackCount <= 1)
+            {
+                return currentTrackIndex;
+            }
+
+            int nextIndex = currentTrackIndex;
+            while (nextIndex == currentTrackIndex)
+            {
+                nextIndex = Random.Range(0, trackCount);
+            }
+
+            return nextIndex;
         }
 
         private void OnChangePlaylist(ChangePlaylistEvent e)
         {
             CancelCurrentCommand();
             SetPlaylist(e.NewPlaylist);
+            if (currentPlaylist == null || currentPlaylist.Tracks == null || currentPlaylist.Tracks.Length == 0)
+            {
+                return;
+            }
             musicController.CrossfadeToClip(currentPlaylist.Tracks[currentTrackIndex], 2f);
         }
 
@@ -206,6 +280,11 @@ namespace JG.Audio
 
         private void OnApplicationFocus(bool hasFocus)
         {
+            if (!hasFocus && !pauseOnFocusLoss)
+            {
+                return;
+            }
+
             if (hasFocus)
             {
                 ResumeAfterFocusReturn();
@@ -218,6 +297,11 @@ namespace JG.Audio
 
         private void OnApplicationPause(bool pauseStatus)
         {
+            if (pauseStatus && !pauseOnFocusLoss)
+            {
+                return;
+            }
+
             if (pauseStatus)
             {
                 PauseForFocusLoss();
