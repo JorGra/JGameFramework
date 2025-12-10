@@ -1,3 +1,4 @@
+using JG.GameContent;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -101,6 +102,7 @@ public class StatsProfile : ScriptableObject
 public struct StatSpec
 {
     // Content integration is optional; keep this as a plain string to avoid hard dependencies.
+    [IdReference(typeof(StatDefinition))]
     public string statId;     // e.g. "maxhealth"
     public float baseValue;   // e.g. 120
 }
