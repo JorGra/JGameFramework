@@ -9,6 +9,9 @@ public class UIPanelAnimated : UIPanel
 
     private Vector3 initialScale;
     private CanvasGroup canvasGroup;
+    private Coroutine openRoutine;
+    private Coroutine closeRoutine;
+    private bool isAnimatingClose;
 
     #region Life-cycle
     protected virtual void Awake()
@@ -31,18 +34,62 @@ public class UIPanelAnimated : UIPanel
     #region Public API
     public override void Open()
     {
-        if (IsOpen) return;
+        if (IsOpen && !isAnimatingClose)
+        {
+            return;
+        }
 
-        gameObject.SetActive(true);
-        StartCoroutine(AnimateOpen());
+        if (closeRoutine != null)
+        {
+            StopCoroutine(closeRoutine);
+            closeRoutine = null;
+        }
+
+        isAnimatingClose = false;
+        IsOpen = true;
+
+        if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+        }
+
+        if (openRoutine != null)
+        {
+            StopCoroutine(openRoutine);
+        }
+
+        openRoutine = StartCoroutine(AnimateOpen());
     }
 
     public override void Close()
     {
-        if (!IsOpen) return;
+        if (!IsOpen && !isAnimatingClose)
+        {
+            return;
+        }
 
-        if (gameObject.activeInHierarchy)
-            StartCoroutine(AnimateClose());
+        if (openRoutine != null)
+        {
+            StopCoroutine(openRoutine);
+            openRoutine = null;
+        }
+
+        if (!gameObject.activeInHierarchy)
+        {
+            isAnimatingClose = false;
+            IsOpen = false;
+            return;
+        }
+
+        isAnimatingClose = true;
+        IsOpen = false;
+
+        if (closeRoutine != null)
+        {
+            StopCoroutine(closeRoutine);
+        }
+
+        closeRoutine = StartCoroutine(AnimateClose());
     }
     #endregion
 
@@ -51,6 +98,13 @@ public class UIPanelAnimated : UIPanel
     {
         transform.localScale = Vector3.zero;
         float elapsed = 0f;
+
+        if (canvasGroup)
+        {
+            canvasGroup.alpha = 0f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+        }
 
         while (elapsed < animationDuration)
         {
@@ -75,6 +129,7 @@ public class UIPanelAnimated : UIPanel
         }
 
         IsOpen = true;
+        openRoutine = null;
     }
 
     private IEnumerator AnimateClose()
@@ -106,6 +161,8 @@ public class UIPanelAnimated : UIPanel
 
         gameObject.SetActive(false);
         IsOpen = false;
+        isAnimatingClose = false;
+        closeRoutine = null;
     }
     #endregion
 }
