@@ -63,7 +63,7 @@ public class Stats
         }
 
         var query = new Query(statKey, baseValue);
-        Mediator.PerfromQuery(this, query);
+        Mediator.PerfromQuery(this, ref query);
         return query.Value;
     }
 

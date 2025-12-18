@@ -1,31 +1,44 @@
 using System.Collections.Generic;
-using System.Linq;
 
 public interface IStatModifierApplicationOrder
 {
-    float Apply(IEnumerable<StatModifier> statModifiers, float baseValue);
+    float Apply(IReadOnlyList<StatModifier> statModifiers, float baseValue);
 }
-
 
 public class NormalStatModifierApplicationOrder : IStatModifierApplicationOrder
 {
-    public float Apply(IEnumerable<StatModifier> statModifiers, float baseValue)
+    public float Apply(IReadOnlyList<StatModifier> statModifiers, float baseValue)
     {
-        var allModifiers = statModifiers.ToList();
+        int count = statModifiers.Count;
 
-        foreach (var modifier in allModifiers.Where(x => x.Strategy is AddOperation))
+        // First pass: Add operations
+        for (int i = 0; i < count; i++)
         {
-            baseValue = modifier.Strategy.Calculate(baseValue);
+            var modifier = statModifiers[i];
+            if (modifier.Strategy is AddOperation)
+            {
+                baseValue = modifier.Strategy.Calculate(baseValue);
+            }
         }
 
-        foreach (var modifier in allModifiers.Where(x => x.Strategy is MultiplyOperation))
+        // Second pass: Multiply operations
+        for (int i = 0; i < count; i++)
         {
-            baseValue = modifier.Strategy.Calculate(baseValue);
+            var modifier = statModifiers[i];
+            if (modifier.Strategy is MultiplyOperation)
+            {
+                baseValue = modifier.Strategy.Calculate(baseValue);
+            }
         }
 
-        foreach (var modifier in allModifiers.Where(x => x.Strategy is PercentageOperation))
+        // Third pass: Percentage operations
+        for (int i = 0; i < count; i++)
         {
-            baseValue = modifier.Strategy.Calculate(baseValue);
+            var modifier = statModifiers[i];
+            if (modifier.Strategy is PercentageOperation)
+            {
+                baseValue = modifier.Strategy.Calculate(baseValue);
+            }
         }
 
         return baseValue;

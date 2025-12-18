@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 public class StatsMediator
 {
@@ -10,18 +9,23 @@ public class StatsMediator
 
     private IStatModifierApplicationOrder order = new NormalStatModifierApplicationOrder();
 
-    public void PerfromQuery(object sender, Query query)
+    public void PerfromQuery(object sender, ref Query query)
     {
-        if (query == null || string.IsNullOrWhiteSpace(query.StatKey))
+        string statKey = query.StatKey;
+        if (string.IsNullOrWhiteSpace(statKey))
             return;
 
-        if (!modifierCache.TryGetValue(query.StatKey, out var cached))
+        if (!modifierCache.TryGetValue(statKey, out var cached))
         {
-            cached = listModifiers
-                .Where(x => string.Equals(x.StatKey, query.StatKey, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            modifierCache[query.StatKey] = cached;
+            cached = new List<StatModifier>();
+            for (int i = 0; i < listModifiers.Count; i++)
+            {
+                if (string.Equals(listModifiers[i].StatKey, statKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    cached.Add(listModifiers[i]);
+                }
+            }
+            modifierCache[statKey] = cached;
         }
 
         query.Value = order.Apply(cached, query.Value);
@@ -53,15 +57,23 @@ public class StatsMediator
 
     public void Update(float deltaTime)
     {
-        foreach (var modifier in listModifiers)
-            modifier.Update(deltaTime);
+        for (int i = 0; i < listModifiers.Count; i++)
+        {
+            listModifiers[i].Update(deltaTime);
+        }
 
-        foreach (var modifier in listModifiers.Where(x => x.MarkedForRemoval).ToList())
-            modifier.Dispose();
+        // Iterate backwards to safely remove while iterating
+        for (int i = listModifiers.Count - 1; i >= 0; i--)
+        {
+            if (listModifiers[i].MarkedForRemoval)
+            {
+                listModifiers[i].Dispose();
+            }
+        }
     }
 }
 
-public class Query
+public struct Query
 {
     public readonly string StatKey;
     public float Value;

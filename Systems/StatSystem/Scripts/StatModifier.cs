@@ -27,10 +27,9 @@ public class StatModifier : IDisposable
 
     public void Update(float deltaTime) => timer?.Tick(deltaTime);
 
-    public void Handle(object sender, Query query)
+    public void Handle(object sender, ref Query query)
     {
-        if (query != null &&
-            string.Equals(query.StatKey, StatKey, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(query.StatKey, StatKey, StringComparison.OrdinalIgnoreCase))
         {
             query.Value = Strategy.Calculate(query.Value);
         }
