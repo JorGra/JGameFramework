@@ -39,7 +39,9 @@ public enum UIAudioAction
     Hover,
     Press,
     Click,
-    Release
+    Release,
+    OpenPanel,
+    ClosePanel
 }
 
 /// <summary>

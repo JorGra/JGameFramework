@@ -17,12 +17,13 @@ MonoBehaviour:
     Sounds:
     - Action: 0
       SoundData:
+        clipPathKey: 
         clip: {fileID: 8300000, guid: 507d4ce88d0f5b3448da9240aff4fdb0, type: 3}
-        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e,
-          type: 2}
+        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
+        mixerGroupType: 3
         loop: 0
         playOnAwake: 0
-        frequent: 1
+        frequent: 0
         mute: 0
         bypassEffects: 0
         bypassListenerEffects: 0
@@ -30,6 +31,8 @@ MonoBehaviour:
         priority: 128
         volume: 100
         pitch: 1
+        randomizePitch: 0
+        randomPitchRange: {x: -0.05, y: 0.05}
         panStereo: 0
         spatialBlend: 0
         reverbZoneMix: 1
@@ -44,12 +47,13 @@ MonoBehaviour:
       RandomPitchRange: {x: 0.95, y: 1.1}
     - Action: 2
       SoundData:
+        clipPathKey: 
         clip: {fileID: 8300000, guid: 908531e7fe23f2447b8fbc10fc781e77, type: 3}
-        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e,
-          type: 2}
+        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
+        mixerGroupType: 3
         loop: 0
         playOnAwake: 0
-        frequent: 1
+        frequent: 0
         mute: 0
         bypassEffects: 0
         bypassListenerEffects: 0
@@ -57,6 +61,8 @@ MonoBehaviour:
         priority: 128
         volume: 1
         pitch: 1
+        randomizePitch: 0
+        randomPitchRange: {x: -0.05, y: 0.05}
         panStereo: 0
         spatialBlend: 0
         reverbZoneMix: 1
@@ -71,9 +77,10 @@ MonoBehaviour:
       RandomPitchRange: {x: 0.95, y: 1.1}
     - Action: 1
       SoundData:
+        clipPathKey: 
         clip: {fileID: 8300000, guid: 908531e7fe23f2447b8fbc10fc781e77, type: 3}
-        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e,
-          type: 2}
+        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
+        mixerGroupType: 3
         loop: 0
         playOnAwake: 0
         frequent: 1
@@ -84,6 +91,68 @@ MonoBehaviour:
         priority: 128
         volume: 1
         pitch: 1
+        randomizePitch: 0
+        randomPitchRange: {x: -0.05, y: 0.05}
+        panStereo: 0
+        spatialBlend: 0
+        reverbZoneMix: 1
+        dopplerLevel: 1
+        spread: 0
+        minDistance: 1
+        maxDistance: 500
+        ignoreListenerVolume: 0
+        ignoreListenerPause: 0
+        rolloffMode: 0
+      RandomPitch: 1
+      RandomPitchRange: {x: 0.95, y: 1.1}
+    - Action: 4
+      SoundData:
+        clipPathKey: 
+        clip: {fileID: 8300000, guid: 0b59a3ec93767d74e99afc549f17362f, type: 3}
+        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
+        mixerGroupType: 3
+        loop: 0
+        playOnAwake: 0
+        frequent: 0
+        mute: 0
+        bypassEffects: 0
+        bypassListenerEffects: 0
+        bypassReverbZones: 0
+        priority: 128
+        volume: 1
+        pitch: 1
+        randomizePitch: 0
+        randomPitchRange: {x: -0.05, y: 0.05}
+        panStereo: 0
+        spatialBlend: 0
+        reverbZoneMix: 1
+        dopplerLevel: 1
+        spread: 0
+        minDistance: 1
+        maxDistance: 500
+        ignoreListenerVolume: 0
+        ignoreListenerPause: 0
+        rolloffMode: 0
+      RandomPitch: 1
+      RandomPitchRange: {x: 0.95, y: 1.1}
+    - Action: 5
+      SoundData:
+        clipPathKey: 
+        clip: {fileID: 8300000, guid: 89ed9840f7ca5e143997001af9697a0f, type: 3}
+        mixerGroup: {fileID: 7263930446945870655, guid: 969f84cf6670dc94b88dea485847a21e, type: 2}
+        mixerGroupType: 3
+        loop: 0
+        playOnAwake: 0
+        frequent: 0
+        mute: 0
+        bypassEffects: 0
+        bypassListenerEffects: 0
+        bypassReverbZones: 0
+        priority: 128
+        volume: 1
+        pitch: 1
+        randomizePitch: 0
+        randomPitchRange: {x: -0.05, y: 0.05}
         panStereo: 0
         spatialBlend: 0
         reverbZoneMix: 1

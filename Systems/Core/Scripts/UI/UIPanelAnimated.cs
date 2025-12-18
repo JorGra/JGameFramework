@@ -8,7 +8,7 @@ public class UIPanelAnimated : UIPanel
     private readonly float canvasSpeedMultiplier = 3f;
 
     private Vector3 initialScale;
-    private CanvasGroup canvasGroup;
+    [SerializeField] private CanvasGroup canvasGroup;
     private Coroutine openRoutine;
     private Coroutine closeRoutine;
     private bool isAnimatingClose;
@@ -17,7 +17,8 @@ public class UIPanelAnimated : UIPanel
     protected virtual void Awake()
     {
         initialScale = transform.localScale;
-        canvasGroup = GetComponent<CanvasGroup>();
+        if(canvasGroup == null)
+            canvasGroup = GetComponentInChildren<CanvasGroup>();
 
         if (canvasGroup)
         {
@@ -27,7 +28,7 @@ public class UIPanelAnimated : UIPanel
         }
 
         IsOpen = false;
-        gameObject.SetActive(false);
+        canvasGroup.gameObject.SetActive(false);
     }
     #endregion
 
@@ -48,9 +49,9 @@ public class UIPanelAnimated : UIPanel
         isAnimatingClose = false;
         IsOpen = true;
 
-        if (!gameObject.activeSelf)
+        if (!canvasGroup.gameObject.activeSelf)
         {
-            gameObject.SetActive(true);
+            canvasGroup.gameObject.SetActive(true);
         }
 
         if (openRoutine != null)
@@ -58,7 +59,33 @@ public class UIPanelAnimated : UIPanel
             StopCoroutine(openRoutine);
         }
 
+        OnPanelOpened?.Invoke();
         openRoutine = StartCoroutine(AnimateOpen());
+    }
+
+    public void CloseImmediate()
+    {
+        if (openRoutine != null)
+        {
+            StopCoroutine(openRoutine);
+            openRoutine = null;
+        }
+        if (closeRoutine != null)
+        {
+            StopCoroutine(closeRoutine);
+            closeRoutine = null;
+        }
+        transform.localScale = Vector3.zero;
+        if (canvasGroup)
+        {
+            canvasGroup.alpha = 0f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+            canvasGroup.gameObject.SetActive(false);
+        }
+        isAnimatingClose = false;
+        IsOpen = false;
+        OnPanelClosed?.Invoke();
     }
 
     public override void Close()
@@ -74,7 +101,7 @@ public class UIPanelAnimated : UIPanel
             openRoutine = null;
         }
 
-        if (!gameObject.activeInHierarchy)
+        if (!canvasGroup.gameObject.activeInHierarchy)
         {
             isAnimatingClose = false;
             IsOpen = false;
@@ -89,6 +116,7 @@ public class UIPanelAnimated : UIPanel
             StopCoroutine(closeRoutine);
         }
 
+        OnPanelClosed?.Invoke();
         closeRoutine = StartCoroutine(AnimateClose());
     }
     #endregion
@@ -159,7 +187,7 @@ public class UIPanelAnimated : UIPanel
         transform.localScale = Vector3.zero;
         if (canvasGroup) canvasGroup.alpha = 0f;
 
-        gameObject.SetActive(false);
+        canvasGroup.gameObject.SetActive(false);
         IsOpen = false;
         isAnimatingClose = false;
         closeRoutine = null;
