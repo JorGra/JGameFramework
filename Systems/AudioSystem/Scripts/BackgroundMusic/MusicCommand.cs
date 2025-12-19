@@ -49,9 +49,11 @@ namespace JG.Audio
 
     public class PauseCommand : MusicCommand
     {
+        readonly float startVolume;
         float fadeDuration;
-        public PauseCommand(MusicController controller, MonoBehaviour owner, float fadeDuration) : base(controller, owner)
+        public PauseCommand(MusicController controller, MonoBehaviour owner, float startVolume, float fadeDuration) : base(controller, owner)
         {
+            this.startVolume = Mathf.Clamp01(startVolume);
             this.fadeDuration = fadeDuration;
         }
 
@@ -63,8 +65,7 @@ namespace JG.Audio
 
         private IEnumerator PauseRoutine()
         {
-            // Fade master volume to 0
-            float start = 1f; // assuming currently at full volume
+            float start = startVolume;
             float end = 0f;
             float elapsed = 0f;
             while (elapsed < fadeDuration)
@@ -82,9 +83,11 @@ namespace JG.Audio
 
     public class ResumeCommand : MusicCommand
     {
+        readonly float targetVolume;
         float fadeDuration;
-        public ResumeCommand(MusicController controller, MonoBehaviour owner, float fadeDuration) : base(controller, owner)
+        public ResumeCommand(MusicController controller, MonoBehaviour owner, float targetVolume, float fadeDuration) : base(controller, owner)
         {
+            this.targetVolume = Mathf.Clamp01(targetVolume);
             this.fadeDuration = fadeDuration;
         }
 
@@ -97,7 +100,7 @@ namespace JG.Audio
         {
             controller.UnPauseActiveSource();
             float start = 0f;
-            float end = 1f;
+            float end = targetVolume;
             float elapsed = 0f;
             while (elapsed < fadeDuration)
             {
@@ -106,7 +109,7 @@ namespace JG.Audio
                 controller.SetMasterVolumeInstant(Mathf.Lerp(start, end, t));
                 yield return null;
             }
-            controller.SetMasterVolumeInstant(1f);
+            controller.SetMasterVolumeInstant(end);
             IsRunning = false;
         }
     }

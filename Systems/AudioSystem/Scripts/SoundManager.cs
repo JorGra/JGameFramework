@@ -14,6 +14,10 @@ namespace JG.Audio
         IObjectPool<SoundEmitter> soundEmitterPool;
         readonly List<SoundEmitter> activeSoundEmitters = new List<SoundEmitter>();
         public readonly Queue<SoundEmitter> FrequentSoundEmitters = new Queue<SoundEmitter>();
+        float masterVolume = 1f;
+        float musicVolume = 1f;
+        float effectsVolume = 1f;
+        float uiVolume = 1f;
 
         [SerializeField] SoundEmitter soundEmitterPrefab;
         [Header("Mixer Groups")]
@@ -32,6 +36,7 @@ namespace JG.Audio
         {
             soundEventSubscription = EventBus<PlaySoundEvent>.Subscribe(OnPlaySoundEvent, this);
             InitializePool();
+            ApplyVolumeToActiveEmitters();
         }
 
         private void OnDestroy()
@@ -135,7 +140,50 @@ namespace JG.Audio
                 _ => masterMixerGroup
             };
         }
+        public float GetVolumeMultiplier(SoundMixerGroup mixerGroup)
+        {
+            float category = mixerGroup switch
+            {
+                SoundMixerGroup.Music => musicVolume,
+                SoundMixerGroup.UI => uiVolume,
+                _ => effectsVolume
+            };
 
+            return Mathf.Clamp01(masterVolume) * Mathf.Clamp01(category);
+        }
+
+        public void SetChannelVolumes(float master, float music, float effects, float ui)
+        {
+            masterVolume = Mathf.Clamp01(master);
+            musicVolume = Mathf.Clamp01(music);
+            effectsVolume = Mathf.Clamp01(effects);
+            uiVolume = Mathf.Clamp01(ui);
+
+            ApplyVolumeToActiveEmitters();
+        }
+
+        void ApplyVolumeToActiveEmitters()
+        {
+            float master = masterVolume;
+            float music = musicVolume;
+            float effects = effectsVolume;
+            float ui = uiVolume;
+
+            for (int i = 0; i < activeSoundEmitters.Count; i++)
+            {
+                var emitter = activeSoundEmitters[i];
+                if (emitter == null) continue;
+
+                float multiplier = master * (emitter.MixerGroupType switch
+                {
+                    SoundMixerGroup.Music => music,
+                    SoundMixerGroup.UI => ui,
+                    _ => effects
+                });
+
+                emitter.ApplyVolumeMultiplier(multiplier);
+            }
+        }
 
     }
 

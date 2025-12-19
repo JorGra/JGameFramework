@@ -10,10 +10,12 @@ namespace JG.Audio
     public class SoundEmitter : MonoBehaviour
     {
         public SoundData Data { get; private set; }
+        public SoundMixerGroup MixerGroupType { get; private set; } = SoundMixerGroup.Effects;
         public LinkedListNode<SoundEmitter> Node { get; set; }
 
         AudioSource audioSource;
         Coroutine playingCoroutine;
+        float baseVolume = 1f;
 
         void Awake()
         {
@@ -23,11 +25,14 @@ namespace JG.Audio
         public void Initialize(SoundData data)
         {
             Data = data;
+            baseVolume = data != null ? data.volume : 1f;
+            MixerGroupType = data != null ? data.mixerGroupType : SoundMixerGroup.Effects;
+
             audioSource.clip = data.clip;
             var outputGroup = data.mixerGroup;
             if (outputGroup == null && SoundManager.Instance != null)
             {
-                outputGroup = SoundManager.Instance.ResolveMixerGroup(data.mixerGroupType);
+                outputGroup = SoundManager.Instance.ResolveMixerGroup(MixerGroupType);
             }
             audioSource.outputAudioMixerGroup = outputGroup;
             audioSource.loop = data.loop;
@@ -39,7 +44,8 @@ namespace JG.Audio
             audioSource.bypassReverbZones = data.bypassReverbZones;
 
             audioSource.priority = data.priority;
-            audioSource.volume = data.volume;
+            ApplyVolumeMultiplier(
+                SoundManager.TryGetInstance()?.GetVolumeMultiplier(MixerGroupType) ?? 1f);
             audioSource.pitch = data.pitch;
             audioSource.panStereo = data.panStereo;
             audioSource.spatialBlend = data.spatialBlend;
@@ -88,6 +94,11 @@ namespace JG.Audio
         public void WithRandomPitch(Vector2 pitchRange)
         {
             audioSource.pitch += Random.Range(pitchRange.x, pitchRange.y);
+        }
+
+        public void ApplyVolumeMultiplier(float multiplier)
+        {
+            audioSource.volume = baseVolume * Mathf.Max(0f, multiplier);
         }
     }
 }

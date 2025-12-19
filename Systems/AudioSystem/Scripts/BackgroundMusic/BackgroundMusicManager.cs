@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.Audio;
 using System.Collections.Generic;
 
+using JGameFramework.Settings;
 namespace JG.Audio
 {
     public struct ChangePlaylistEvent : IEvent
@@ -42,12 +43,20 @@ namespace JG.Audio
 
         private MusicController musicController;
         private IMusicCommand currentCommand;
+        private float settingsVolume = 1f;
 
         private PlaylistSO currentPlaylist;
         private int currentTrackIndex;
         private bool awaitingFocusResume;
         private bool focusPauseActive;
         private readonly Stack<int> shuffleHistory = new Stack<int>();
+        private void RefreshSettingsVolume()
+        {
+            UserSettings.EnsureInitialized();
+            ApplyVolumeSettings(
+                UserSettings.GetFloat(UserSettingKey.MasterVolume),
+                UserSettings.GetFloat(UserSettingKey.MusicVolume));
+        }
 
         EventSubscription<ChangePlaylistEvent> changePlaylistSubscription;
         EventSubscription<NextTrackEvent> nextTrackSubscription;
@@ -64,6 +73,9 @@ namespace JG.Audio
 
             musicController = gameObject.AddComponent<MusicController>();
             musicController.Init(audioMixerGroup);
+
+            // Apply persisted user settings immediately so focus pause/resume uses correct levels.
+            RefreshSettingsVolume();
 
             SetPlaylist(defaultPlaylist);
             musicController.PlayClip(currentPlaylist.Tracks[currentTrackIndex], true, startFadeInDuration);
@@ -238,11 +250,11 @@ namespace JG.Audio
             CancelCurrentCommand();
             if (e.Paused)
             {
-                currentCommand = new PauseCommand(musicController, this, e.FadeDuration);
+                currentCommand = new PauseCommand(musicController, this, settingsVolume, e.FadeDuration);
             }
             else
             {
-                currentCommand = new ResumeCommand(musicController, this, e.FadeDuration);
+                currentCommand = new ResumeCommand(musicController, this, settingsVolume, e.FadeDuration);
             }
             currentCommand.Execute();
         }
@@ -264,8 +276,8 @@ namespace JG.Audio
         private void OnResetMusicSettings(ResetMusicSettingsEvent e)
         {
             CancelCurrentCommand();
-            // Reset to normal volume and pitch:
-            musicController.FadeMasterVolume(1f, e.FadeDuration);
+            // Reset to settings-derived volume and default pitch:
+            musicController.FadeMasterVolume(settingsVolume, e.FadeDuration);
             musicController.FadeMasterPitch(1f, e.FadeDuration);
         }
 
@@ -276,6 +288,17 @@ namespace JG.Audio
                 currentCommand.Cancel();
             }
             currentCommand = null;
+        }
+
+        public void ApplyVolumeSettings(float masterVolume, float musicVolume)
+        {
+            if (musicController == null)
+            {
+                return;
+            }
+
+            settingsVolume = Mathf.Clamp01(masterVolume) * Mathf.Clamp01(musicVolume);
+            musicController.SetMasterVolumeInstant(settingsVolume);
         }
 
         private void OnApplicationFocus(bool hasFocus)
@@ -323,7 +346,8 @@ namespace JG.Audio
             awaitingFocusResume = true;
             focusPauseActive = true;
             CancelCurrentCommand();
-            currentCommand = new PauseCommand(musicController, this, focusFadeDuration);
+            RefreshSettingsVolume();
+            currentCommand = new PauseCommand(musicController, this, settingsVolume, focusFadeDuration);
             currentCommand.Execute();
         }
 
@@ -336,7 +360,8 @@ namespace JG.Audio
 
             CancelCurrentCommand();
             focusPauseActive = false;
-            currentCommand = new ResumeCommand(musicController, this, focusFadeDuration);
+            RefreshSettingsVolume();
+            currentCommand = new ResumeCommand(musicController, this, settingsVolume, focusFadeDuration);
             currentCommand.Execute();
         }
     }
