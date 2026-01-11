@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 
 public class UIPanelAnimated : UIPanel
@@ -136,14 +136,14 @@ public class UIPanelAnimated : UIPanel
 
         while (elapsed < animationDuration)
         {
-            float tScale = elapsed / animationDuration;                     // 0 → 1
+            float tScale = elapsed / animationDuration;                     // 0 -> 1
             float tFade = Mathf.Clamp01(tScale * canvasSpeedMultiplier);   // faster/slower
 
             transform.localScale = Vector3.Lerp(Vector3.zero, initialScale, tScale);
 
             if (canvasGroup) canvasGroup.alpha = tFade;
 
-            elapsed += Time.deltaTime;
+            elapsed += Time.unscaledDeltaTime;
             yield return null;
         }
 
@@ -160,6 +160,7 @@ public class UIPanelAnimated : UIPanel
         openRoutine = null;
     }
 
+
     private IEnumerator AnimateClose()
     {
         Vector3 startScale = transform.localScale;
@@ -173,14 +174,14 @@ public class UIPanelAnimated : UIPanel
 
         while (elapsed < animationDuration)
         {
-            float tScale = elapsed / animationDuration;                     // 0 → 1
+            float tScale = elapsed / animationDuration;                     // 0 -> 1
             float tFade = Mathf.Clamp01(tScale * canvasSpeedMultiplier);   // faster/slower
 
             transform.localScale = Vector3.Lerp(startScale, Vector3.zero, tScale);
 
             if (canvasGroup) canvasGroup.alpha = 1f - tFade;
 
-            elapsed += Time.deltaTime;
+            elapsed += Time.unscaledDeltaTime;
             yield return null;
         }
 
@@ -192,5 +193,6 @@ public class UIPanelAnimated : UIPanel
         isAnimatingClose = false;
         closeRoutine = null;
     }
+
     #endregion
 }
