@@ -459,4 +459,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7797a39d0c1222459b0b8c471fb3c49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  styleKey: SliderKnob
+  styleKey: SliderFill

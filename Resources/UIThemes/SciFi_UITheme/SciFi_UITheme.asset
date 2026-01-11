@@ -1,0 +1,678 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6dfb9a66a07e624aa63b895c98dfda4, type: 3}
+  m_Name: SciFi_UITheme
+  m_EditorClassIdentifier: JGameFramework.UITheming::UI.Theming.ThemeAsset
+  baseTheme: {fileID: 0}
+  palette: {fileID: 11400000, guid: 3cc927736ae0a5a4eb9596608d686eba, type: 2}
+  colors:
+  - key: Trans20
+    color: {r: 1, g: 1, b: 1, a: 0.2}
+  - key: Trans40
+    color: {r: 1, g: 1, b: 1, a: 0.4}
+  - key: Trans60
+    color: {r: 1, g: 1, b: 1, a: 0.6}
+  - key: Trans60_G
+    color: {r: 0.5660378, g: 0.5660378, b: 0.5660378, a: 0.6}
+  sprites:
+  - key: ButtonPrimary_normal
+    sprite: {fileID: 21300000, guid: b045a42b12cc4fa42832f610225c48cd, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: ButtonPrimary_highlighted
+    sprite: {fileID: 21300000, guid: c392ad6cd04536f45bd9503d60e71185, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: ButtonPrimary_pressed
+    sprite: {fileID: 21300000, guid: 107a2ef79c4dd2343acbc646d29c8e04, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: ButtonPrimary_selected
+    sprite: {fileID: 21300000, guid: 2cafa0caf9f927e4481809090fbef306, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: ButtonPrimary_disabled
+    sprite: {fileID: 21300000, guid: 2b32b854a6a27b64da193513e0f39816, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: CardLarge_normal
+    sprite: {fileID: -7616042140967691139, guid: d4e365d5e4f77a4408c8e360e9850f54, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: ButtonPrimaryColor_normal
+    sprite: {fileID: 21300000, guid: 458c07532c233b543a96737b77d79c31, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: ButtonPrimaryColor_highlighted
+    sprite: {fileID: 21300000, guid: 937e821505aadf1449107c7f877320ce, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: ButtonPrimaryColor_pressed
+    sprite: {fileID: 21300000, guid: 1cc7069f04376084e86e5ccf7f06a825, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: ButtonPrimaryColor_selected
+    sprite: {fileID: 21300000, guid: 2cafa0caf9f927e4481809090fbef306, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: ButtonPrimaryColor_disabled
+    sprite: {fileID: 21300000, guid: 134fe5e012c052a4b873db7f7a7cddfd, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: CardSelectable_normal
+    sprite: {fileID: 297612907756499766, guid: 10fe0c9ccbc0f754da294689926c9a49, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: SliderBackground
+    sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: SliderKnob
+    sprite: {fileID: -2513198248131789816, guid: 49a637898a1e03a44b9203acf756e902, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: SliderFill
+    sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 1
+    pixelPerUnit: 1
+  fonts:
+  - key: h1
+    font: {fileID: 11400000, guid: c2d3fbf0584dcdd4ca0b23120d50ba5b, type: 2}
+  - key: Body
+    font: {fileID: 11400000, guid: 6067683fcf3f8744dbf386128926a2b4, type: 2}
+  styleSheets:
+  - rid: 3783510158752350288
+  - rid: 3783510158752350289
+  - rid: 3783510158752350290
+  references:
+    version: 2
+    RefIds:
+    - rid: 3783510158752350288
+      type: {class: ButtonStyleSheet, ns: UI.Theming, asm: JGameFramework.UITheming}
+      data:
+        styles:
+        - styleKey: Primary
+          sharedLabelStyleKey: SubheadingInverted
+          applySharedLabelStyle: 1
+          includeIcon: 0
+          iconStyleKey: 
+          animation:
+            duration: 0.1
+            easing:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              - serializedVersion: 3
+                time: 1
+                value: 1
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 0
+            useUnscaledTime: 0
+          selectableTransition: 2
+          defaults:
+            applyBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimary_normal
+            useBackgroundImageType: 1
+            backgroundImageType: 1
+            applyLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            applyIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            applyScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            applySizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+          normal:
+            displayName: 
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          highlighted:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimary_highlighted
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 1
+            targetScale: {x: 1.1, y: 1.1, z: 1.1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          pressed:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimary_pressed
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0.96, y: 0.96, z: 0.96}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          selected:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimary_highlighted
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          disabled:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimary_disabled
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+        - styleKey: PrimaryColor
+          sharedLabelStyleKey: Subheading
+          applySharedLabelStyle: 1
+          includeIcon: 0
+          iconStyleKey: 
+          animation:
+            duration: 0.1
+            easing:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              - serializedVersion: 3
+                time: 1
+                value: 1
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 0
+            useUnscaledTime: 0
+          selectableTransition: 2
+          defaults:
+            applyBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimaryColor_normal
+            useBackgroundImageType: 1
+            backgroundImageType: 1
+            applyLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            applyIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            applyScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            applySizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+          normal:
+            displayName: 
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          highlighted:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimaryColor_highlighted
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 1
+            targetScale: {x: 1.1, y: 1.1, z: 1.1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          pressed:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimaryColor_pressed
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 1
+            targetScale: {x: 0.96, y: 0.96, z: 0.96}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          selected:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimaryColor_highlighted
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          disabled:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimaryColor_disabled
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+        - styleKey: Secondary
+          sharedLabelStyleKey: Subheading
+          applySharedLabelStyle: 1
+          includeIcon: 1
+          iconStyleKey: Subheading
+          animation:
+            duration: 0.1
+            easing:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              - serializedVersion: 3
+                time: 1
+                value: 1
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 0
+            useUnscaledTime: 0
+          selectableTransition: 1
+          defaults:
+            applyBackground: 1
+            backgroundColorKey: Trans40
+            backgroundSpriteKey: ButtonPrimary_normal
+            useBackgroundImageType: 1
+            backgroundImageType: 1
+            applyLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            applyIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            applyScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            applySizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+          normal:
+            displayName: 
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          highlighted:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: Trans60
+            backgroundSpriteKey: ButtonPrimary_highlighted
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 1.1, y: 1.1, z: 1.1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          pressed:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: Trans60_G
+            backgroundSpriteKey: ButtonPrimary_pressed
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0.96, y: 0.96, z: 0.96}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          selected:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: Trans40
+            backgroundSpriteKey: ButtonPrimary_highlighted
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          disabled:
+            displayName: 
+            overrideBackground: 1
+            backgroundColorKey: Trans40
+            backgroundSpriteKey: ButtonPrimary_disabled
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+        - styleKey: CardSelectable
+          sharedLabelStyleKey: Body
+          applySharedLabelStyle: 1
+          includeIcon: 0
+          iconStyleKey: 
+          animation:
+            duration: 0.1
+            easing:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              - serializedVersion: 3
+                time: 1
+                value: 1
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 0
+            useUnscaledTime: 0
+          selectableTransition: 1
+          defaults:
+            applyBackground: 1
+            backgroundColorKey: 
+            backgroundSpriteKey: CardSelectable_normal
+            useBackgroundImageType: 1
+            backgroundImageType: 1
+            applyLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            applyIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            applyScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            applySizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+          normal:
+            displayName: 
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          highlighted:
+            displayName: 
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimaryColor_highlighted
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 1
+            targetScale: {x: 1.1, y: 1.1, z: 1.1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          pressed:
+            displayName: 
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimaryColor_pressed
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 1
+            targetScale: {x: 0.96, y: 0.96, z: 0.96}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          selected:
+            displayName: 
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimaryColor_highlighted
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          disabled:
+            displayName: 
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: ButtonPrimaryColor_disabled
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 0
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 0
+            animateScale: 0
+            targetScale: {x: 0, y: 0, z: 0}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+    - rid: 3783510158752350289
+      type: {class: TextStyleSheet, ns: UI.Theming, asm: JGameFramework.UITheming}
+      data:
+        styles:
+        - styleKey: Header
+          colorKey: Text
+          fontKey: h1
+          fontSize: 30
+          fontStyle: 0
+        - styleKey: Subheading
+          colorKey: Text
+          fontKey: h1
+          fontSize: 24
+          fontStyle: 32
+        - styleKey: Body
+          colorKey: Text
+          fontKey: Body
+          fontSize: 20
+          fontStyle: 0
+        - styleKey: SubheadingInverted
+          colorKey: TextInverted
+          fontKey: Body
+          fontSize: 24
+          fontStyle: 33
+    - rid: 3783510158752350290
+      type: {class: ImageStyleSheet, ns: UI.Theming, asm: JGameFramework.UITheming}
+      data:
+        styles:
+        - styleKey: CardLarge
+          spriteKey: CardLarge_normal
+          tintColorKey: 
+        - styleKey: SliderBackground
+          spriteKey: SliderBackground
+          tintColorKey: Trans20
+        - styleKey: SliderKnob
+          spriteKey: SliderKnob
+          tintColorKey: Primary
+        - styleKey: SliderFill
+          spriteKey: SliderFill
+          tintColorKey: Primary

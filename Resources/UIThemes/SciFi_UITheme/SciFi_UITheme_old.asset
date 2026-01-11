@@ -1,0 +1,469 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6dfb9a66a07e624aa63b895c98dfda4, type: 3}
+  m_Name: SciFi_UITheme_old
+  m_EditorClassIdentifier: 
+  baseTheme: {fileID: 11400000, guid: 66276e8a4caed2643a52b2999b3f5d0d, type: 2}
+  palette: {fileID: 0}
+  colors:
+  - key: Text
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - key: Transparent
+    color: {r: 1, g: 1, b: 1, a: 0}
+  - key: IconTint
+    color: {r: 1, g: 1, b: 1, a: 0.34117648}
+  - key: Transparent40
+    color: {r: 1, g: 1, b: 1, a: 0.15686275}
+  - key: BackgroundTrans
+    color: {r: 0.6431373, g: 0.6431373, b: 0.6431373, a: 0.15686275}
+  - key: Black
+    color: {r: 0, g: 0, b: 0, a: 1}
+  sprites:
+  - key: PanelLarge
+    sprite: {fileID: -7616042140967691139, guid: d4e365d5e4f77a4408c8e360e9850f54, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: PanelLargeHeader
+    sprite: {fileID: 21300000, guid: 7950f065b0bba3441b03412c19162490, type: 3}
+    imageType: 0
+    pixelPerUnit: 2
+  - key: Card
+    sprite: {fileID: -7616042140967691139, guid: d4e365d5e4f77a4408c8e360e9850f54, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: SliderNormal
+    sprite: {fileID: 21300000, guid: 9da09baebbf44ea44893cb6133e46378, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: SliderHighlighted
+    sprite: {fileID: 21300000, guid: 1ef7caf0430502a4bb2a78e8d4f09042, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: SliderDisabled
+    sprite: {fileID: 21300000, guid: f7b3ebfc44b59f2498c87ac7dbe5ef77, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: ButtonPrimary
+    sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: ButtonPrimaryHighlight
+    sprite: {fileID: 21300000, guid: 98daffcb6a17dbf4da2405ee8ffac62d, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: ButtonPrimaryPressed
+    sprite: {fileID: 21300000, guid: 4373608d0e3a3b649ba8b919b6451a4b, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: ButtonPrimarySelected
+    sprite: {fileID: 21300000, guid: c177857389d61f04c9fc0c5d236a311a, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: ButtonPrimaryDisabled
+    sprite: {fileID: 21300000, guid: 1d01f468321ea49488bd8284d9b92c05, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: ToggleBackground
+    sprite: {fileID: 21300000, guid: 279131c550adb664ca6c8bab70b7f0bd, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: ToggleBackgroundHighlighted
+    sprite: {fileID: 21300000, guid: 4ac9c7a3065aa264883c91512038039f, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: ToggleCheckmark
+    sprite: {fileID: 21300000, guid: 64f9fc48e61073649b1b523930535bf8, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: ToggleCheckmarkHighlighted
+    sprite: {fileID: 21300000, guid: 22bfc359f1e192b4db871108a1504432, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
+  - key: SliderBackground
+    sprite: {fileID: 21300000, guid: f7b3ebfc44b59f2498c87ac7dbe5ef77, type: 3}
+    imageType: 2
+    pixelPerUnit: 3
+  - key: SliderKnob
+    sprite: {fileID: 21300000, guid: 64f9fc48e61073649b1b523930535bf8, type: 3}
+    imageType: 1
+    pixelPerUnit: 5
+  - key: ButtonSecondary
+    sprite: {fileID: -489295883979857836, guid: 6890d49d65b68154dbbc8403c45d6949, type: 3}
+    imageType: 1
+    pixelPerUnit: 5
+  - key: CardHovered
+    sprite: {fileID: 4086059774944602752, guid: eb4d9975eb39e2048916b950ab734220, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: CardSelected
+    sprite: {fileID: 21300000, guid: ce6b999b0d281a54b939a3a1bf4aae92, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: CardDisabled
+    sprite: {fileID: 21300000, guid: 9b8138c6f1890a049af2b1a8227377b4, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: ImageBorder
+    sprite: {fileID: -489295883979857836, guid: 6890d49d65b68154dbbc8403c45d6949, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  - key: Box
+    sprite: {fileID: 4086059774944602752, guid: eb4d9975eb39e2048916b950ab734220, type: 3}
+    imageType: 1
+    pixelPerUnit: 2
+  fonts:
+  - key: h1
+    font: {fileID: 11400000, guid: 6067683fcf3f8744dbf386128926a2b4, type: 2}
+  - key: h2
+    font: {fileID: 11400000, guid: 66ce7cce33ba61244949e4abe0bef2ab, type: 2}
+  styleSheets:
+  - rid: 7121754752505610243
+  - rid: 7121754762306387969
+  - rid: 7121754783538216960
+  - rid: 7121754806488924160
+  references:
+    version: 2
+    RefIds:
+    - rid: 7121754752505610243
+      type: {class: ScrollRectStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styles:
+        - styleKey: Default
+          panelSpriteKey: 
+          panelColorKey: Transparent
+          hBackgroundSpriteKey: SliderDisabled
+          hHandleSpriteKey: SliderNormal
+          vBackgroundSpriteKey: SliderDisabled
+          vHandleSpriteKey: SliderNormal
+          scrollbarTransition: 2
+          normalColorKey: 
+          highlightedColorKey: 
+          pressedColorKey: 
+          selectedColorKey: 
+          disabledColorKey: 
+          colorMultiplier: 1
+          fadeDuration: 0.1
+          highlightedHandleSpriteKey: SliderHighlighted
+          pressedHandleSpriteKey: SliderHighlighted
+          selectedHandleSpriteKey: SliderNormal
+          disabledHandleSpriteKey: SliderDisabled
+    - rid: 7121754762306387969
+      type: {class: ButtonStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styles:
+        - styleKey: Default
+          sharedLabelStyleKey: button
+          applySharedLabelStyle: 1
+          includeIcon: 0
+          iconStyleKey: icon
+          animation:
+            duration: 0.12
+            easing:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              - serializedVersion: 3
+                time: 1
+                value: 1
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 4
+            useUnscaledTime: 0
+          selectableTransition: 0
+          defaults:
+            applyBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            useBackgroundImageType: 0
+            backgroundImageType: 1
+            applyLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            applyIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            applyScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            applySizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+          normal:
+            displayName: normal
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            animateScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          highlighted:
+            displayName: highlighted
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            animateScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          pressed:
+            displayName: pressed
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            animateScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          selected:
+            displayName: selected
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            animateScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          disabled:
+            displayName: disabled
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            animateScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+        - styleKey: Transparent
+          sharedLabelStyleKey: button
+          applySharedLabelStyle: 1
+          includeIcon: 0
+          iconStyleKey: icon
+          animation:
+            duration: 0.12
+            easing:
+              serializedVersion: 2
+              m_Curve:
+              - serializedVersion: 3
+                time: 0
+                value: 0
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              - serializedVersion: 3
+                time: 1
+                value: 1
+                inSlope: 0
+                outSlope: 0
+                tangentMode: 0
+                weightedMode: 0
+                inWeight: 0
+                outWeight: 0
+              m_PreInfinity: 2
+              m_PostInfinity: 2
+              m_RotationOrder: 4
+            useUnscaledTime: 0
+          selectableTransition: 0
+          defaults:
+            applyBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            useBackgroundImageType: 0
+            backgroundImageType: 1
+            applyLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            applyIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            applyScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            applySizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+          normal:
+            displayName: normal
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            animateScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          highlighted:
+            displayName: highlighted
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            animateScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          pressed:
+            displayName: pressed
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            animateScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          selected:
+            displayName: selected
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            animateScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+          disabled:
+            displayName: disabled
+            overrideBackground: 0
+            backgroundColorKey: 
+            backgroundSpriteKey: 
+            overrideLabel: 0
+            labelColorKey: 
+            labelAlpha: 1
+            overrideIcon: 0
+            iconColorKey: 
+            iconAlpha: 1
+            animateScale: 0
+            targetScale: {x: 1, y: 1, z: 1}
+            animateSizeDelta: 0
+            targetSizeDelta: {x: 0, y: 0}
+            useLabelStyleOverride: 0
+            labelStyleOverrideKey: 
+    - rid: 7121754783538216960
+      type: {class: ToggleStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styles:
+        - styleKey: Default
+          backgroundSpriteKey: ToggleBackground
+          backgroundColorKey: 
+          checkmarkSpriteKey: ToggleCheckmark
+          checkmarkColorKey: 
+          transition: 2
+          colorTint:
+            normalColorKey: 
+            highlightedColorKey: 
+            pressedColorKey: 
+            selectedColorKey: 
+            disabledColorKey: 
+            colorMultiplier: 0
+            fadeDuration: 0
+          spriteSwap:
+            highlightedSpriteKey: ToggleBackgroundHighlighted
+            pressedSpriteKey: ToggleBackgroundHighlighted
+            selectedSpriteKey: ToggleBackground
+            disabledSpriteKey: 
+    - rid: 7121754806488924160
+      type: {class: ImageStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
+      data:
+        styles:
+        - styleKey: SliderKnob
+          spriteKey: SliderKnob
+          tintColorKey: Primary
+        - styleKey: SliderBackground
+          spriteKey: SliderBackground
+          tintColorKey: Primary
+        - styleKey: ImageBorder
+          spriteKey: ImageBorder
+          tintColorKey: Primary
+        - styleKey: Box
+          spriteKey: Box
+          tintColorKey: BackgroundTrans
