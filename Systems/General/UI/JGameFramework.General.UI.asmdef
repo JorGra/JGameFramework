@@ -1,0 +1,20 @@
+{
+    "name": "JGameFramework.General.UI",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f7306f98ff138db41a17545e44fdedbf",
+        "GUID:9bb2f1aeac1466243a0e183dc3e8768e",
+        "GUID:9c963110b187e13449d21727d2e54b9d",
+        "GUID:75469ad4d38634e559750d17036d5f7c",
+        "GUID:66fc151d16f2ff146997bd2cda3be4a3"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
