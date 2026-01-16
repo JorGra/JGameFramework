@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 /// <summary>
@@ -11,6 +12,7 @@ public class PauseMenuController : MonoBehaviour
 {
     [Header("UI References")]
     [SerializeField] protected UIPanel pauseMenuPanel;
+    [SerializeField] protected GameObject firstSelected;
 
     [Header("Input")]
     [SerializeField] private InputActionReference toggleAction;
@@ -150,6 +152,7 @@ public class PauseMenuController : MonoBehaviour
         if (pauseMenuPanel != null)
         {
             pauseMenuPanel.Open();
+            EventSystem.current.SetSelectedGameObject(firstSelected);
         }
 
         ApplyTimePause(true);
