@@ -11,16 +11,9 @@ public class CameraShakeEffector : MonoBehaviour
     // The coroutine currently handling shake
     private Coroutine shakeCoroutine;
 
-    // Store the camera's default local transform
-    private Vector3 defaultLocalPosition;
-    private Quaternion defaultLocalRotation;
-
-    private void Awake()
-    {
-        // Capture our "resting" local transform
-        defaultLocalPosition = transform.localPosition;
-        defaultLocalRotation = transform.localRotation;
-    }
+    // Last offset we applied; lets us remove only the shake without fighting the controller
+    private Vector3 lastOffset = Vector3.zero;
+    private Quaternion lastRotOffset = Quaternion.identity;
 
     private void OnEnable()
     {
@@ -37,9 +30,8 @@ public class CameraShakeEffector : MonoBehaviour
         {
             StopCoroutine(shakeCoroutine);
             shakeCoroutine = null;
-            // Reset to default before starting a new shake
-            transform.localPosition = defaultLocalPosition;
-            transform.localRotation = defaultLocalRotation;
+            // Remove the previous shake offset but keep whatever the controller set
+            ResetOffsets();
         }
 
         // Start a new shake
@@ -53,14 +45,14 @@ public class CameraShakeEffector : MonoBehaviour
     /// </summary>
     private IEnumerator ShakeCoroutine(float intensity, float frequency, float duration)
     {
-        // Cache the original local transform at shake start (could be the default or partially offset).
-        Vector3 startLocalPos = transform.localPosition;
-        Quaternion startLocalRot = transform.localRotation;
-
         float elapsed = 0f;
 
         while (elapsed < duration)
         {
+            // Extract the "controller driven" pose by removing the last shake offsets
+            Vector3 baseLocalPos = transform.localPosition - lastOffset;
+            Quaternion baseLocalRot = transform.localRotation * Quaternion.Inverse(lastRotOffset);
+
             // Random offset for position
             float offsetX = Random.Range(-1f, 1f) * intensity;
             float offsetY = Random.Range(-1f, 1f) * intensity;
@@ -69,18 +61,41 @@ public class CameraShakeEffector : MonoBehaviour
             float angleZ = Random.Range(-1f, 1f) * intensity * 5f; // tweak multiplier as needed
 
             // Apply position & rotation
-            transform.localPosition = startLocalPos + new Vector3(offsetX, offsetY, 0f);
-            transform.localRotation = startLocalRot * Quaternion.Euler(0f, 0f, angleZ);
+            Vector3 newOffset = new Vector3(offsetX, offsetY, 0f);
+            Quaternion newRotOffset = Quaternion.Euler(0f, 0f, angleZ);
+            transform.localPosition = baseLocalPos + newOffset;
+            transform.localRotation = baseLocalRot * newRotOffset;
+
+            lastOffset = newOffset;
+            lastRotOffset = newRotOffset;
 
             // Wait for 'frequency' each step
             yield return new WaitForSeconds(frequency);
             elapsed += frequency;
         }
 
-        // Reset to the default local transform
-        transform.localPosition = defaultLocalPosition;
-        transform.localRotation = defaultLocalRotation;
+        // Remove only the shake we applied; camera controller continues to drive the base pose
+        ResetOffsets();
 
         shakeCoroutine = null;
+    }
+
+    private void OnDisable()
+    {
+        if (shakeCoroutine != null)
+        {
+            StopCoroutine(shakeCoroutine);
+            shakeCoroutine = null;
+        }
+        ResetOffsets();
+    }
+
+    private void ResetOffsets()
+    {
+        // Strip the last applied shake without snapping to any cached "origin"
+        transform.localPosition -= lastOffset;
+        transform.localRotation *= Quaternion.Inverse(lastRotOffset);
+        lastOffset = Vector3.zero;
+        lastRotOffset = Quaternion.identity;
     }
 }
