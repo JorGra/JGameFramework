@@ -150,6 +150,72 @@ namespace JG.Tools.SceneManagement
                 yield return null;
             }
         }
+
+        /// <summary>
+        /// Reloads only the scenes of a given type within the provided group, keeping other scenes intact.
+        /// </summary>
+        public IEnumerator ReloadScenesCoroutine(SceneGroup group, SceneType sceneType, IProgress<float> progress = null)
+        {
+            if (group == null || group.Scenes == null || group.Scenes.Count == 0)
+                yield break;
+
+            var targets = group.Scenes.Where(s => s != null && s.Type == sceneType).ToList();
+            if (targets.Count == 0)
+                yield break;
+
+            progress?.Report(0f);
+
+            // Unload targeted scenes if currently loaded
+            var unloadOps = new AsyncOperationGroup(targets.Count);
+            foreach (var sceneData in targets)
+            {
+                var scene = SceneManager.GetSceneByName(sceneData.Name);
+                if (!scene.isLoaded)
+                    continue;
+
+                var op = SceneManager.UnloadSceneAsync(scene);
+                if (op != null)
+                {
+                    unloadOps.Operations.Add(op);
+                    OnSceneUnloaded.Invoke(sceneData.Name);
+                }
+            }
+
+            while (!unloadOps.IsDone)
+            {
+                progress?.Report(0.5f * unloadOps.Progress);
+                yield return null;
+            }
+            progress?.Report(0.5f);
+
+            // Load targeted scenes
+            var loadOps = new AsyncOperationGroup(targets.Count);
+            foreach (var sceneData in targets)
+            {
+                var op = SceneManager.LoadSceneAsync(sceneData.Reference.Path, LoadSceneMode.Additive);
+                if (op != null)
+                {
+                    loadOps.Operations.Add(op);
+                    OnSceneLoaded.Invoke(sceneData.Name);
+                }
+            }
+
+            while (!loadOps.IsDone)
+            {
+                progress?.Report(0.5f + 0.5f * loadOps.Progress);
+                yield return null;
+            }
+            progress?.Report(1f);
+
+            // Restore active scene if applicable
+            string activeSceneName = group.FindSceneNameByType(SceneType.ActiveScene);
+            if (!string.IsNullOrEmpty(activeSceneName))
+            {
+                var activeScene = SceneManager.GetSceneByName(activeSceneName);
+                if (activeScene.IsValid())
+                    SceneManager.SetActiveScene(activeScene);
+            }
+        }
     }
 
 

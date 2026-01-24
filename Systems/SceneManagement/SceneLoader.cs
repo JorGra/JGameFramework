@@ -101,6 +101,49 @@ namespace JG.Tools.SceneManagement
             if (fadeOut) RequestFade(fadeIn: false);
         }
 
+        /// <summary>Reload only scenes of the given type within the active scene group.</summary>
+        public void ReloadScenesInActiveGroup(SceneType sceneType,
+                                              bool fadeIn = true,
+                                              bool fadeOut = true)
+            => StartCoroutine(ReloadScenesInActiveGroupAsync(sceneType, fadeIn, fadeOut));
+
+        public IEnumerator ReloadScenesInActiveGroupAsync(SceneType sceneType,
+                                                          bool fadeIn = true,
+                                                          bool fadeOut = true)
+        {
+            var group = sceneGroupManagement.ActiveSceneGroup;
+            if (group == null)
+            {
+                Logger.LogWarning("No active scene group to reload scenes from.");
+                yield break;
+            }
+
+            /* ── Fade-in (opaque → clear) before unloading ───────── */
+            if (fadeIn)
+            {
+                RequestFade(fadeIn: true);
+                yield return new WaitForSeconds(fadeDuration);
+            }
+
+            /* ── Loading workflow ───────────────────────────────── */
+            targetProgress = 0f;
+            if (fadeIn || fadeOut)
+                EnableLoadingBar(true);
+
+            LoadingProgress progress = new LoadingProgress();
+            progress.OnProgress += p => targetProgress = Mathf.Max(p, targetProgress);
+
+            yield return sceneGroupManagement.ReloadScenesCoroutine(group, sceneType, progress);
+
+            // Maintain loading screen for a minimum time
+            yield return new WaitForSeconds(minLoadingScreenTime);
+
+            EnableLoadingBar(false);
+
+            /* ── Fade-out (clear → opaque) after load completes ─── */
+            if (fadeOut) RequestFade(fadeIn: false);
+        }
+
         private void EnableLoadingBar(bool enable)
         {
             IsLoading = enable;
