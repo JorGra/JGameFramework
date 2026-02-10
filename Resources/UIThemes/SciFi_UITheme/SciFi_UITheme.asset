@@ -84,6 +84,10 @@ MonoBehaviour:
     sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
     imageType: 1
     pixelPerUnit: 1
+  - key: PanelFull
+    sprite: {fileID: -5951131726985616000, guid: 2ba02425935e9ad4f9ef998dc66bd531, type: 3}
+    imageType: 1
+    pixelPerUnit: 1
   fonts:
   - key: h1
     font: {fileID: 11400000, guid: c2d3fbf0584dcdd4ca0b23120d50ba5b, type: 2}
@@ -676,3 +680,6 @@ MonoBehaviour:
         - styleKey: SliderFill
           spriteKey: SliderFill
           tintColorKey: Primary
+        - styleKey: PanelFull
+          spriteKey: PanelFull
+          tintColorKey: 
