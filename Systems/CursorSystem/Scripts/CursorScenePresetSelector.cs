@@ -13,7 +13,6 @@ namespace JG.CursorSystem
         [SerializeField] bool allowFallbackToDefault = true;
         [SerializeField] bool forceRefresh = true;
         [SerializeField] bool applyOnEnable = true;
-        [SerializeField] bool applyOnStart = true;
         [SerializeField] bool applyOnSceneActive = true;
 
         [Header("Optional Overrides")]
@@ -28,12 +27,6 @@ namespace JG.CursorSystem
                 UnityEngine.SceneManagement.SceneManager.activeSceneChanged += OnActiveSceneChanged;
 
             if (applyOnEnable)
-                RaiseRequest();
-        }
-
-        void Start()
-        {
-            if (applyOnStart)
                 RaiseRequestDeferred();
         }
 
@@ -57,7 +50,6 @@ namespace JG.CursorSystem
 
         void RaiseRequestDeferred()
         {
-            // Run at end of frame to ensure all scene objects (and the persistent controller) are alive.
             StartCoroutine(RaiseAtEndOfFrame());
         }
 
