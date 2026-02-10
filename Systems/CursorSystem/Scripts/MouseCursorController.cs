@@ -18,9 +18,19 @@ namespace JG.CursorSystem
         [SerializeField] string defaultCursorSetId = "Default";
         [SerializeField] string defaultPresetId = "Default";
         [SerializeField] bool applyDefaultOnAwake = true;
+        [SerializeField] bool dontDestroyOnLoad = true;
+
+        [Header("Platform Tweaks")]
+        [Tooltip("Linux only: cursor textures larger than this (pixels) get downscaled to avoid huge hardware cursors.")]
+        [SerializeField, Min(8)] int linuxMaxCursorSize = 64;
+        [Tooltip("Linux only: target size (pixels) to scale cursors to; 0 = use max size only.")]
+        [SerializeField, Min(0)] int linuxTargetCursorSize = 64;
+        [Tooltip("Linux only: forces software cursor to bypass OS scaling. Leave off to avoid dual cursors while dragging.")]
+        [SerializeField] bool linuxForceSoftwareCursor = false;
 
         [Header("Debug")]
         [SerializeField] bool logWarnings = true;
+        [SerializeField] bool logInfo = false;
 
         readonly Dictionary<string, CursorSetDefinition> setLookup =
             new Dictionary<string, CursorSetDefinition>(StringComparer.OrdinalIgnoreCase);
@@ -35,8 +45,24 @@ namespace JG.CursorSystem
         public string ActiveSetId => activeSetId;
         public string ActivePresetId => activePresetId;
 
+        static MouseCursorController persistentInstance;
+
         void Awake()
         {
+            if (dontDestroyOnLoad)
+            {
+                if (persistentInstance != null && persistentInstance != this)
+                {
+                    // Another instance already survives scene loads; drop only this component
+                    // so other behaviours on the same GameObject (e.g., scene preset selectors) keep running.
+                    Destroy(this);
+                    return;
+                }
+
+                persistentInstance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+
             BuildLookup();
 
             changeSubscription = EventBus<CursorChangeRequestEvent>.Subscribe(HandleCursorChangeRequest, this);
@@ -49,6 +75,9 @@ namespace JG.CursorSystem
 
         void OnDestroy()
         {
+            if (persistentInstance == this)
+                persistentInstance = null;
+
             changeSubscription?.Dispose();
             changeSubscription = null;
         }
@@ -86,6 +115,8 @@ namespace JG.CursorSystem
 
         void HandleCursorChangeRequest(CursorChangeRequestEvent request)
         {
+            LogInfo($"Request: set='{request.CursorSetId ?? "<null>"}' preset='{request.PresetId ?? "<null>"}' force={request.ForceRefresh}");
+
             var successfullyApplied = ApplyPreset(
                 request.PresetId,
                 request.CursorSetId,
@@ -137,9 +168,14 @@ namespace JG.CursorSystem
                 return false;
             }
 
-            Cursor.SetCursor(targetPreset.Texture, targetPreset.HotSpot, targetPreset.Mode);
+            if (!TryGetPlatformCursorData(targetPreset, out var texture, out var hotSpot, out var mode))
+                return false;
+
+            Cursor.SetCursor(texture, hotSpot, mode);
             if (targetPreset.OverrideCursorVisibility)
                 Cursor.visible = targetPreset.CursorVisible;
+
+            LogInfo($"Applied cursor set='{activeSetId}', preset='{activePresetId}', tex={texture.width}x{texture.height}, hotspot={hotSpot}, mode={mode}");
 
             var previousSetId = activeSetId;
             activeSet = targetSet;
@@ -224,6 +260,100 @@ namespace JG.CursorSystem
             }
 
             return fallback;
+        }
+
+        bool TryGetPlatformCursorData(CursorPreset preset, out Texture2D texture, out Vector2 hotSpot, out CursorMode mode)
+        {
+            texture = preset.Texture;
+            hotSpot = preset.HotSpot;
+            mode = preset.Mode;
+
+            if (texture == null)
+                return false;
+
+            if (!IsLinuxPlatform())
+            {
+                hotSpot = ClampHotspot(hotSpot, texture.width, texture.height);
+                return true;
+            }
+
+            if (linuxForceSoftwareCursor)
+                mode = CursorMode.ForceSoftware;
+
+            var desiredSize = linuxTargetCursorSize > 0 ? linuxTargetCursorSize : linuxMaxCursorSize;
+            var clampedMaxSize = Mathf.Max(16, desiredSize);
+            var maxDimension = Mathf.Max(texture.width, texture.height);
+
+            if (maxDimension <= clampedMaxSize)
+                return true;
+
+            if (!texture.isReadable)
+            {
+                if (logWarnings)
+                {
+                    Debug.LogWarning(
+                        "[MouseCursorController] Cursor texture is not readable; cannot downscale for Linux. " +
+                        "Cursor may appear oversized.");
+                }
+                return true; // Fall back to original texture rather than fail the request.
+            }
+
+            var scale = clampedMaxSize / (float)maxDimension;
+            var targetWidth = Mathf.Max(1, Mathf.RoundToInt(texture.width * scale));
+            var targetHeight = Mathf.Max(1, Mathf.RoundToInt(texture.height * scale));
+            var scaledHotSpot = hotSpot * scale;
+
+            var scaledTexture = CreateScaledTexture(texture, targetWidth, targetHeight);
+
+            texture = scaledTexture;
+            hotSpot = ClampHotspot(scaledHotSpot, targetWidth, targetHeight);
+            return true;
+        }
+
+        bool IsLinuxPlatform() =>
+            Application.platform == RuntimePlatform.LinuxEditor ||
+            Application.platform == RuntimePlatform.LinuxPlayer;
+
+        static Vector2 ClampHotspot(Vector2 hotSpot, int width, int height)
+        {
+            var clampedX = Mathf.Clamp(hotSpot.x, 0, Mathf.Max(0, width - 1));
+            var clampedY = Mathf.Clamp(hotSpot.y, 0, Mathf.Max(0, height - 1));
+            return new Vector2(clampedX, clampedY);
+        }
+
+        static Texture2D CreateScaledTexture(Texture2D source, int targetWidth, int targetHeight)
+        {
+            var result = new Texture2D(targetWidth, targetHeight, TextureFormat.RGBA32, mipChain: false)
+            {
+                name = string.IsNullOrWhiteSpace(source.name) ? "Cursor_LinuxScaled" : $"{source.name}_LinuxScaled",
+                hideFlags = HideFlags.HideAndDontSave,
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            for (int y = 0; y < targetHeight; y++)
+            {
+                var v = (y + 0.5f) / targetHeight;
+                for (int x = 0; x < targetWidth; x++)
+                {
+                    var u = (x + 0.5f) / targetWidth;
+                    result.SetPixel(x, y, source.GetPixelBilinear(u, v));
+                }
+            }
+
+            result.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+            return result;
+        }
+
+        void CleanupScaledCursors()
+        {
+            // Kept for future cleanup needs; currently no cached textures are created.
+        }
+
+        void LogInfo(string message)
+        {
+            if (logInfo)
+                Debug.Log($"[MouseCursorController] {message}");
         }
     }
 

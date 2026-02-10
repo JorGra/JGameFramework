@@ -69,4 +69,7 @@ MonoBehaviour:
   defaultCursorSetId: Main
   defaultPresetId: Default
   applyDefaultOnAwake: 1
+  linuxMaxCursorSize: 64
+  linuxTargetCursorSize: 64
+  linuxForceSoftwareCursor: 1
   logWarnings: 1

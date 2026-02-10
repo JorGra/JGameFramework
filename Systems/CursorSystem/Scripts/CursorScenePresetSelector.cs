@@ -11,7 +11,10 @@ namespace JG.CursorSystem
         [SerializeField] string cursorSetId = "Default";
         [SerializeField] string presetId = "Default";
         [SerializeField] bool allowFallbackToDefault = true;
-        [SerializeField] bool forceRefresh;
+        [SerializeField] bool forceRefresh = true;
+        [SerializeField] bool applyOnEnable = true;
+        [SerializeField] bool applyOnStart = true;
+        [SerializeField] bool applyOnSceneActive = true;
 
         [Header("Optional Overrides")]
         [SerializeField] bool overrideCursorVisibility;
@@ -19,7 +22,28 @@ namespace JG.CursorSystem
         [SerializeField] bool overrideLockMode;
         [SerializeField] CursorLockMode lockMode = CursorLockMode.None;
 
+        void OnEnable()
+        {
+            if (applyOnSceneActive)
+                UnityEngine.SceneManagement.SceneManager.activeSceneChanged += OnActiveSceneChanged;
+
+            if (applyOnEnable)
+                RaiseRequest();
+        }
+
         void Start()
+        {
+            if (applyOnStart)
+                RaiseRequestDeferred();
+        }
+
+        void OnDisable()
+        {
+            if (applyOnSceneActive)
+                UnityEngine.SceneManagement.SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+        }
+
+        void RaiseRequest()
         {
             EventBus<CursorChangeRequestEvent>.Raise(
                 new CursorChangeRequestEvent(
@@ -29,6 +53,24 @@ namespace JG.CursorSystem
                     overrideCursorVisibility ? cursorVisible : (bool?)null,
                     overrideLockMode ? lockMode : (CursorLockMode?)null,
                     forceRefresh));
+        }
+
+        void RaiseRequestDeferred()
+        {
+            // Run at end of frame to ensure all scene objects (and the persistent controller) are alive.
+            StartCoroutine(RaiseAtEndOfFrame());
+        }
+
+        System.Collections.IEnumerator RaiseAtEndOfFrame()
+        {
+            yield return null;
+            RaiseRequest();
+        }
+
+        void OnActiveSceneChanged(UnityEngine.SceneManagement.Scene oldScene, UnityEngine.SceneManagement.Scene newScene)
+        {
+            if (newScene == gameObject.scene)
+                RaiseRequestDeferred();
         }
     }
 }
