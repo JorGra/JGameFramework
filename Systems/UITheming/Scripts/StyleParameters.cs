@@ -19,11 +19,13 @@ namespace UI.Theming
         [Header("Typography")]
         [SerializeField] private int fontSize = 36;
         [SerializeField] private FontStyles fontStyle = FontStyles.Normal;
+        [SerializeField] private float letterSpacing = 0f;
 
         public string ColorKey => colorKey;
         public string FontKey => fontKey;
         public int FontSize => fontSize;
         public FontStyles FontStyle => fontStyle;
+        public float LetterSpacing => letterSpacing;
     }
 
     /// <summary>Visual definition for a UI Image.</summary>

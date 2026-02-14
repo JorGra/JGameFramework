@@ -895,6 +895,7 @@ namespace UI.Theming
                 {
                     iconText.fontStyle = iconStyle.FontStyle;
                     iconText.fontSize = iconStyle.FontSize;
+                    iconText.characterSpacing = iconStyle.LetterSpacing;
                     var fontAsset = currentTheme.GetFont(iconStyle.FontKey);
                     if (fontAsset != null)
                     {
@@ -916,6 +917,7 @@ namespace UI.Theming
             }
 
             label.fontSize = textStyle.FontSize;
+            label.characterSpacing = textStyle.LetterSpacing;
             var fontAsset = currentTheme.GetFont(textStyle.FontKey);
             if (fontAsset != null)
             {

@@ -19,6 +19,8 @@ MonoBehaviour:
     color: {r: 1, g: 1, b: 1, a: 1}
   - key: Surface
     color: {r: 1, g: 1, b: 1, a: 1}
+  - key: SurfaceSecondary
+    color: {r: 0.6313726, g: 0.6313726, b: 0.6313726, a: 1}
   - key: Background
     color: {r: 1, g: 1, b: 1, a: 1}
   - key: Text

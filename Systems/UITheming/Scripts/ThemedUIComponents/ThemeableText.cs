@@ -10,6 +10,7 @@ namespace UI.Theming
         [ThemeKey(typeof(TextStyleParameters))]
         [SerializeField] private string styleKey = "body";
         [SerializeField] bool CustomFontSize = false;
+        [SerializeField] bool CustomLetterSpacing = false;
 
         TMP_Text text;
 
@@ -38,6 +39,8 @@ namespace UI.Theming
             if (!CustomFontSize)
                 text.fontSize = style.FontSize;
             text.fontStyle = style.FontStyle;
+            if (!CustomLetterSpacing)
+                text.characterSpacing = style.LetterSpacing;
 
             var font = theme.GetFont(style.FontKey);
             if (font) text.font = font;

@@ -90,9 +90,11 @@ MonoBehaviour:
     pixelPerUnit: 1
   fonts:
   - key: h1
-    font: {fileID: 11400000, guid: c2d3fbf0584dcdd4ca0b23120d50ba5b, type: 2}
+    font: {fileID: 11400000, guid: 89c1d0fadea59312990b0b9fa132d3a8, type: 2}
   - key: Body
-    font: {fileID: 11400000, guid: 6067683fcf3f8744dbf386128926a2b4, type: 2}
+    font: {fileID: 11400000, guid: a1f22cb1050d6b275b391d1f633afc5c, type: 2}
+  - key: h2
+    font: {fileID: 11400000, guid: 89c1d0fadea59312990b0b9fa132d3a8, type: 2}
   styleSheets:
   - rid: 3783510158752350288
   - rid: 3783510158752350289
@@ -647,23 +649,33 @@ MonoBehaviour:
         - styleKey: Header
           colorKey: Text
           fontKey: h1
-          fontSize: 30
-          fontStyle: 0
+          fontSize: 40
+          fontStyle: 32
+          letterSpacing: 5
         - styleKey: Subheading
           colorKey: Text
           fontKey: h1
           fontSize: 24
           fontStyle: 32
+          letterSpacing: 5
         - styleKey: Body
           colorKey: Text
           fontKey: Body
           fontSize: 20
           fontStyle: 0
+          letterSpacing: 5
         - styleKey: SubheadingInverted
           colorKey: TextInverted
           fontKey: Body
           fontSize: 24
           fontStyle: 33
+          letterSpacing: 5
+        - styleKey: SubheadingSubtle
+          colorKey: SurfaceSecondary
+          fontKey: h2
+          fontSize: 24
+          fontStyle: 16
+          letterSpacing: 5
     - rid: 3783510158752350290
       type: {class: ImageStyleSheet, ns: UI.Theming, asm: JGameFramework.UITheming}
       data:
