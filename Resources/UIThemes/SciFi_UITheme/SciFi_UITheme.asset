@@ -651,7 +651,7 @@ MonoBehaviour:
           fontKey: h1
           fontSize: 40
           fontStyle: 32
-          letterSpacing: 5
+          letterSpacing: 10
         - styleKey: Subheading
           colorKey: Text
           fontKey: h1
@@ -675,7 +675,7 @@ MonoBehaviour:
           fontKey: h2
           fontSize: 24
           fontStyle: 16
-          letterSpacing: 5
+          letterSpacing: 10
     - rid: 3783510158752350290
       type: {class: ImageStyleSheet, ns: UI.Theming, asm: JGameFramework.UITheming}
       data:
