@@ -3,32 +3,69 @@ using UnityEngine;
 
 public class UIPanelAnimated : UIPanel
 {
-    [SerializeField] private float animationDuration = 0.2f;   // editor-exposed
-
-    private readonly float canvasSpeedMultiplier = 3f;
+    [SerializeField, Tooltip("Seconds the open/close animation lasts. Applies to all animation profiles.")] private float animationDuration = 0.2f;
+    [SerializeField, Tooltip("Optional ScriptableObject profile that defines how this panel animates. Leave empty to use the built-in Scale+Fade.")] private UIPanelAnimation animationProfile;
+    [SerializeField, Tooltip("CanvasGroup on the visual child. Required for fading and input blocking.")] private CanvasGroup canvasGroup;
 
     private Vector3 initialScale;
-    [SerializeField] private CanvasGroup canvasGroup;
+    private Vector3 initialLocalPosition;
+    private Vector2 initialAnchoredPosition;
+    private Quaternion initialRotation;
+    private RectTransform rectTransform;
+
     private Coroutine openRoutine;
     private Coroutine closeRoutine;
     private bool isAnimatingClose;
 
+    private static UIPanelAnimation defaultAnimationInstance;
+
+    #region Accessors
+    public Vector3 InitialLocalPosition => initialLocalPosition;
+    public Vector2 InitialAnchoredPosition => initialAnchoredPosition;
+    public Quaternion InitialRotation => initialRotation;
+    public RectTransform RectT => rectTransform;
+    public bool HasRectTransform => rectTransform != null;
+
+    private UIPanelAnimation ActiveAnimation
+    {
+        get
+        {
+            if (animationProfile != null)
+            {
+                return animationProfile;
+            }
+
+            // Runtime fallback so existing panels keep their current behaviour without needing assets.
+            if (defaultAnimationInstance == null)
+            {
+                defaultAnimationInstance = ScriptableObject.CreateInstance<ScaleFadeUIPanelAnimation>();
+            }
+
+            return defaultAnimationInstance;
+        }
+    }
+    #endregion
+
     #region Life-cycle
     protected virtual void Awake()
     {
+        rectTransform = transform as RectTransform;
         initialScale = transform.localScale;
+        initialLocalPosition = transform.localPosition;
+        initialRotation = transform.localRotation;
+        if (rectTransform)
+        {
+            initialAnchoredPosition = rectTransform.anchoredPosition;
+        }
+
         if(canvasGroup == null)
             canvasGroup = GetComponentInChildren<CanvasGroup>();
 
-        if (canvasGroup)
-        {
-            canvasGroup.alpha = 0f;
-            canvasGroup.interactable = false;
-            canvasGroup.blocksRaycasts = false;
-        }
+        ActiveAnimation.ApplyInitialState(this, canvasGroup, initialScale);
 
         IsOpen = false;
-        canvasGroup.gameObject.SetActive(false);
+        if (canvasGroup)
+            canvasGroup.gameObject.SetActive(false);
     }
     #endregion
 
@@ -75,14 +112,7 @@ public class UIPanelAnimated : UIPanel
             StopCoroutine(closeRoutine);
             closeRoutine = null;
         }
-        transform.localScale = Vector3.zero;
-        if (canvasGroup)
-        {
-            canvasGroup.alpha = 0f;
-            canvasGroup.interactable = false;
-            canvasGroup.blocksRaycasts = false;
-            canvasGroup.gameObject.SetActive(false);
-        }
+        ActiveAnimation.SnapClosed(this, canvasGroup, initialScale);
         isAnimatingClose = false;
         IsOpen = false;
         OnPanelClosed?.Invoke();
@@ -124,38 +154,7 @@ public class UIPanelAnimated : UIPanel
     #region Coroutines
     private IEnumerator AnimateOpen()
     {
-        transform.localScale = Vector3.zero;
-        float elapsed = 0f;
-
-        if (canvasGroup)
-        {
-            canvasGroup.alpha = 0f;
-            canvasGroup.interactable = false;
-            canvasGroup.blocksRaycasts = false;
-        }
-
-        while (elapsed < animationDuration)
-        {
-            float tScale = elapsed / animationDuration;                     // 0 -> 1
-            float tFade = Mathf.Clamp01(tScale * canvasSpeedMultiplier);   // faster/slower
-
-            transform.localScale = Vector3.Lerp(Vector3.zero, initialScale, tScale);
-
-            if (canvasGroup) canvasGroup.alpha = tFade;
-
-            elapsed += Time.unscaledDeltaTime;
-            yield return null;
-        }
-
-        transform.localScale = initialScale;
-
-        if (canvasGroup)
-        {
-            canvasGroup.alpha = 1f;
-            canvasGroup.interactable = true;
-            canvasGroup.blocksRaycasts = true;
-        }
-
+        yield return ActiveAnimation.PlayOpen(this, canvasGroup, animationDuration, initialScale);
         IsOpen = true;
         openRoutine = null;
     }
@@ -163,32 +162,11 @@ public class UIPanelAnimated : UIPanel
 
     private IEnumerator AnimateClose()
     {
-        Vector3 startScale = transform.localScale;
-        float elapsed = 0f;
+        yield return ActiveAnimation.PlayClose(this, canvasGroup, animationDuration, initialScale);
 
         if (canvasGroup)
-        {
-            canvasGroup.interactable = false;
-            canvasGroup.blocksRaycasts = false;
-        }
+            canvasGroup.gameObject.SetActive(false);
 
-        while (elapsed < animationDuration)
-        {
-            float tScale = elapsed / animationDuration;                     // 0 -> 1
-            float tFade = Mathf.Clamp01(tScale * canvasSpeedMultiplier);   // faster/slower
-
-            transform.localScale = Vector3.Lerp(startScale, Vector3.zero, tScale);
-
-            if (canvasGroup) canvasGroup.alpha = 1f - tFade;
-
-            elapsed += Time.unscaledDeltaTime;
-            yield return null;
-        }
-
-        transform.localScale = Vector3.zero;
-        if (canvasGroup) canvasGroup.alpha = 0f;
-
-        canvasGroup.gameObject.SetActive(false);
         IsOpen = false;
         isAnimatingClose = false;
         closeRoutine = null;

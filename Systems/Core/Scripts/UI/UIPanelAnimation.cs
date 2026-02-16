@@ -1,0 +1,62 @@
+using System.Collections;
+using UnityEngine;
+
+/// <summary>
+/// Pluggable animation profile for UIPanelAnimated. Keeps CanvasGroup-driven visibility
+/// while allowing different motion/easing implementations.
+/// </summary>
+public abstract class UIPanelAnimation : ScriptableObject
+{
+    /// <summary>
+    /// Ensure the panel starts in a consistent closed state. Called from UIPanelAnimated.Awake.
+    /// </summary>
+    public virtual void ApplyInitialState(UIPanelAnimated panel, CanvasGroup canvasGroup, Vector3 initialScale)
+    {
+        if (panel != null)
+        {
+            if (panel.HasRectTransform)
+                panel.RectT.anchoredPosition = panel.InitialAnchoredPosition;
+            else
+                panel.transform.localPosition = panel.InitialLocalPosition;
+
+            panel.transform.localRotation = panel.InitialRotation;
+        }
+
+        if (canvasGroup)
+        {
+            canvasGroup.alpha = 0f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+            canvasGroup.gameObject.SetActive(false);
+        }
+    }
+
+    public abstract IEnumerator PlayOpen(UIPanelAnimated panel, CanvasGroup canvasGroup, float duration, Vector3 initialScale);
+
+    public abstract IEnumerator PlayClose(UIPanelAnimated panel, CanvasGroup canvasGroup, float duration, Vector3 initialScale);
+
+    /// <summary>
+    /// Immediate close without animation (used by CloseImmediate).
+    /// </summary>
+    public virtual void SnapClosed(UIPanelAnimated panel, CanvasGroup canvasGroup, Vector3 initialScale)
+    {
+        if (panel)
+        {
+            if (panel.HasRectTransform)
+                panel.RectT.anchoredPosition = panel.InitialAnchoredPosition;
+            else
+                panel.transform.localPosition = panel.InitialLocalPosition;
+
+            panel.transform.localRotation = panel.InitialRotation;
+            panel.transform.localScale = Vector3.zero;
+        }
+
+        if (canvasGroup)
+        {
+            canvasGroup.alpha = 0f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+            canvasGroup.gameObject.SetActive(false);
+        }
+    }
+}
