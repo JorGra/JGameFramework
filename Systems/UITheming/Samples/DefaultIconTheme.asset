@@ -16,7 +16,7 @@ MonoBehaviour:
   palette: {fileID: 0}
   colors:
   - key: IconTint
-    color: {r: 0, g: 0, b: 0, a: 0.34117648}
+    color: {r: 0, g: 0, b: 0, a: 0.8156863}
   sprites:
   - key: IconArrow
     sprite: {fileID: 21300000, guid: 7d2dba39c6a054641a9109ec98ee219f, type: 3}
@@ -40,12 +40,12 @@ MonoBehaviour:
     pixelPerUnit: 0
   fonts: []
   styleSheets:
-  - rid: 7121754821939429376
+  - rid: 8023577793947762688
   references:
     version: 2
     RefIds:
-    - rid: 7121754821939429376
-      type: {class: ImageStyleSheet, ns: UI.Theming, asm: Assembly-CSharp}
+    - rid: 8023577793947762688
+      type: {class: ImageStyleSheet, ns: UI.Theming, asm: JGameFramework.UITheming}
       data:
         styles:
         - styleKey: IconArrow
