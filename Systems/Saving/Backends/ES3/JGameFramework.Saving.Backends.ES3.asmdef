@@ -1,0 +1,19 @@
+{
+    "name": "JGameFramework.Saving.Backends.ES3",
+    "rootNamespace": "JGameFramework.Saving.Backends.ES3",
+    "references": [
+        "JGameFramework.Saving",
+        "EasySave3"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "JG_SAVING_ES3"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
