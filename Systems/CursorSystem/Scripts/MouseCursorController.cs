@@ -25,8 +25,8 @@ namespace JG.CursorSystem
         [SerializeField, Min(8)] int linuxMaxCursorSize = 64;
         [Tooltip("Linux only: target size (pixels) to scale cursors to; 0 = use max size only.")]
         [SerializeField, Min(0)] int linuxTargetCursorSize = 64;
-        [Tooltip("Linux only: forces software cursor to bypass OS scaling. Leave off to avoid dual cursors while dragging.")]
-        [SerializeField] bool linuxForceSoftwareCursor = false;
+        [Tooltip("Linux only: forces software cursor to bypass OS hardware cursor issues (dual cursors, wrong scaling).")]
+        [SerializeField] bool linuxForceSoftwareCursor = true;
 
         [Header("Debug")]
         [SerializeField] bool logWarnings = true;
@@ -39,6 +39,7 @@ namespace JG.CursorSystem
         CursorPreset activePreset;
         string activeSetId;
         string activePresetId;
+        Texture2D cachedScaledTexture;
 
         EventSubscription<CursorChangeRequestEvent> changeSubscription;
 
@@ -80,6 +81,12 @@ namespace JG.CursorSystem
 
             changeSubscription?.Dispose();
             changeSubscription = null;
+
+            if (cachedScaledTexture != null)
+            {
+                Destroy(cachedScaledTexture);
+                cachedScaledTexture = null;
+            }
         }
 
         void OnValidate()
@@ -175,8 +182,6 @@ namespace JG.CursorSystem
             if (targetPreset.OverrideCursorVisibility)
                 Cursor.visible = targetPreset.CursorVisible;
 
-            LogInfo($"Applied cursor set='{activeSetId}', preset='{activePresetId}', tex={texture.width}x{texture.height}, hotspot={hotSpot}, mode={mode}");
-
             var previousSetId = activeSetId;
             activeSet = targetSet;
             activePreset = targetPreset;
@@ -184,6 +189,8 @@ namespace JG.CursorSystem
             activePresetId = !string.IsNullOrWhiteSpace(targetPreset.PresetId)
                 ? targetPreset.PresetId
                 : (presetId ?? defaultPresetId);
+
+            LogInfo($"Applied cursor set='{activeSetId}', preset='{activePresetId}', tex={texture.width}x{texture.height}, hotspot={hotSpot}, mode={mode}");
 
             if (!string.Equals(previousSetId, activeSetId, StringComparison.Ordinal))
             {
@@ -293,9 +300,10 @@ namespace JG.CursorSystem
                 {
                     Debug.LogWarning(
                         "[MouseCursorController] Cursor texture is not readable; cannot downscale for Linux. " +
-                        "Cursor may appear oversized.");
+                        "Enable Read/Write in the texture import settings. Forcing software cursor to avoid OS scaling.");
                 }
-                return true; // Fall back to original texture rather than fail the request.
+                mode = CursorMode.ForceSoftware;
+                return true;
             }
 
             var scale = clampedMaxSize / (float)maxDimension;
@@ -303,9 +311,12 @@ namespace JG.CursorSystem
             var targetHeight = Mathf.Max(1, Mathf.RoundToInt(texture.height * scale));
             var scaledHotSpot = hotSpot * scale;
 
-            var scaledTexture = CreateScaledTexture(texture, targetWidth, targetHeight);
+            if (cachedScaledTexture != null)
+                Destroy(cachedScaledTexture);
 
-            texture = scaledTexture;
+            cachedScaledTexture = CreateScaledTexture(texture, targetWidth, targetHeight);
+
+            texture = cachedScaledTexture;
             hotSpot = ClampHotspot(scaledHotSpot, targetWidth, targetHeight);
             return true;
         }
@@ -343,11 +354,6 @@ namespace JG.CursorSystem
 
             result.Apply(updateMipmaps: false, makeNoLongerReadable: false);
             return result;
-        }
-
-        void CleanupScaledCursors()
-        {
-            // Kept for future cleanup needs; currently no cached textures are created.
         }
 
         void LogInfo(string message)

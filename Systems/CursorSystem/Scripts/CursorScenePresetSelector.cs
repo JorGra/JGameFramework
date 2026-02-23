@@ -50,10 +50,10 @@ namespace JG.CursorSystem
 
         void RaiseRequestDeferred()
         {
-            StartCoroutine(RaiseAtEndOfFrame());
+            StartCoroutine(RaiseNextFrame());
         }
 
-        System.Collections.IEnumerator RaiseAtEndOfFrame()
+        System.Collections.IEnumerator RaiseNextFrame()
         {
             yield return null;
             RaiseRequest();
