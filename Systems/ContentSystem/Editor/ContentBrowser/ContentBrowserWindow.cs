@@ -495,8 +495,8 @@ namespace JG.GameContent.EditorTools
         // ---------- ItemType hierarchy --------------
         private void BuildTypeHierarchy()
         {
-            var asm = Assembly.GetAssembly(typeof(IContentDef));
-            var all = asm.GetTypes()
+            var all = AppDomain.CurrentDomain.GetAssemblies()
+                         .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
                          .Where(t => t.IsClass && typeof(IContentDef).IsAssignableFrom(t) && t != typeof(IContentDef))
                          .OrderBy(t => t.Name)
                          .ToArray();
