@@ -828,6 +828,9 @@ namespace JG.GameContent.SchemaExport
                 schema["readOnly"] = true;
             }
 
+            if (member.GetCustomAttribute<TranslatableAttribute>() != null)
+                schema["x-translatable"] = true;
+
             if (assetBindingsByKey.TryGetValue(member.Name, out var keyBindings))
             {
                 var pathArray = new JArray(keyBindings.Select(CreateAssetBindingMetadata));

@@ -1,4 +1,5 @@
-﻿using JG.Modding;
+﻿using JG.GameContent.Localization;
+using JG.Modding;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -100,6 +101,9 @@ namespace JG.GameContent
                 foreach (var fp in Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly))
                     TryImportFile(fp, h, defType);
             }
+
+            // Load sidecar translation files from Translations/*.json
+            ModTranslationLoader.Instance.LoadFromMod(h.Path);
         }
 
         // --------------------------------------------------------------------

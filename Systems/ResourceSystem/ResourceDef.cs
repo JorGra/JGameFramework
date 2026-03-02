@@ -7,6 +7,7 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Defs/Resource")]
 public class ResourceDef : ContentDef
 {
+    [Translatable]
     public string displayName;
     public string IconKey; // now holds a full path key (e.g., "Resources:Icons/Wood.png" or "/Icons/Wood.png")
     [AssetFromPath(nameof(IconKey))]

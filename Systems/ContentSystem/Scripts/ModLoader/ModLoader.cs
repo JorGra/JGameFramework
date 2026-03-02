@@ -1,4 +1,5 @@
 ﻿using JG.GameContent;
+using JG.GameContent.Localization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -55,6 +56,7 @@ namespace JG.Modding
             ActiveMods = ordered.AsReadOnly();
 
             ContentCatalogue.Instance.Clear(); // clear the catalogue before import
+            ModTranslationLoader.Instance.Clear(); // clear translations before reimport
 
             foreach (var mod in ordered)
             {
