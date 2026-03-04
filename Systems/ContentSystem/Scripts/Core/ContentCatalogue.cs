@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace JG.GameContent
 {
@@ -18,6 +19,14 @@ namespace JG.GameContent
         // 1st key = concrete Def type; 2nd key = ID (case‑insensitive)
         private readonly ConcurrentDictionary<Type,
             ConcurrentDictionary<string, IContentDef>> _tables = new();
+
+        // Raw JToken storage for patch support – keyed by ID (case‑insensitive)
+        private readonly ConcurrentDictionary<string, JToken> _rawTokens =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        // Tracks which def Type was used to register each ID (for re-deserialization after patching)
+        private readonly ConcurrentDictionary<string, Type> _defTypeById =
+            new(StringComparer.OrdinalIgnoreCase);
 
         private ContentCatalogue() { } // singleton
 
@@ -62,7 +71,30 @@ namespace JG.GameContent
                     yield return kv as T;
         }
 
+        // ---- Raw token storage for patch support ----
+
+        public void StoreRawToken(string id, JToken token, Type defType)
+        {
+            _rawTokens[id] = token;
+            _defTypeById[id] = defType;
+        }
+
+        public JToken GetRawToken(string id)
+        {
+            return _rawTokens.TryGetValue(id, out var token) ? token : null;
+        }
+
+        public Type GetDefType(string id)
+        {
+            return _defTypeById.TryGetValue(id, out var t) ? t : null;
+        }
+
         /// <summary>Clear everything – used for hot‑reload in the editor.</summary>
-        public void Clear() => _tables.Clear();
+        public void Clear()
+        {
+            _tables.Clear();
+            _rawTokens.Clear();
+            _defTypeById.Clear();
+        }
     }
 }

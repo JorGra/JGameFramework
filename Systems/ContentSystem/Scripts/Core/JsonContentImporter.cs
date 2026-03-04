@@ -89,6 +89,8 @@ namespace JG.GameContent
 
             if (LoggingLevel >= LoggingLevel.Info)
                 Debug.Log($"[{modId}] Importing content definitions from {h.Path}");
+
+            // Two-pass import: regular files first, then patch files
             foreach (var defType in _defTypes)
             {
                 var folderAttr = defType.GetCustomAttribute<ContentFolderAttribute>();
@@ -98,12 +100,29 @@ namespace JG.GameContent
                 if (LoggingLevel >= LoggingLevel.Debug)
                     Debug.Log($"[{modId}] Importing {defType.Name} definitions from {folderPath}");
 
+                // Pass 1: regular definition files
                 foreach (var fp in Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly))
-                    TryImportFile(fp, h, defType);
+                {
+                    if (!IsPatchFile(fp))
+                        TryImportFile(fp, h, defType);
+                }
+
+                // Pass 2: patch files
+                foreach (var fp in Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly))
+                {
+                    if (IsPatchFile(fp))
+                        ApplyPatchFile(fp, h, modId);
+                }
             }
 
             // Load sidecar translation files from Translations/*.json
             ModTranslationLoader.Instance.LoadFromMod(h.Path);
+        }
+
+        public static bool IsPatchFile(string path)
+        {
+            var name = Path.GetFileNameWithoutExtension(path);
+            return name.EndsWith("_patches", StringComparison.OrdinalIgnoreCase);
         }
 
         // --------------------------------------------------------------------
@@ -185,8 +204,100 @@ namespace JG.GameContent
             AssetResolver.InjectAssets(def, h.Path, modId);
 
             ContentCatalogue.Instance.AddOrReplace(def);
+            ContentCatalogue.Instance.StoreRawToken(def.Id, token, defType);
+
             if (LoggingLevel >= LoggingLevel.Info)
                 Debug.Log($"[{modId}] ✔ Registered {defType.Name} \"{def.Id}\" from {Path.GetFileName(filePath)}");
+        }
+
+        // ---- Patch file support ----
+
+        private static void ApplyPatchFile(string filePath, IModHandle h, string modId)
+        {
+            try
+            {
+                if (LoggingLevel >= LoggingLevel.Debug)
+                    Debug.Log($"[{modId}] ▶ Applying patches from: {filePath}");
+
+                using var sr = new StreamReader(filePath);
+                using var jr = new JsonTextReader(sr) { CloseInput = false };
+                var token = JToken.ReadFrom(jr);
+
+                JArray patchArray;
+                if (token.Type == JTokenType.Array)
+                    patchArray = (JArray)token;
+                else
+                    patchArray = new JArray(token);
+
+                foreach (var element in patchArray)
+                {
+                    if (element is not JObject patchObj) continue;
+
+                    var targetId = patchObj["$patch"]?.ToString();
+                    if (string.IsNullOrWhiteSpace(targetId))
+                    {
+                        if (LoggingLevel >= LoggingLevel.Warning)
+                            Debug.LogWarning($"[{modId}] ⚠ Patch entry in {filePath} missing \"$patch\" target ID.");
+                        continue;
+                    }
+
+                    var opsToken = patchObj["ops"] as JArray;
+                    if (opsToken == null || opsToken.Count == 0)
+                    {
+                        if (LoggingLevel >= LoggingLevel.Warning)
+                            Debug.LogWarning($"[{modId}] ⚠ Patch for \"{targetId}\" in {filePath} has no ops.");
+                        continue;
+                    }
+
+                    var patch = new ContentPatch
+                    {
+                        TargetId = targetId,
+                        SourceMod = modId,
+                        SourceFile = filePath,
+                        Ops = new List<PatchOperation>()
+                    };
+
+                    foreach (var opToken in opsToken)
+                    {
+                        if (opToken is not JObject opObj) continue;
+                        patch.Ops.Add(new PatchOperation
+                        {
+                            Op = opObj["op"]?.ToString(),
+                            Path = opObj["path"]?.ToString(),
+                            Value = opObj["value"],
+                            Values = opObj["values"] as JArray,
+                            Index = opObj["index"]?.ToObject<int?>()
+                        });
+                    }
+
+                    // Resolve target from catalogue
+                    var rawToken = ContentCatalogue.Instance.GetRawToken(targetId);
+                    var defType = ContentCatalogue.Instance.GetDefType(targetId);
+                    if (rawToken == null || defType == null)
+                    {
+                        if (LoggingLevel >= LoggingLevel.Warning)
+                            Debug.LogWarning(
+                                $"[{modId}] ⚠ Patch target \"{targetId}\" not found in catalogue. " +
+                                $"Skipping patch from {filePath}");
+                        continue;
+                    }
+
+                    // Apply patch operations
+                    var patched = ContentPatchApplier.Apply(rawToken, patch);
+
+                    // Re-deserialize and re-register
+                    DeserializeAndRegister(patched, defType, h, filePath, modId);
+
+                    if (LoggingLevel >= LoggingLevel.Info)
+                        Debug.Log(
+                            $"[{modId}] ✔ Patched \"{targetId}\" ({patch.Ops.Count} ops) from {Path.GetFileName(filePath)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                if (LoggingLevel >= LoggingLevel.Error)
+                    Debug.LogError($"[{modId}] ✖ Failed to apply patch file {filePath}:\n{ex}");
+            }
         }
 
     }
