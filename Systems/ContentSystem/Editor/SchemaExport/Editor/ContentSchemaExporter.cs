@@ -70,7 +70,8 @@ namespace JG.GameContent.SchemaExport
                         assemblyQualifiedName = def.Type.AssemblyQualifiedName,
                         contentFolder = def.ContentFolder,
                         schemaFile = NormalizePathSeparators(relativeSchemaPath),
-                        displayName = ObjectNames.NicifyVariableName(def.Type.Name)
+                        displayName = ObjectNames.NicifyVariableName(def.Type.Name),
+                        baseTypes = CollectBaseContentTypes(def.Type)
                     });
                 }
 
@@ -279,6 +280,19 @@ namespace JG.GameContent.SchemaExport
             return value.Replace("\\", "/");
         }
 
+        private static List<string> CollectBaseContentTypes(Type type)
+        {
+            var baseTypes = new List<string>();
+            var current = type.BaseType;
+            while (current != null && current != typeof(ContentDef) && current != typeof(ScriptableObject) && current != typeof(object))
+            {
+                if (typeof(IContentDef).IsAssignableFrom(current))
+                    baseTypes.Add(current.AssemblyQualifiedName);
+                current = current.BaseType;
+            }
+            return baseTypes.Count > 0 ? baseTypes : null;
+        }
+
         private sealed class ContentDefInfo
         {
             public ContentDefInfo(Type type, string folder)
@@ -305,6 +319,7 @@ namespace JG.GameContent.SchemaExport
             public string contentFolder;
             public string schemaFile;
             public string displayName;
+            public List<string> baseTypes;
         }
 
         private sealed class SchemaMetadataManifest
