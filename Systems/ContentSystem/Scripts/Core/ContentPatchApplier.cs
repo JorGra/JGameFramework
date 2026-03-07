@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using JG.GameContent.Diagnostics;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -7,7 +8,7 @@ namespace JG.GameContent
 {
     public static class ContentPatchApplier
     {
-        public static JToken Apply(JToken original, ContentPatch patch)
+        public static JToken Apply(JToken original, ContentPatch patch, IDiagnosticSink sink = null)
         {
             var result = original.DeepClone();
 
@@ -33,6 +34,17 @@ namespace JG.GameContent
                             Debug.LogWarning(
                                 $"[Patch] Unknown op \"{op.Op}\" in patch for \"{patch.TargetId}\" " +
                                 $"({patch.SourceFile})");
+                            sink?.Report(new ContentDiagnostic
+                            {
+                                Severity = DiagnosticSeverity.Warning,
+                                Category = DiagnosticCategory.Patch,
+                                ModId = patch.SourceMod,
+                                FilePath = patch.SourceFile,
+                                DefId = patch.TargetId,
+                                FieldPath = op.Path,
+                                Message = $"Unknown patch op \"{op.Op}\".",
+                                Detail = "Valid operations are: set, remove, add, merge."
+                            });
                             break;
                     }
                 }
@@ -41,6 +53,16 @@ namespace JG.GameContent
                     Debug.LogWarning(
                         $"[Patch] Failed to apply {op.Op} at \"{op.Path}\" for \"{patch.TargetId}\" " +
                         $"({patch.SourceFile}): {ex.Message}");
+                    sink?.Report(new ContentDiagnostic
+                    {
+                        Severity = DiagnosticSeverity.Warning,
+                        Category = DiagnosticCategory.Patch,
+                        ModId = patch.SourceMod,
+                        FilePath = patch.SourceFile,
+                        DefId = patch.TargetId,
+                        FieldPath = op.Path,
+                        Message = $"Failed to apply {op.Op} at \"{op.Path}\": {ex.Message}"
+                    });
                 }
             }
 

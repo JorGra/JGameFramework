@@ -1,4 +1,5 @@
 ﻿using JG.GameContent;
+using JG.GameContent.Diagnostics;
 using JG.GameContent.Localization;
 using System;
 using System.Collections.Generic;
@@ -34,6 +35,10 @@ namespace JG.Modding
         public event Action<ModLoadError> OnLoadError;
         public event Action OnReloadFinished;
 
+        public DiagnosticReport Diagnostics { get; private set; }
+        public event Action<DiagnosticReport> OnDiagnosticsReady;
+        public event Action<string> OnLoadProgress;
+
         /* ------------------------------------------------------------ */
         public ModLoader(ModLoaderConfig cfg,
                          IModSource source,
@@ -61,12 +66,19 @@ namespace JG.Modding
         /* ------------------------------------------------------------ */
         public void Reload()
         {
+            Diagnostics = new DiagnosticReport();
+
             _mods.Clear();
             _state = _stateStore.Load() ?? new ModStateTable();
             ActiveMods = Array.Empty<LoadedMod>();
 
+            OnLoadProgress?.Invoke("Discovering mods...");
             DiscoverMods();
+            OnLoadProgress?.Invoke($"Found {_mods.Count} mod(s).");
+
+            OnLoadProgress?.Invoke("Resolving dependencies...");
             if (!ResolveOrder(out var ordered)) return;
+            OnLoadProgress?.Invoke($"Load order resolved: {string.Join(", ", ordered.Select(m => m.Manifest.id))}");
 
             BuildStateTable(ordered);
             ActiveMods = ordered.AsReadOnly();
@@ -82,11 +94,19 @@ namespace JG.Modding
             ContentCatalogue.Instance.Clear();
             ModTranslationLoader.Instance.Clear();
 
+            // Wire diagnostic sink into importer if supported
+            if (_importer is JsonContentImporter jsonImporter)
+            {
+                jsonImporter.DiagnosticSink = Diagnostics;
+                jsonImporter.OnProgress = msg => OnLoadProgress?.Invoke(msg);
+            }
+
             foreach (var mod in ordered)
             {
                 var row = _state.mods.First(e => e.id == mod.Manifest.id);
                 if (!row.enabled) continue;
 
+                OnLoadProgress?.Invoke($"Importing content for {mod.Manifest.id}...");
                 try
                 {
                     _importer.Import(mod.Handle);
@@ -104,6 +124,11 @@ namespace JG.Modding
             RunModEntryPoints(ordered);
 #endif
 
+            OnLoadProgress?.Invoke("Running validation...");
+            ContentValidationRunner.RunAll(ContentCatalogue.Instance, Diagnostics);
+
+            OnLoadProgress?.Invoke($"Loading complete. {Diagnostics.ErrorCount} error(s), {Diagnostics.WarningCount} warning(s).");
+            OnDiagnosticsReady?.Invoke(Diagnostics);
             OnReloadFinished?.Invoke();
             _dirty = false;
         }
@@ -166,6 +191,13 @@ namespace JG.Modding
 
         public bool IsModEnabled(string id)
             => _state?.mods.FirstOrDefault(e => e.id == id)?.enabled ?? false;
+
+        public DiagnosticReport ValidateNow()
+        {
+            var report = new DiagnosticReport();
+            ContentValidationRunner.RunAll(ContentCatalogue.Instance, report);
+            return report;
+        }
 
         /* ---------- DLL loading internals --------------------------- */
 #if !UNITY_IOS
@@ -245,6 +277,14 @@ namespace JG.Modding
                     {
                         var modId = _assemblyToMod.TryGetValue(asm, out var m2) ? m2.Manifest.id : "unknown";
                         UnityEngine.Debug.LogError($"[ModLoader] Entry point {type.FullName} failed (mod: {modId}): {ex}");
+                        Diagnostics?.Report(new ContentDiagnostic
+                        {
+                            Severity = DiagnosticSeverity.Error,
+                            Category = DiagnosticCategory.Assembly,
+                            ModId = modId,
+                            Message = $"Entry point {type.FullName} failed: {ex.Message}",
+                            Detail = ex.InnerException?.Message
+                        });
                     }
                 }
             }
@@ -257,7 +297,10 @@ namespace JG.Modding
             foreach (var h in _source.Discover())
             {
                 try { _mods.Add(new LoadedMod { Manifest = _reader.ReadManifest(h), Handle = h }); }
-                catch (Exception ex) { Raise(ErrorKind.ManifestError, ex.Message, null); }
+                catch (Exception ex)
+                {
+                    Raise(ErrorKind.ManifestError, ex.Message, null);
+                }
             }
         }
 
@@ -342,6 +385,21 @@ namespace JG.Modding
         }
 
         void Raise(ErrorKind k, string msg, string[] mods)
-            => OnLoadError?.Invoke(new ModLoadError { Kind = k, Message = msg, InvolvedModIds = mods });
+        {
+            OnLoadError?.Invoke(new ModLoadError { Kind = k, Message = msg, InvolvedModIds = mods });
+            Diagnostics?.Report(new ContentDiagnostic
+            {
+                Severity = k == ErrorKind.IoError ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
+                Category = k switch
+                {
+                    ErrorKind.ManifestError => DiagnosticCategory.Manifest,
+                    ErrorKind.MissingDependency => DiagnosticCategory.Dependency,
+                    ErrorKind.CircularDependency => DiagnosticCategory.Dependency,
+                    _ => DiagnosticCategory.Custom
+                },
+                ModId = mods != null && mods.Length > 0 ? mods[0] : null,
+                Message = msg
+            });
+        }
     }
 }

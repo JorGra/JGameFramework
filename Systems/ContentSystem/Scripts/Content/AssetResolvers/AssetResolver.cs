@@ -1,4 +1,5 @@
 using JG.GameContent;
+using JG.GameContent.Diagnostics;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,13 +14,13 @@ internal static class AssetResolver
     private const string RESOURCES_PREFIX = "Resources:";
     private static readonly ReferenceEqualityComparer ReferenceComparer = new();
 
-    public static void InjectAssets(IContentDef def, string modRoot, string modId)
+    public static void InjectAssets(IContentDef def, string modRoot, string modId, IDiagnosticSink sink = null)
     {
         if (def == null) throw new ArgumentNullException(nameof(def));
         if (modRoot == null) modRoot = string.Empty;
 
         var visited = new HashSet<object>(ReferenceComparer);
-        ProcessObject(def, def.GetType(), def.SourceFile, modRoot, modId ?? string.Empty, visited);
+        ProcessObject(def, def.GetType(), def.SourceFile, modRoot, modId ?? string.Empty, visited, sink);
     }
 
     private static void ProcessObject(
@@ -28,7 +29,8 @@ internal static class AssetResolver
         string sourceFile,
         string modRoot,
         string modId,
-        HashSet<object> visited)
+        HashSet<object> visited,
+        IDiagnosticSink sink)
     {
         if (target == null || targetType == null)
             return;
@@ -52,13 +54,13 @@ internal static class AssetResolver
             if (typeof(UnityEngine.Object).IsAssignableFrom(memberType) &&
                 mem.GetCustomAttribute<AssetFromPathAttribute>() is AssetFromPathAttribute attrPath)
             {
-                ResolveFromPathAttribute(target, targetType, mem, memberType, attrPath, modRoot, modId, sourceFile);
+                ResolveFromPathAttribute(target, targetType, mem, memberType, attrPath, modRoot, modId, sourceFile, sink);
                 continue;
             }
 
             if (mem.GetCustomAttribute<AssetsFromDirectoryAttribute>() is AssetsFromDirectoryAttribute directoryAttr)
             {
-                ResolveFromDirectoryAttribute(target, targetType, mem, memberType, directoryAttr, modRoot, modId, sourceFile);
+                ResolveFromDirectoryAttribute(target, targetType, mem, memberType, directoryAttr, modRoot, modId, sourceFile, sink);
                 continue;
             }
 
@@ -84,7 +86,7 @@ internal static class AssetResolver
                     if (item is IContentDef childDef && !string.IsNullOrWhiteSpace(childDef.SourceFile))
                         childSource = childDef.SourceFile;
 
-                    ProcessObject(item, itemType, childSource, modRoot, modId, visited);
+                    ProcessObject(item, itemType, childSource, modRoot, modId, visited, sink);
                 }
             }
             else if (ShouldRecurseInto(memberType))
@@ -93,7 +95,7 @@ internal static class AssetResolver
                 if (memberValue is IContentDef childDef && !string.IsNullOrWhiteSpace(childDef.SourceFile))
                     childSource = childDef.SourceFile;
 
-                ProcessObject(memberValue, memberType, childSource, modRoot, modId, visited);
+                ProcessObject(memberValue, memberType, childSource, modRoot, modId, visited, sink);
             }
         }
     }
@@ -216,7 +218,8 @@ internal static class AssetResolver
         AssetFromPathAttribute attr,
         string modRoot,
         string modId,
-        string sourceFile)
+        string sourceFile,
+        IDiagnosticSink sink = null)
     {
         var key = ResolveName(target, targetType, attr.PathKey, modId, $"{targetType.Name}.{mem.Name}", attr.Optional);
         if (string.IsNullOrWhiteSpace(key)) return;
@@ -224,6 +227,7 @@ internal static class AssetResolver
         var raw = key.Trim();
         var isResources = IsResourcesKey(raw);
         var ext = Path.GetExtension(raw);
+        var fieldPath = $"{targetType.Name}.{mem.Name}";
 
         if (isResources)
         {
@@ -232,7 +236,7 @@ internal static class AssetResolver
 
             if (!string.IsNullOrEmpty(ext) && JG.GameContent.AssetResolving.AssetResolverRegistry.TryGetByExtension(ext, out var plug))
             {
-                TryLoadWithPlugin(() => plug.LoadFromResources(resPathNoExt, memberType), target, mem, memberType, modId, raw, attr.Optional);
+                TryLoadWithPlugin(() => plug.LoadFromResources(resPathNoExt, memberType), target, mem, memberType, modId, raw, attr.Optional, sink, sourceFile, fieldPath);
             }
             else
             {
@@ -242,14 +246,34 @@ internal static class AssetResolver
                     if (!asset)
                     {
                         if (!attr.Optional)
+                        {
                             Debug.LogWarning($"[{modId}] Resources asset not found: Resources/{resPathNoExt} (type {memberType.Name})");
+                            sink?.Report(new ContentDiagnostic
+                            {
+                                Severity = DiagnosticSeverity.Warning,
+                                Category = DiagnosticCategory.AssetResolution,
+                                ModId = modId,
+                                FilePath = sourceFile,
+                                FieldPath = fieldPath,
+                                Message = $"Resources asset not found: Resources/{resPathNoExt} (type {memberType.Name})"
+                            });
+                        }
                         return;
                     }
                     SetMemberValue(target, mem, asset);
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[{modId}] Failed to load Resources {memberType.Name} for {targetType.Name}.{mem.Name} at '{resPathNoExt}':\n{ex}");
+                    Debug.LogError($"[{modId}] Failed to load Resources {memberType.Name} for {fieldPath} at '{resPathNoExt}':\n{ex}");
+                    sink?.Report(new ContentDiagnostic
+                    {
+                        Severity = DiagnosticSeverity.Error,
+                        Category = DiagnosticCategory.AssetResolution,
+                        ModId = modId,
+                        FilePath = sourceFile,
+                        FieldPath = fieldPath,
+                        Message = $"Failed to load Resources {memberType.Name} at '{resPathNoExt}': {ex.Message}"
+                    });
                 }
             }
         }
@@ -267,17 +291,39 @@ internal static class AssetResolver
             if (!File.Exists(abs))
             {
                 if (!attr.Optional)
+                {
                     Debug.LogWarning($"[{modId}] Asset file not found: {abs}");
+                    sink?.Report(new ContentDiagnostic
+                    {
+                        Severity = DiagnosticSeverity.Warning,
+                        Category = DiagnosticCategory.AssetResolution,
+                        ModId = modId,
+                        FilePath = sourceFile,
+                        FieldPath = fieldPath,
+                        Message = $"Asset file not found: {abs}",
+                        ActualValue = raw
+                    });
+                }
                 return;
             }
 
             if (!JG.GameContent.AssetResolving.AssetResolverRegistry.TryGetByExtension(ext, out var plug))
             {
-                Debug.LogError($"[{modId}] No resolver registered for extension '{ext}' referenced by {targetType.Name}.{mem.Name} → '{raw}'.");
+                Debug.LogError($"[{modId}] No resolver registered for extension '{ext}' referenced by {fieldPath} → '{raw}'.");
+                sink?.Report(new ContentDiagnostic
+                {
+                    Severity = DiagnosticSeverity.Error,
+                    Category = DiagnosticCategory.AssetResolution,
+                    ModId = modId,
+                    FilePath = sourceFile,
+                    FieldPath = fieldPath,
+                    Message = $"No resolver registered for extension '{ext}'.",
+                    ActualValue = raw
+                });
                 return;
             }
 
-            TryLoadWithPlugin(() => plug.LoadFromFile(abs, memberType), target, mem, memberType, modId, abs, attr.Optional);
+            TryLoadWithPlugin(() => plug.LoadFromFile(abs, memberType), target, mem, memberType, modId, abs, attr.Optional, sink, sourceFile, fieldPath);
         }
     }
 
@@ -287,7 +333,10 @@ internal static class AssetResolver
                                           Type memberType,
                                           string modId,
                                           string where,
-                                          bool optional)
+                                          bool optional,
+                                          IDiagnosticSink sink = null,
+                                          string sourceFile = null,
+                                          string fieldPath = null)
     {
         try
         {
@@ -295,7 +344,18 @@ internal static class AssetResolver
             if (!asset)
             {
                 if (!optional)
+                {
                     Debug.LogWarning($"[{modId}] Resolver returned null for {where} (expected {memberType.Name}).");
+                    sink?.Report(new ContentDiagnostic
+                    {
+                        Severity = DiagnosticSeverity.Warning,
+                        Category = DiagnosticCategory.AssetResolution,
+                        ModId = modId,
+                        FilePath = sourceFile,
+                        FieldPath = fieldPath,
+                        Message = $"Resolver returned null for '{where}' (expected {memberType.Name})."
+                    });
+                }
                 return;
             }
             SetMemberValue(target, mem, asset);
@@ -303,6 +363,15 @@ internal static class AssetResolver
         catch (Exception ex)
         {
             Debug.LogError($"[{modId}] Failed to load {memberType.Name} from '{where}':\n{ex}");
+            sink?.Report(new ContentDiagnostic
+            {
+                Severity = DiagnosticSeverity.Error,
+                Category = DiagnosticCategory.AssetResolution,
+                ModId = modId,
+                FilePath = sourceFile,
+                FieldPath = fieldPath,
+                Message = $"Failed to load {memberType.Name} from '{where}': {ex.Message}"
+            });
         }
     }
 
@@ -314,7 +383,8 @@ internal static class AssetResolver
         AssetsFromDirectoryAttribute attr,
         string modRoot,
         string modId,
-        string sourceFile)
+        string sourceFile,
+        IDiagnosticSink sink = null)
     {
         var context = $"{targetType.Name}.{mem.Name}";
 

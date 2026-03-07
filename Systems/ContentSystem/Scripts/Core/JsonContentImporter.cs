@@ -1,4 +1,5 @@
-﻿using JG.GameContent.Localization;
+﻿using JG.GameContent.Diagnostics;
+using JG.GameContent.Localization;
 using JG.Modding;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -28,9 +29,20 @@ namespace JG.GameContent
     /// </summary>
     public sealed class JsonContentImporter : MonoBehaviour, IContentImporter
     {
+        [SerializeField, Tooltip("Controls which messages are printed to the Unity console.\n\nNone = silent\nError = errors only\nWarning = errors + warnings\nInfo = normal output\nDebug = verbose")]
+        LoggingLevel consoleLogLevel = LoggingLevel.Info;
+
         static LoggingLevel LoggingLevel = LoggingLevel.Info;
+
+        void Awake() => LoggingLevel = consoleLogLevel;
         private static Type[] _defTypes;
         private static bool _scanned;
+
+        [ThreadStatic] static List<ContentDiagnostic> _threadErrors;
+
+        public IDiagnosticSink DiagnosticSink { get; set; }
+        public Action<string> OnProgress { get; set; }
+
         private static readonly JsonSerializer _json =
             JsonSerializer.Create(new JsonSerializerSettings
             {
@@ -43,6 +55,15 @@ namespace JG.GameContent
                     if (LoggingLevel >= LoggingLevel.Error)
                         Debug.LogError(
                         $"[JSON] {ctx.ErrorContext.Error}  •  Path: {ctx.ErrorContext.Path}");
+
+                    _threadErrors ??= new List<ContentDiagnostic>();
+                    _threadErrors.Add(new ContentDiagnostic
+                    {
+                        Severity = DiagnosticSeverity.Error,
+                        Category = DiagnosticCategory.Deserialization,
+                        FieldPath = ctx.ErrorContext.Path,
+                        Message = ctx.ErrorContext.Error?.Message ?? "Unknown JSON error"
+                    });
                 }
             });
 
@@ -90,6 +111,7 @@ namespace JG.GameContent
         {
             EnsureScanned();
             var modId = Path.GetFileName(h.Path);
+            var sink = DiagnosticSink;
 
             if (LoggingLevel >= LoggingLevel.Info)
                 Debug.Log($"[{modId}] Importing content definitions from {h.Path}");
@@ -104,18 +126,20 @@ namespace JG.GameContent
                 if (LoggingLevel >= LoggingLevel.Debug)
                     Debug.Log($"[{modId}] Importing {defType.Name} definitions from {folderPath}");
 
+                OnProgress?.Invoke($"[{modId}] Importing {defType.Name} definitions...");
+
                 // Pass 1: regular definition files
                 foreach (var fp in Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly))
                 {
                     if (!IsPatchFile(fp))
-                        TryImportFile(fp, h, defType);
+                        TryImportFile(fp, h, defType, sink);
                 }
 
                 // Pass 2: patch files
                 foreach (var fp in Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly))
                 {
                     if (IsPatchFile(fp))
-                        ApplyPatchFile(fp, h, modId);
+                        ApplyPatchFile(fp, h, modId, sink);
                 }
             }
 
@@ -131,13 +155,16 @@ namespace JG.GameContent
 
         // --------------------------------------------------------------------
 
-        private static void TryImportFile(string filePath, IModHandle h, Type defType)
+        private static void TryImportFile(string filePath, IModHandle h, Type defType, IDiagnosticSink sink = null)
         {
             var modId = Path.GetFileName(h.Path);          // <-- use the mod id, not the file name
             try
             {
                 if (LoggingLevel >= LoggingLevel.Debug)
                     Debug.Log($"[{modId}] ▶ Importing {defType.Name}: {filePath}");
+
+                // Clear thread-local errors before deserialization
+                _threadErrors?.Clear();
 
                 using var sr = new StreamReader(filePath);
                 using var jr = new JsonTextReader(sr) { CloseInput = false };
@@ -146,34 +173,75 @@ namespace JG.GameContent
                 if (token.Type == JTokenType.Array)
                 {
                     foreach (var element in token)
-                        DeserializeAndRegister(element, defType, h, filePath, modId);
+                        DeserializeAndRegister(element, defType, h, filePath, modId, sink);
                 }
                 else
                 {
-                    DeserializeAndRegister(token, defType, h, filePath, modId);
+                    DeserializeAndRegister(token, defType, h, filePath, modId, sink);
                 }
+
+                // Drain thread-local serializer errors into the sink
+                DrainThreadErrors(sink, modId, filePath);
             }
             catch (JsonReaderException ex)
             {
                 if (LoggingLevel >= LoggingLevel.Error)
                     Debug.LogError($"[{modId}] ✖ Malformed JSON in {filePath}  "
                              + $"(line {ex.LineNumber}, pos {ex.LinePosition}): {ex.Message}");
+                sink?.Report(new ContentDiagnostic
+                {
+                    Severity = DiagnosticSeverity.Error,
+                    Category = DiagnosticCategory.JsonParse,
+                    ModId = modId,
+                    FilePath = filePath,
+                    LineNumber = ex.LineNumber,
+                    Message = $"Malformed JSON (line {ex.LineNumber}, pos {ex.LinePosition}): {ex.Message}"
+                });
             }
             catch (JsonSerializationException ex)
             {
                 if (LoggingLevel >= LoggingLevel.Error)
                     Debug.LogError($"[{modId}] ✖ Serialization error in {filePath}  "
                              + $"(path \"{ex.Path}\"): {ex.Message}");
+                sink?.Report(new ContentDiagnostic
+                {
+                    Severity = DiagnosticSeverity.Error,
+                    Category = DiagnosticCategory.Deserialization,
+                    ModId = modId,
+                    FilePath = filePath,
+                    FieldPath = ex.Path,
+                    Message = $"Serialization error: {ex.Message}"
+                });
             }
             catch (Exception ex)
             {
                 if (LoggingLevel >= LoggingLevel.Error)
                     Debug.LogError($"[{modId}] ✖ Unexpected failure while parsing {filePath}:\n{ex}");
+                sink?.Report(new ContentDiagnostic
+                {
+                    Severity = DiagnosticSeverity.Error,
+                    Category = DiagnosticCategory.Deserialization,
+                    ModId = modId,
+                    FilePath = filePath,
+                    Message = $"Unexpected failure: {ex.Message}"
+                });
             }
         }
 
+        private static void DrainThreadErrors(IDiagnosticSink sink, string modId, string filePath)
+        {
+            if (sink == null || _threadErrors == null || _threadErrors.Count == 0) return;
+            foreach (var err in _threadErrors)
+            {
+                err.ModId = modId;
+                err.FilePath = filePath;
+                sink.Report(err);
+            }
+            _threadErrors.Clear();
+        }
+
         private static void DeserializeAndRegister(
-    JToken token, Type defType, IModHandle h, string filePath, string modId)
+    JToken token, Type defType, IModHandle h, string filePath, string modId, IDiagnosticSink sink = null)
         {
             IContentDef def;
             try
@@ -186,6 +254,14 @@ namespace JG.GameContent
                 if (LoggingLevel >= LoggingLevel.Error)
                     Debug.LogError($"[{modId}] ✖ Failed to deserialize {defType.Name} "
                              + $"in {filePath}: {ex.Message}");
+                sink?.Report(new ContentDiagnostic
+                {
+                    Severity = DiagnosticSeverity.Error,
+                    Category = DiagnosticCategory.Deserialization,
+                    ModId = modId,
+                    FilePath = filePath,
+                    Message = $"Failed to deserialize {defType.Name}: {ex.Message}"
+                });
                 return;
             }
 
@@ -193,6 +269,15 @@ namespace JG.GameContent
             {
                 if (LoggingLevel >= LoggingLevel.Warning)
                     Debug.LogWarning($"[{modId}] ⚠ Ignored entry in {filePath} – missing \"Id\".");
+                sink?.Report(new ContentDiagnostic
+                {
+                    Severity = DiagnosticSeverity.Warning,
+                    Category = DiagnosticCategory.Deserialization,
+                    ModId = modId,
+                    FilePath = filePath,
+                    Message = $"Entry in {Path.GetFileName(filePath)} missing \"Id\" field.",
+                    Detail = "Every content definition must have a non-empty \"Id\" field."
+                });
                 return;
             }
 
@@ -205,9 +290,9 @@ namespace JG.GameContent
             }
 
             // Inject assets like sprites, audio clips, etc. from annotated fields
-            AssetResolver.InjectAssets(def, h.Path, modId);
+            AssetResolver.InjectAssets(def, h.Path, modId, sink);
 
-            ContentCatalogue.Instance.AddOrReplace(def);
+            ContentCatalogue.Instance.AddOrReplace(def, modId);
             ContentCatalogue.Instance.StoreRawToken(def.Id, token, defType);
 
             if (LoggingLevel >= LoggingLevel.Info)
@@ -216,7 +301,7 @@ namespace JG.GameContent
 
         // ---- Patch file support ----
 
-        private static void ApplyPatchFile(string filePath, IModHandle h, string modId)
+        private static void ApplyPatchFile(string filePath, IModHandle h, string modId, IDiagnosticSink sink = null)
         {
             try
             {
@@ -242,6 +327,14 @@ namespace JG.GameContent
                     {
                         if (LoggingLevel >= LoggingLevel.Warning)
                             Debug.LogWarning($"[{modId}] ⚠ Patch entry in {filePath} missing \"$patch\" target ID.");
+                        sink?.Report(new ContentDiagnostic
+                        {
+                            Severity = DiagnosticSeverity.Warning,
+                            Category = DiagnosticCategory.Patch,
+                            ModId = modId,
+                            FilePath = filePath,
+                            Message = "Patch entry missing \"$patch\" target ID."
+                        });
                         continue;
                     }
 
@@ -250,6 +343,15 @@ namespace JG.GameContent
                     {
                         if (LoggingLevel >= LoggingLevel.Warning)
                             Debug.LogWarning($"[{modId}] ⚠ Patch for \"{targetId}\" in {filePath} has no ops.");
+                        sink?.Report(new ContentDiagnostic
+                        {
+                            Severity = DiagnosticSeverity.Warning,
+                            Category = DiagnosticCategory.Patch,
+                            ModId = modId,
+                            FilePath = filePath,
+                            DefId = targetId,
+                            Message = $"Patch for \"{targetId}\" has no ops."
+                        });
                         continue;
                     }
 
@@ -283,14 +385,24 @@ namespace JG.GameContent
                             Debug.LogWarning(
                                 $"[{modId}] ⚠ Patch target \"{targetId}\" not found in catalogue. " +
                                 $"Skipping patch from {filePath}");
+                        sink?.Report(new ContentDiagnostic
+                        {
+                            Severity = DiagnosticSeverity.Warning,
+                            Category = DiagnosticCategory.Patch,
+                            ModId = modId,
+                            FilePath = filePath,
+                            DefId = targetId,
+                            Message = $"Patch target \"{targetId}\" not found in catalogue.",
+                            Detail = "Ensure the target def is loaded before this patch. Check load order."
+                        });
                         continue;
                     }
 
                     // Apply patch operations
-                    var patched = ContentPatchApplier.Apply(rawToken, patch);
+                    var patched = ContentPatchApplier.Apply(rawToken, patch, sink);
 
                     // Re-deserialize and re-register
-                    DeserializeAndRegister(patched, defType, h, filePath, modId);
+                    DeserializeAndRegister(patched, defType, h, filePath, modId, sink);
 
                     if (LoggingLevel >= LoggingLevel.Info)
                         Debug.Log(
@@ -301,6 +413,14 @@ namespace JG.GameContent
             {
                 if (LoggingLevel >= LoggingLevel.Error)
                     Debug.LogError($"[{modId}] ✖ Failed to apply patch file {filePath}:\n{ex}");
+                sink?.Report(new ContentDiagnostic
+                {
+                    Severity = DiagnosticSeverity.Error,
+                    Category = DiagnosticCategory.Patch,
+                    ModId = modId,
+                    FilePath = filePath,
+                    Message = $"Failed to apply patch file: {ex.Message}"
+                });
             }
         }
 

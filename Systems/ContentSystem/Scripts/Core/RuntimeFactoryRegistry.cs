@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using JG.GameContent;
+using JG.GameContent.Diagnostics;
 using UnityEngine;
 
 public interface IRuntimeFactory<in TDef> where TDef : IContentDef
@@ -23,7 +24,7 @@ public static class RuntimeFactoryRegistry
 
     public static void Clear() => _byDefType.Clear();
 
-    public static void SetupAllRegistered()
+    public static void SetupAllRegistered(IDiagnosticSink sink = null)
     {
         var catalogue = ContentCatalogue.Instance;
         var getAllMethod = typeof(ContentCatalogue).GetMethod(nameof(ContentCatalogue.GetAll));
@@ -50,10 +51,25 @@ public static class RuntimeFactoryRegistry
                 catch (TargetInvocationException ex)
                 {
                     Debug.LogError($"Failed to setup {defType.Name} '{contentDef.Id}': {ex.InnerException}");
+                    sink?.Report(new ContentDiagnostic
+                    {
+                        Severity = DiagnosticSeverity.Error,
+                        Category = DiagnosticCategory.FactorySetup,
+                        DefId = contentDef.Id,
+                        Message = $"Factory setup failed for {defType.Name} '{contentDef.Id}': {ex.InnerException?.Message}",
+                        Detail = ex.InnerException?.ToString()
+                    });
                 }
                 catch (Exception ex)
                 {
                     Debug.LogError($"Failed to setup {defType.Name} '{contentDef.Id}': {ex}");
+                    sink?.Report(new ContentDiagnostic
+                    {
+                        Severity = DiagnosticSeverity.Error,
+                        Category = DiagnosticCategory.FactorySetup,
+                        DefId = contentDef.Id,
+                        Message = $"Factory setup failed for {defType.Name} '{contentDef.Id}': {ex.Message}"
+                    });
                 }
             }
         }

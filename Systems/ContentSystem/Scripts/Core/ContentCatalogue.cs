@@ -28,6 +28,10 @@ namespace JG.GameContent
         private readonly ConcurrentDictionary<string, Type> _defTypeById =
             new(StringComparer.OrdinalIgnoreCase);
 
+        // Tracks which mod registered each def ID
+        private readonly ConcurrentDictionary<string, string> _sourceModById =
+            new(StringComparer.OrdinalIgnoreCase);
+
         private ContentCatalogue() { } // singleton
 
         // Register under every base type of the object
@@ -49,6 +53,34 @@ namespace JG.GameContent
                 RegisterUnder(t, def);
                 t = t.BaseType; // Move up the inheritance chain
             }
+        }
+
+        public void AddOrReplace(IContentDef def, string modId)
+        {
+            AddOrReplace(def);
+            if (!string.IsNullOrEmpty(def.Id) && !string.IsNullOrEmpty(modId))
+                _sourceModById[def.Id] = modId;
+        }
+
+        public string GetSourceMod(string defId)
+        {
+            if (string.IsNullOrEmpty(defId)) return null;
+            return _sourceModById.TryGetValue(defId, out var mod) ? mod : null;
+        }
+
+        public bool HasDef(Type defType, string id)
+        {
+            if (defType == null || string.IsNullOrEmpty(id)) return false;
+            return _tables.TryGetValue(defType, out var map) && map.ContainsKey(id);
+        }
+
+        public IEnumerable<IContentDef> GetAllDefs()
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var table in _tables.Values)
+                foreach (var kv in table)
+                    if (seen.Add(kv.Key))
+                        yield return kv.Value;
         }
 
 
@@ -95,6 +127,7 @@ namespace JG.GameContent
             _tables.Clear();
             _rawTokens.Clear();
             _defTypeById.Clear();
+            _sourceModById.Clear();
         }
     }
 }

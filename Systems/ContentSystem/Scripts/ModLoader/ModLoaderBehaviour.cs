@@ -1,4 +1,6 @@
 using System.IO;
+using JG.GameContent.Debugging;
+using JG.GameContent.Diagnostics;
 using UnityEngine;
 
 namespace JG.Modding
@@ -45,6 +47,22 @@ namespace JG.Modding
 
                 NotificationSender.Raise(e.Message, severity, "ModLoader");
             };
+            Loader.OnDiagnosticsReady += report =>
+            {
+                if (report.ErrorCount > 0 || report.WarningCount > 0)
+                {
+                    var modSet = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+                    foreach (var d in report.All)
+                        if (!string.IsNullOrEmpty(d.ModId))
+                            modSet.Add(d.ModId);
+                    var modCount = modSet.Count;
+
+                    NotificationSender.Raise(
+                        $"Mod loading complete: {report.ErrorCount} error(s), {report.WarningCount} warning(s) across {modCount} mod(s).",
+                        report.HasErrors ? NotificationSeverity.Error : NotificationSeverity.Warning,
+                        "ModLoader");
+                }
+            };
             Loader.OnReloadFinished += () =>
             {
                 if (!InitialLoadDone)
@@ -52,6 +70,11 @@ namespace JG.Modding
                 Debug.Log("ModLoaderBehaviour: Mod loading finished.");
                 EventBus<OnModLoadingFinishedEvent>.Raise(new OnModLoadingFinishedEvent());
             };
+
+            // Bind debug console if present
+            var console = Object.FindObjectOfType<DebugConsolePanel>();
+            if (console != null)
+                console.BindModLoader(Loader);
 
             Loader.Reload();
 
