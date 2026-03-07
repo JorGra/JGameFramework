@@ -3,6 +3,9 @@ using JG.GameContent.Localization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+#if !UNITY_IOS
+using System.Reflection;
+#endif
 
 namespace JG.Modding
 {
@@ -14,6 +17,12 @@ namespace JG.Modding
         readonly IManifestReader _reader;
         readonly IStateStore _stateStore;
         readonly IContentImporter _importer;
+
+#if !UNITY_IOS
+        readonly IModAssemblyLoader _assemblyLoader;
+        readonly List<Assembly> _modAssemblies = new();
+        readonly Dictionary<Assembly, LoadedMod> _assemblyToMod = new();
+#endif
 
         readonly List<LoadedMod> _mods = new();
         ModStateTable _state;
@@ -30,16 +39,23 @@ namespace JG.Modding
                          IModSource source,
                          IManifestReader reader,
                          IStateStore stateStore,
-                         IContentImporter importer, bool loadInstantly)
+                         IContentImporter importer,
+#if !UNITY_IOS
+                         IModAssemblyLoader assemblyLoader = null,
+#endif
+                         bool loadInstantly = false)
         {
             _cfg = cfg;
             _source = source;
             _reader = reader;
             _stateStore = stateStore;
             _importer = importer;
+#if !UNITY_IOS
+            _assemblyLoader = assemblyLoader;
+#endif
 
             if(loadInstantly)
-                Reload();                                  // prime everything from disk
+                Reload();
         }
 
         /* ------------------------------------------------------------ */
@@ -55,8 +71,16 @@ namespace JG.Modding
             BuildStateTable(ordered);
             ActiveMods = ordered.AsReadOnly();
 
-            ContentCatalogue.Instance.Clear(); // clear the catalogue before import
-            ModTranslationLoader.Instance.Clear(); // clear translations before reimport
+#if !UNITY_IOS
+            // Load mod assemblies before content import so new types are discoverable
+            LoadModAssemblies(ordered);
+
+            // Reset reflection caches so newly loaded types are picked up
+            ResetReflectionCaches();
+#endif
+
+            ContentCatalogue.Instance.Clear();
+            ModTranslationLoader.Instance.Clear();
 
             foreach (var mod in ordered)
             {
@@ -72,11 +96,16 @@ namespace JG.Modding
                     Raise(ErrorKind.IoError,
                           $"Import failed for {mod.Manifest.id}: {ex.Message}",
                           new[] { mod.Manifest.id });
-                    // keep looping – next mods still load
                 }
             }
+
+#if !UNITY_IOS
+            // Run mod entry points after content import so mods can query the catalogue
+            RunModEntryPoints(ordered);
+#endif
+
             OnReloadFinished?.Invoke();
-            _dirty = false;                            // disk state now matches memory
+            _dirty = false;
         }
 
         /* ---------- live editing helpers ---------------------------- */
@@ -137,6 +166,90 @@ namespace JG.Modding
 
         public bool IsModEnabled(string id)
             => _state?.mods.FirstOrDefault(e => e.id == id)?.enabled ?? false;
+
+        /* ---------- DLL loading internals --------------------------- */
+#if !UNITY_IOS
+        void LoadModAssemblies(List<LoadedMod> ordered)
+        {
+            _modAssemblies.Clear();
+            _assemblyToMod.Clear();
+
+            if (_assemblyLoader == null)
+                return;
+
+            foreach (var mod in ordered)
+            {
+                var row = _state.mods.First(e => e.id == mod.Manifest.id);
+                if (!row.enabled) continue;
+
+                if (mod.Manifest.assemblies == null || mod.Manifest.assemblies.Length == 0)
+                    continue;
+
+                try
+                {
+                    var loaded = _assemblyLoader.LoadAssemblies(mod.Handle, mod.Manifest);
+                    foreach (var asm in loaded)
+                    {
+                        _modAssemblies.Add(asm);
+                        _assemblyToMod[asm] = mod;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Raise(ErrorKind.IoError,
+                          $"Assembly loading failed for {mod.Manifest.id}: {ex.Message}",
+                          new[] { mod.Manifest.id });
+                }
+            }
+        }
+
+        static void ResetReflectionCaches()
+        {
+            JsonContentImporter.RescanContentTypes();
+            DiscriminatorConverterRegistry.ResetAll();
+        }
+
+        void RunModEntryPoints(List<LoadedMod> ordered)
+        {
+            if (_modAssemblies.Count == 0)
+                return;
+
+            foreach (var asm in _modAssemblies)
+            {
+                Type[] types;
+                try { types = asm.GetTypes(); }
+                catch (ReflectionTypeLoadException ex) { types = ex.Types; }
+                catch { continue; }
+
+                if (types == null) continue;
+
+                foreach (var type in types)
+                {
+                    if (type == null || type.IsAbstract || type.IsInterface)
+                        continue;
+                    if (!typeof(IModEntryPoint).IsAssignableFrom(type))
+                        continue;
+
+                    try
+                    {
+                        var entryPoint = (IModEntryPoint)Activator.CreateInstance(type);
+                        var mod = _assemblyToMod.TryGetValue(asm, out var m) ? m : null;
+                        var context = new ModContext(
+                            mod?.Manifest.id ?? "unknown",
+                            mod?.Handle.Path ?? string.Empty
+                        );
+                        entryPoint.Initialize(context);
+                        UnityEngine.Debug.Log($"[ModLoader] Initialized entry point {type.FullName} for mod {context.ModId}");
+                    }
+                    catch (Exception ex)
+                    {
+                        var modId = _assemblyToMod.TryGetValue(asm, out var m2) ? m2.Manifest.id : "unknown";
+                        UnityEngine.Debug.LogError($"[ModLoader] Entry point {type.FullName} failed (mod: {modId}): {ex}");
+                    }
+                }
+            }
+        }
+#endif
 
         /* ---------- internals --------------------------------------- */
         void DiscoverMods()

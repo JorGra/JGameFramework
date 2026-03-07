@@ -29,7 +29,8 @@ namespace JG.GameContent
     public sealed class JsonContentImporter : MonoBehaviour, IContentImporter
     {
         static LoggingLevel LoggingLevel = LoggingLevel.Info;
-        private static readonly Type[] _defTypes;
+        private static Type[] _defTypes;
+        private static bool _scanned;
         private static readonly JsonSerializer _json =
             JsonSerializer.Create(new JsonSerializerSettings
             {
@@ -39,19 +40,14 @@ namespace JG.GameContent
                 Formatting = Formatting.None,
                 Error = (_, ctx) =>
                 {
-                    // Fires on every member that fails during Populate/Deserialize
                     if (LoggingLevel >= LoggingLevel.Error)
                         Debug.LogError(
                         $"[JSON] {ctx.ErrorContext.Error}  •  Path: {ctx.ErrorContext.Path}");
-                    // If you don’t want the import to halt on *every* error, leave it handled:
-                    // ctx.ErrorContext.Handled = true;
                 }
             });
 
-        static JsonContentImporter()
+        public static void RescanContentTypes()
         {
-            // Content definitions can live in multiple assemblies (main game, mods, framework, etc.),
-            // so scan every loaded runtime assembly instead of just this one.
             _defTypes = AppDomain.CurrentDomain
                                  .GetAssemblies()
                                  .Where(a => !a.IsDynamic)
@@ -59,6 +55,13 @@ namespace JG.GameContent
                                  .Where(IsValidContentDef)
                                  .Distinct()
                                  .ToArray();
+            _scanned = true;
+            Debug.Log($"[JsonContentImporter] Rescanned content types: found {_defTypes.Length} def types.");
+        }
+
+        private static void EnsureScanned()
+        {
+            if (!_scanned) RescanContentTypes();
         }
 
         private static IEnumerable<Type> GetTypesSafe(Assembly assembly)
@@ -85,6 +88,7 @@ namespace JG.GameContent
 
         public void Import(IModHandle h)
         {
+            EnsureScanned();
             var modId = Path.GetFileName(h.Path);
 
             if (LoggingLevel >= LoggingLevel.Info)

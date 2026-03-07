@@ -4,10 +4,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using JG.GameContent;
 using Newtonsoft.Json;
 using UnityEditor;
+using UnityEditor.Callbacks;
 using UnityEngine;
 
 namespace JG.GameContent.SchemaExport
@@ -292,6 +294,116 @@ namespace JG.GameContent.SchemaExport
             }
             return baseTypes.Count > 0 ? baseTypes : null;
         }
+
+        /* ---------- Auto-export on script reload -------------------- */
+
+        private const string HashPrefsKey = "ContentSchemaExporter_LastHash";
+
+        [DidReloadScripts]
+        private static void OnScriptsReloaded()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            var defs = DiscoverContentDefs();
+            if (defs.Count == 0)
+                return;
+
+            var currentHash = ComputeSchemaHash(defs);
+            var previousHash = EditorPrefs.GetString(HashPrefsKey, string.Empty);
+
+            if (string.Equals(currentHash, previousHash, StringComparison.Ordinal))
+                return;
+
+            try
+            {
+                ExportSilent();
+                EditorPrefs.SetString(HashPrefsKey, currentHash);
+                Debug.Log("[ContentSchemaExporter] Auto-exported schemas after script reload.");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[ContentSchemaExporter] Auto-export failed: {ex.Message}");
+            }
+        }
+
+        private static string ComputeSchemaHash(List<ContentDefInfo> defs)
+        {
+            using var sha = SHA256.Create();
+            var sb = new StringBuilder();
+            foreach (var def in defs)
+            {
+                sb.Append(def.Type.AssemblyQualifiedName);
+                sb.Append('|');
+                sb.Append(def.ContentFolder);
+                sb.Append(';');
+                // Include member signatures for change detection
+                foreach (var member in def.Type.GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+                {
+                    if (member is FieldInfo f && !f.IsStatic)
+                        sb.Append($"F:{f.Name}:{f.FieldType.FullName},");
+                    else if (member is PropertyInfo p && p.CanRead && p.CanWrite)
+                        sb.Append($"P:{p.Name}:{p.PropertyType.FullName},");
+                }
+                sb.Append('\n');
+            }
+
+            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()));
+            return BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
+        }
+
+        internal static void ExportSilent()
+        {
+            var defs = DiscoverContentDefs();
+            if (defs.Count == 0)
+                return;
+
+            var settings = ContentSchemaExporterSettings.LoadOrCreate();
+            var projectRoot = Path.GetDirectoryName(Application.dataPath) ?? Directory.GetCurrentDirectory();
+            var outputPath = settings.ResolveOutputPath(projectRoot, DefaultOutputRelativeSegments);
+            var outputDirectory = Path.GetDirectoryName(outputPath);
+            if (string.IsNullOrWhiteSpace(outputDirectory))
+                outputDirectory = Path.GetDirectoryName(Application.dataPath) ?? Directory.GetCurrentDirectory();
+
+            Directory.CreateDirectory(outputDirectory);
+            var schemaDirectory = Path.Combine(outputDirectory, "defs");
+            Directory.CreateDirectory(schemaDirectory);
+
+            var builder = new JsonContentSchemaBuilder();
+            var index = new SchemaIndex
+            {
+                exportedAtUtc = DateTime.UtcNow.ToString("o"),
+                schemaVersion = settings.GetSchemaVersion()
+            };
+
+            foreach (var def in defs)
+            {
+                var schema = builder.Build(def.Type, def.ContentFolder);
+                var relativeSchemaPath = BuildSchemaRelativePath(def);
+                var absoluteSchemaPath = Path.Combine(outputDirectory, relativeSchemaPath);
+                Directory.CreateDirectory(Path.GetDirectoryName(absoluteSchemaPath) ?? schemaDirectory);
+
+                File.WriteAllText(absoluteSchemaPath, schema.ToString(Formatting.Indented));
+
+                index.definitions.Add(new SchemaIndexEntry
+                {
+                    typeName = def.Type.FullName,
+                    assemblyQualifiedName = def.Type.AssemblyQualifiedName,
+                    contentFolder = def.ContentFolder,
+                    schemaFile = NormalizePathSeparators(relativeSchemaPath),
+                    displayName = ObjectNames.NicifyVariableName(def.Type.Name),
+                    baseTypes = CollectBaseContentTypes(def.Type)
+                });
+            }
+
+            var indexJson = JsonConvert.SerializeObject(index, Formatting.Indented);
+            File.WriteAllText(outputPath, indexJson);
+
+            var metadataDirectory = Path.Combine(outputDirectory, "metadata");
+            WriteMetadata(metadataDirectory, settings, index, projectRoot);
+        }
+
+        /* ---------- DTOs ------------------------------------------- */
 
         private sealed class ContentDefInfo
         {

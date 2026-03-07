@@ -65,6 +65,12 @@ namespace JG.GameContent
             jObj.WriteTo(writer);
         }
 
+        public static void ResetTypeMap()
+        {
+            _bootstrapped = false;
+            TypeMap.Clear();
+        }
+
         private static void EnsureBootstrapped()
         {
             if (_bootstrapped)
@@ -72,6 +78,8 @@ namespace JG.GameContent
 
             _bootstrapped = true;
             TypeMap.Clear();
+
+            DiscriminatorConverterRegistry.Register(ResetTypeMap);
 
             var baseType = typeof(TBase);
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())

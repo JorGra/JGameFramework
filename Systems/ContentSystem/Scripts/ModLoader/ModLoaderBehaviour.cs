@@ -30,7 +30,11 @@ namespace JG.Modding
             var manifest = new JsonManifestReader();
             var state = new JsonStateStore(Application.persistentDataPath, cfg.stateFile);
 
-            Loader = new ModLoader(cfg, source, manifest, state, importer.Value, loadInstantly: false);
+            Loader = new ModLoader(cfg, source, manifest, state, importer.Value,
+#if !UNITY_IOS
+                assemblyLoader: new ModAssemblyLoader(),
+#endif
+                loadInstantly: false);
             Loader.OnLoadError += e =>
             {
                 var severity = e.Kind == ErrorKind.CircularDependency

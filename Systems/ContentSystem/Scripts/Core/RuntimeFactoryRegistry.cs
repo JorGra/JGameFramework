@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using JG.GameContent;
 using UnityEngine;
 
 public interface IRuntimeFactory<in TDef> where TDef : IContentDef
 {
-    // set up internal caches, validate 'def'
     void Setup(TDef def);
-
-    // Gets an instance of the object described by 'def'.
     GameObject Build(TDef def, Transform parent = null);
 }
 
@@ -21,6 +20,44 @@ public static class RuntimeFactoryRegistry
 
     public static IRuntimeFactory<TDef> Get<TDef>() where TDef : IContentDef
         => (IRuntimeFactory<TDef>)_byDefType[typeof(TDef)];
+
+    public static void Clear() => _byDefType.Clear();
+
+    public static void SetupAllRegistered()
+    {
+        var catalogue = ContentCatalogue.Instance;
+        var getAllMethod = typeof(ContentCatalogue).GetMethod(nameof(ContentCatalogue.GetAll));
+
+        foreach (var kvp in _byDefType)
+        {
+            var defType = kvp.Key;
+            var factory = kvp.Value;
+
+            var genericGetAll = getAllMethod.MakeGenericMethod(defType);
+            var defs = (System.Collections.IEnumerable)genericGetAll.Invoke(catalogue, null);
+
+            var factoryInterface = typeof(IRuntimeFactory<>).MakeGenericType(defType);
+            var setupMethod = factoryInterface.GetMethod("Setup");
+
+            foreach (var def in defs)
+            {
+                var contentDef = (IContentDef)def;
+                Debug.Log($"Setting up {defType.Name} '{contentDef.Id}'");
+                try
+                {
+                    setupMethod.Invoke(factory, new[] { def });
+                }
+                catch (TargetInvocationException ex)
+                {
+                    Debug.LogError($"Failed to setup {defType.Name} '{contentDef.Id}': {ex.InnerException}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Failed to setup {defType.Name} '{contentDef.Id}': {ex}");
+                }
+            }
+        }
+    }
 }
 
 

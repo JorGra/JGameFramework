@@ -1,0 +1,18 @@
+{
+    "name": "JGameFramework.Curves.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f7306f98ff138db41a17545e44fdedbf"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,18 @@
+{
+    "name": "JGameFramework.Effector.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:641578178fd8e014b85248d8cada1054"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

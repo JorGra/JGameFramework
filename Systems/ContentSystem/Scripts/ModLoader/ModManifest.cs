@@ -22,6 +22,12 @@ namespace JG.Modding
         public string[] requires = Array.Empty<string>();
         public string[] loadBefore = Array.Empty<string>();
         public string[] loadAfter = Array.Empty<string>();
+
+        /// <summary>
+        /// Relative paths to DLL assemblies to load (e.g. "bin/MyMod.dll").
+        /// Only loaded on platforms that support runtime assembly loading.
+        /// </summary>
+        public string[] assemblies = Array.Empty<string>();
     }
 
     /// <summary>Pair of manifest + handle once discovery succeeds (read-only to callers).</summary>
