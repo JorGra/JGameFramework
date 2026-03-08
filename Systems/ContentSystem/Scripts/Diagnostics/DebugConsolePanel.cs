@@ -69,6 +69,9 @@ namespace JG.GameContent.Debugging
         // Loading log
         readonly List<string> _loadingEntries = new();
 
+        // Layout
+        LayoutElement _layoutElement;
+
         // Tabs
         int _activeTab;
 
@@ -78,6 +81,8 @@ namespace JG.GameContent.Debugging
         protected override void Awake()
         {
             base.Awake();
+            _layoutElement = GetComponent<LayoutElement>();
+            if (_layoutElement != null) _layoutElement.ignoreLayout = true;
             SetupButtons();
             SetupToggles();
             SetupTabs();
@@ -139,9 +144,16 @@ namespace JG.GameContent.Debugging
 
         public override void Open()
         {
+            if (_layoutElement != null) _layoutElement.ignoreLayout = false;
             base.Open();
             // Delay the refresh by one frame so Unity's UI (toggles, layout) has settled
             StartCoroutine(DelayedRefresh());
+        }
+
+        public override void Close()
+        {
+            base.Close();
+            if (_layoutElement != null) _layoutElement.ignoreLayout = true;
         }
 
         IEnumerator DelayedRefresh()

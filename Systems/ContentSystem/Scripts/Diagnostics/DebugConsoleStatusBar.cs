@@ -8,10 +8,12 @@ namespace JG.GameContent.Debugging
     {
         [SerializeField] ConsoleLogCapture logCapture;
         [SerializeField] DebugConsolePanel consolePanel;
+        [SerializeField] DebugCommandPanel commandPanel;
         [SerializeField] TMP_Text errorCountText;
         [SerializeField] TMP_Text warningCountText;
         [SerializeField] TMP_Text infoCountText;
         [SerializeField] Button barButton;
+        [SerializeField] Button commandPanelButton;
         [SerializeField] Image errorIcon;
         [SerializeField] Image warningIcon;
         [SerializeField] Image infoIcon;
@@ -19,6 +21,7 @@ namespace JG.GameContent.Debugging
         int _lastErrorCount;
         float _errorPulseTimer;
         int _lastClickFrame = -1;
+        int _lastCmdClickFrame = -1;
 
         static readonly Color ErrorPulse = new(1f, 0.3f, 0.3f, 1f);
         static readonly Color ErrorNormal = new(0.8f, 0.2f, 0.2f, 1f);
@@ -29,6 +32,8 @@ namespace JG.GameContent.Debugging
         {
             if (barButton != null)
                 barButton.onClick.AddListener(OnBarClicked);
+            if (commandPanelButton != null)
+                commandPanelButton.onClick.AddListener(OnCommandPanelClicked);
         }
 
         void Update()
@@ -79,6 +84,8 @@ namespace JG.GameContent.Debugging
             {
                 if (consolePanel != null && consolePanel.IsOpen)
                     consolePanel.Close();
+                if (commandPanel != null && commandPanel.IsOpen)
+                    commandPanel.Close();
                 IsOpen = false;
                 gameObject.SetActive(false);
             }
@@ -87,7 +94,6 @@ namespace JG.GameContent.Debugging
         void OnBarClicked()
         {
             if (consolePanel == null) return;
-            // Guard against duplicate EventSystem clicks (EventSystem + MultiplayerEventSystem)
             if (_lastClickFrame == Time.frameCount) return;
             _lastClickFrame = Time.frameCount;
 
@@ -95,6 +101,18 @@ namespace JG.GameContent.Debugging
                 consolePanel.Close();
             else
                 consolePanel.Open();
+        }
+
+        void OnCommandPanelClicked()
+        {
+            if (commandPanel == null) return;
+            if (_lastCmdClickFrame == Time.frameCount) return;
+            _lastCmdClickFrame = Time.frameCount;
+
+            if (commandPanel.IsOpen)
+                commandPanel.Close();
+            else
+                commandPanel.Open();
         }
     }
 }
