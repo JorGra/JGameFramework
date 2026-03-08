@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using JG.GameContent.Diagnostics;
 using JG.Modding;
@@ -12,6 +13,7 @@ namespace JG.GameContent.Debugging
     {
         [Header("References")]
         [SerializeField] ConsoleLogCapture logCapture;
+        [SerializeField] DebugConsoleStatusBar statusBar;
 
         [Header("Toolbar")]
         [SerializeField] Toggle errorToggle;
@@ -33,6 +35,9 @@ namespace JG.GameContent.Debugging
         [SerializeField] RectTransform logContent;
         [SerializeField] GameObject logEntryPrefab;
         [SerializeField] int maxVisibleEntries = 200;
+        [SerializeField] Sprite errorIcon;
+        [SerializeField] Sprite warningIcon;
+        [SerializeField] Sprite infoIcon;
 
         [Header("Diagnostics Tab")]
         [SerializeField] RectTransform diagnosticsTab;
@@ -60,7 +65,6 @@ namespace JG.GameContent.Debugging
         // Diagnostics
         DiagnosticReport _report;
         readonly List<TMP_Text> _diagEntryPool = new();
-        int _selectedDiag = -1;
 
         // Loading log
         readonly List<string> _loadingEntries = new();
@@ -80,6 +84,10 @@ namespace JG.GameContent.Debugging
 
             if (logScrollRect != null)
                 logScrollRect.onValueChanged.AddListener(OnScrollValueChanged);
+
+            // StatusBar starts hidden — F11 to show
+            if (statusBar != null)
+                statusBar.SetVisible(false);
         }
 
         void Update()
@@ -88,20 +96,21 @@ namespace JG.GameContent.Debugging
 
             UpdateBadgeCounts();
 
-            // Auto-open on error
-            if (autoOpenOnError && !IsOpen && !_hasAutoOpened)
+            // Auto-open on error: show the StatusBar so the user sees error counts
+            if (autoOpenOnError && !_hasAutoOpened && statusBar != null && !statusBar.gameObject.activeSelf)
             {
-                int ver = logCapture.Buffer.Version;
+                var buffer = logCapture.Buffer;
+                int ver = buffer.Version;
                 if (ver != _cachedVersion)
                 {
-                    int count = logCapture.Buffer.Count;
+                    int count = buffer.Count;
                     for (int i = Mathf.Max(0, count - 5); i < count; i++)
                     {
-                        var entry = logCapture.Buffer.Get(i);
+                        var entry = buffer.Get(i);
                         if (entry.Type == LogType.Error || entry.Type == LogType.Exception || entry.Type == LogType.Assert)
                         {
                             _hasAutoOpened = true;
-                            Open();
+                            statusBar.SetVisible(true);
                             break;
                         }
                     }
@@ -128,6 +137,19 @@ namespace JG.GameContent.Debugging
             _hasAutoOpened = false;
         }
 
+        public override void Open()
+        {
+            base.Open();
+            // Delay the refresh by one frame so Unity's UI (toggles, layout) has settled
+            StartCoroutine(DelayedRefresh());
+        }
+
+        IEnumerator DelayedRefresh()
+        {
+            yield return null;
+            InvalidateFilter();
+        }
+
         public void Toggle()
         {
             if (IsOpen) Close();
@@ -144,7 +166,12 @@ namespace JG.GameContent.Debugging
             var e = Event.current;
             if (e.type == EventType.KeyDown && e.keyCode == toggleKey)
             {
-                Toggle();
+                // F11 toggles the StatusBar (dev mode on/off)
+                if (statusBar != null)
+                {
+                    bool isVisible = statusBar.gameObject.activeSelf;
+                    statusBar.SetVisible(!isVisible);
+                }
                 e.Use();
             }
         }
@@ -170,20 +197,34 @@ namespace JG.GameContent.Debugging
             if (errorToggle != null)
             {
                 errorToggle.isOn = true;
-                errorToggle.onValueChanged.AddListener(_ => InvalidateFilter());
+                errorToggle.onValueChanged.AddListener(on => { InvalidateFilter(); UpdateToggleVisual(errorToggle, on); });
+                UpdateToggleVisual(errorToggle, true);
             }
             if (warningToggle != null)
             {
                 warningToggle.isOn = true;
-                warningToggle.onValueChanged.AddListener(_ => InvalidateFilter());
+                warningToggle.onValueChanged.AddListener(on => { InvalidateFilter(); UpdateToggleVisual(warningToggle, on); });
+                UpdateToggleVisual(warningToggle, true);
             }
             if (infoToggle != null)
             {
                 infoToggle.isOn = true;
-                infoToggle.onValueChanged.AddListener(_ => InvalidateFilter());
+                infoToggle.onValueChanged.AddListener(on => { InvalidateFilter(); UpdateToggleVisual(infoToggle, on); });
+                UpdateToggleVisual(infoToggle, true);
             }
             if (searchField != null)
                 searchField.onValueChanged.AddListener(_ => InvalidateFilter());
+        }
+
+        static void UpdateToggleVisual(Toggle toggle, bool isOn)
+        {
+            var img = toggle.GetComponent<Image>();
+            if (img != null)
+            {
+                var c = img.color;
+                c.a = isOn ? 0.4f : 0.08f;
+                img.color = c;
+            }
         }
 
         void SetupTabs()
@@ -240,30 +281,29 @@ namespace JG.GameContent.Debugging
             RebuildFilteredList();
 
             // Ensure pool is large enough
-            EnsurePoolSize(_filteredIndices.Count);
+            int needed = Mathf.Min(_filteredIndices.Count, maxVisibleEntries);
+            EnsurePoolSize(needed);
 
-            int visibleCount = Mathf.Min(_filteredIndices.Count, maxVisibleEntries);
+            int visibleCount = needed;
             int startIdx = Mathf.Max(0, _filteredIndices.Count - visibleCount);
 
             for (int i = 0; i < _logEntryPool.Count; i++)
             {
-                int poolIdx = i;
-                int dataIdx = startIdx + i;
-
-                if (poolIdx < visibleCount && dataIdx < _filteredIndices.Count)
+                if (i < visibleCount)
                 {
-                    var view = _logEntryPool[poolIdx];
+                    var view = _logEntryPool[i];
                     view.gameObject.SetActive(true);
 
+                    int dataIdx = startIdx + i;
                     int bufferIdx = _filteredIndices[dataIdx];
                     var entry = buffer.Get(bufferIdx);
-                    var bgColor = (poolIdx % 2 == 0) ? RowEven : RowOdd;
+                    var bgColor = (i % 2 == 0) ? RowEven : RowOdd;
                     view.Bind(entry, _expandedIndex == bufferIdx, bgColor);
-                    view.transform.SetSiblingIndex(poolIdx);
+                    view.transform.SetSiblingIndex(i);
                 }
                 else
                 {
-                    _logEntryPool[poolIdx].gameObject.SetActive(false);
+                    _logEntryPool[i].gameObject.SetActive(false);
                 }
             }
 
@@ -318,21 +358,25 @@ namespace JG.GameContent.Debugging
 
         void EnsurePoolSize(int needed)
         {
-            needed = Mathf.Min(needed, maxVisibleEntries);
             while (_logEntryPool.Count < needed)
             {
                 if (logEntryPrefab == null || logContent == null) break;
                 var go = Instantiate(logEntryPrefab, logContent);
                 var view = go.GetComponent<DebugConsoleLogEntryView>();
+                if (view == null)
+                {
+                    Destroy(go);
+                    break;
+                }
+                view.SetIcons(errorIcon, warningIcon, infoIcon);
                 int capturedIdx = _logEntryPool.Count;
-                view.SetExpandCallback(v => OnLogEntryClicked(v, capturedIdx));
+                view.SetExpandCallback(_ => OnLogEntryClicked(capturedIdx));
                 _logEntryPool.Add(view);
             }
         }
 
-        void OnLogEntryClicked(DebugConsoleLogEntryView view, int poolIndex)
+        void OnLogEntryClicked(int poolIndex)
         {
-            // Find the buffer index for this pool entry
             int visibleCount = Mathf.Min(_filteredIndices.Count, maxVisibleEntries);
             int startIdx = Mathf.Max(0, _filteredIndices.Count - visibleCount);
             int dataIdx = startIdx + poolIndex;
@@ -343,7 +387,8 @@ namespace JG.GameContent.Debugging
             if (_expandedIndex == bufferIdx)
             {
                 _expandedIndex = -1;
-                view.SetExpanded(false);
+                if (poolIndex < _logEntryPool.Count)
+                    _logEntryPool[poolIndex].SetExpanded(false);
             }
             else
             {
@@ -354,7 +399,6 @@ namespace JG.GameContent.Debugging
 
         void OnScrollValueChanged(Vector2 pos)
         {
-            // If user scrolls up, disable auto-scroll. Re-enable when at bottom.
             _autoScrollEnabled = pos.y <= 0.01f;
         }
 
@@ -369,12 +413,19 @@ namespace JG.GameContent.Debugging
 
         void RefreshDiagnosticsView()
         {
-            if (_report == null || diagnosticsContent == null) return;
+            if (diagnosticsContent == null) return;
 
             // Clear existing
             foreach (var t in _diagEntryPool)
                 if (t != null) Destroy(t.gameObject);
             _diagEntryPool.Clear();
+
+            if (_report == null)
+            {
+                AddDiagText("<i>No diagnostic report available yet. Load mods to generate diagnostics.</i>",
+                    new Color(0.6f, 0.6f, 0.6f));
+                return;
+            }
 
             var all = _report.All;
 
@@ -386,6 +437,12 @@ namespace JG.GameContent.Debugging
 
             AddDiagText($"<b>{_report.ErrorCount} error(s), {_report.WarningCount} warning(s) across {modSet.Count} mod(s)</b>",
                 Color.white);
+
+            if (all.Count == 0)
+            {
+                AddDiagText("<i>No diagnostics to display.</i>", new Color(0.6f, 0.6f, 0.6f));
+                return;
+            }
 
             string search = searchField != null ? searchField.text : "";
 

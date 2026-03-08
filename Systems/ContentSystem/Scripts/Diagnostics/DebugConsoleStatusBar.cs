@@ -29,9 +29,6 @@ namespace JG.GameContent.Debugging
         {
             if (barButton != null)
                 barButton.onClick.AddListener(OnBarClicked);
-
-            // Status bar starts visible
-            IsOpen = true;
         }
 
         void Update()
@@ -66,6 +63,25 @@ namespace JG.GameContent.Debugging
 
             if (warningIcon != null) warningIcon.color = WarningNormal;
             if (infoIcon != null) infoIcon.color = InfoNormal;
+        }
+
+        /// <summary>
+        /// Show or hide the status bar. When hiding, also closes the console panel.
+        /// </summary>
+        public void SetVisible(bool visible)
+        {
+            if (visible)
+            {
+                gameObject.SetActive(true);
+                IsOpen = true;
+            }
+            else
+            {
+                if (consolePanel != null && consolePanel.IsOpen)
+                    consolePanel.Close();
+                IsOpen = false;
+                gameObject.SetActive(false);
+            }
         }
 
         void OnBarClicked()

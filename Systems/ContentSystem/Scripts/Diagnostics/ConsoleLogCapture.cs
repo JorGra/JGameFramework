@@ -12,7 +12,6 @@ namespace JG.GameContent.Debugging
         void Awake()
         {
             Buffer = new ConsoleLogBuffer(bufferCapacity);
-            DontDestroyOnLoad(gameObject);
         }
 
         void OnEnable()

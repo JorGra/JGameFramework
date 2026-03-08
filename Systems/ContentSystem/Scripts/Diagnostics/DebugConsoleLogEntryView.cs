@@ -28,6 +28,17 @@ namespace JG.GameContent.Debugging
             SetExpanded(false);
         }
 
+        Sprite _errorSprite;
+        Sprite _warningSprite;
+        Sprite _infoSprite;
+
+        public void SetIcons(Sprite error, Sprite warning, Sprite info)
+        {
+            _errorSprite = error;
+            _warningSprite = warning;
+            _infoSprite = info;
+        }
+
         public void SetExpandCallback(System.Action<DebugConsoleLogEntryView> callback)
         {
             _onClickExpand = callback;
@@ -54,7 +65,10 @@ namespace JG.GameContent.Debugging
                 background.color = bgColor;
 
             if (severityIcon != null)
+            {
+                severityIcon.sprite = SpriteForType(entry.Type);
                 severityIcon.color = ColorForType(entry.Type);
+            }
 
             SetExpanded(isExpanded);
         }
@@ -70,6 +84,13 @@ namespace JG.GameContent.Debugging
         {
             _onClickExpand?.Invoke(this);
         }
+
+        Sprite SpriteForType(LogType type) => type switch
+        {
+            LogType.Error or LogType.Exception or LogType.Assert => _errorSprite,
+            LogType.Warning => _warningSprite,
+            _ => _infoSprite
+        };
 
         static Color ColorForType(LogType type) => type switch
         {
