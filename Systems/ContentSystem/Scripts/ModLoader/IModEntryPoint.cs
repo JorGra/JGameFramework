@@ -9,5 +9,11 @@ namespace JG.Modding
     {
         string ModId { get; }
         string ModPath { get; }
+
+        /// <summary>
+        /// Game-specific services registered by the host project before mod entry points run.
+        /// The framework itself never populates this — the host game does via <see cref="ModServiceRegistry"/>.
+        /// </summary>
+        IModServiceProvider Services { get; }
     }
 }

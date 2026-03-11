@@ -2,7 +2,13 @@
     "name": "JGameFramework.Effector.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:641578178fd8e014b85248d8cada1054"
+        "GUID:641578178fd8e014b85248d8cada1054",
+        "GUID:9bb2f1aeac1466243a0e183dc3e8768e",
+        "GUID:9c963110b187e13449d21727d2e54b9d",
+        "GUID:f7306f98ff138db41a17545e44fdedbf",
+        "GUID:20fe69549424e4040934b520aecc90dd",
+        "GUID:66fc151d16f2ff146997bd2cda3be4a3",
+        "GUID:58efea46974a20641a5d33e7a23f6390"
     ],
     "includePlatforms": [
         "Editor"

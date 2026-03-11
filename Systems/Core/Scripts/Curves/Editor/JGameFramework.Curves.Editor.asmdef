@@ -2,7 +2,8 @@
     "name": "JGameFramework.Curves.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:f7306f98ff138db41a17545e44fdedbf"
+        "GUID:f7306f98ff138db41a17545e44fdedbf",
+        "GUID:9bb2f1aeac1466243a0e183dc3e8768e"
     ],
     "includePlatforms": [
         "Editor"

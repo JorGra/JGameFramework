@@ -35,6 +35,19 @@ namespace JG.Modding
         public event Action<ModLoadError> OnLoadError;
         public event Action OnReloadFinished;
 
+        /// <summary>
+        /// Fired after content import but before mod entry points run.
+        /// The host game should subscribe to this to populate <see cref="ServiceRegistry"/>
+        /// with game-specific services (singletons, registries, etc.).
+        /// </summary>
+        public event Action OnBeforeEntryPoints;
+
+        /// <summary>
+        /// Service registry that the host game populates (typically via <see cref="OnBeforeEntryPoints"/>).
+        /// Passed to every <see cref="IModContext.Services"/> so mods can resolve game-specific services.
+        /// </summary>
+        public ModServiceRegistry ServiceRegistry { get; } = new();
+
         public DiagnosticReport Diagnostics { get; private set; }
         public event Action<DiagnosticReport> OnDiagnosticsReady;
         public event Action<string> OnLoadProgress;
@@ -120,6 +133,10 @@ namespace JG.Modding
             }
 
 #if !UNITY_IOS
+            // Let the host game populate the service registry before entry points run
+            ServiceRegistry.Clear();
+            OnBeforeEntryPoints?.Invoke();
+
             // Run mod entry points after content import so mods can query the catalogue
             RunModEntryPoints(ordered);
 #endif
@@ -268,7 +285,8 @@ namespace JG.Modding
                         var mod = _assemblyToMod.TryGetValue(asm, out var m) ? m : null;
                         var context = new ModContext(
                             mod?.Manifest.id ?? "unknown",
-                            mod?.Handle.Path ?? string.Empty
+                            mod?.Handle.Path ?? string.Empty,
+                            ServiceRegistry
                         );
                         entryPoint.Initialize(context);
                         UnityEngine.Debug.Log($"[ModLoader] Initialized entry point {type.FullName} for mod {context.ModId}");

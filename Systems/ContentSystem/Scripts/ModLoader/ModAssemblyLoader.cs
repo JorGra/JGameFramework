@@ -54,12 +54,24 @@ namespace JG.Modding
     {
         public string ModId { get; }
         public string ModPath { get; }
+        public IModServiceProvider Services { get; }
 
-        public ModContext(string modId, string modPath)
+        public ModContext(string modId, string modPath, IModServiceProvider services = null)
         {
             ModId = modId;
             ModPath = modPath;
+            Services = services ?? EmptyServiceProvider.Instance;
         }
+    }
+
+    /// <summary>Fallback provider that always throws — used when no services are registered.</summary>
+    internal sealed class EmptyServiceProvider : IModServiceProvider
+    {
+        public static readonly EmptyServiceProvider Instance = new();
+        public T Get<T>() where T : class
+            => throw new System.InvalidOperationException(
+                $"No service registered for type {typeof(T).Name}. No ModServiceRegistry was configured.");
+        public bool TryGet<T>(out T service) where T : class { service = null; return false; }
     }
 }
 #endif
