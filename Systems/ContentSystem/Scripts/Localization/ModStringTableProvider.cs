@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Localization;
-using UnityEngine.Localization.Settings;
 using UnityEngine.Localization.Tables;
 
 namespace JG.GameContent.Localization
@@ -52,11 +50,11 @@ namespace JG.GameContent.Localization
         /// </summary>
         public string GetEntry(string key)
         {
-            var locale = LocalizationSettings.SelectedLocale;
-            if (locale == null)
+            var localeCode = LocalizationExtensions.CurrentLocaleCode;
+            if (string.IsNullOrEmpty(localeCode))
                 return null;
 
-            var table = GetTable(locale.Identifier.Code);
+            var table = GetTable(localeCode);
             var entry = table?.GetEntry(key);
             return entry?.Value;
         }
