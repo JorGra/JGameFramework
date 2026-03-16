@@ -22,7 +22,8 @@ namespace JG.GameContent.SchemaExport
         {
             NullValueHandling = NullValueHandling.Ignore,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-            Formatting = Formatting.Indented
+            Formatting = Formatting.Indented,
+            Converters = { new UnityColorJsonConverter() }
         });
 
         private static readonly Lazy<IReadOnlyList<AssetResolverDescriptor>> ResolverDescriptorsLazy =
