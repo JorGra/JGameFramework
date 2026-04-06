@@ -23,8 +23,7 @@ namespace JG.GameContent.SchemaExport
             "ModCreator",
             "svelte",
             "public",
-            "schemas",
-            "schema-index.json"
+            "schemas"
         };
 
         [MenuItem(MenuPath, priority = 500)]

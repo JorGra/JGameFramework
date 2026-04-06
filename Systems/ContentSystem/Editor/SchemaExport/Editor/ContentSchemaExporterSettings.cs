@@ -9,7 +9,7 @@ namespace JG.GameContent.SchemaExport
 {
     internal sealed class ContentSchemaExporterSettings : ScriptableObject
     {
-        private const string AssetPath = "Assets/JGameFramework/Systems/ContentSystem/Editor/SchemaExport/Editor/ContentSchemaExporterSettings.asset";
+        private const string DefaultCreatePath = "Assets/Settings/ContentSchemaExporterSettings.asset";
 
         [SerializeField] private bool outputPathIsRelative = true;
         [SerializeField] private string outputPath = string.Join("/", ContentSchemaExporter.DefaultOutputRelativeSegments);
@@ -17,6 +17,7 @@ namespace JG.GameContent.SchemaExport
         [Header("Metadata")]
         [SerializeField][Min(1)] private int schemaVersion = 1;
         [SerializeField] private string gameName = string.Empty;
+        [SerializeField] private bool useProjectVersion = true;
         [SerializeField] private string gameVersion = string.Empty;
         [SerializeField] private string publisherName = string.Empty;
         [SerializeField][TextArea] private string gameDescription = string.Empty;
@@ -28,36 +29,28 @@ namespace JG.GameContent.SchemaExport
 
         internal static ContentSchemaExporterSettings LoadOrCreate()
         {
-            var settings = AssetDatabase.LoadAssetAtPath<ContentSchemaExporterSettings>(AssetPath);
-            if (settings != null)
+            var guids = AssetDatabase.FindAssets($"t:{nameof(ContentSchemaExporterSettings)}");
+            if (guids.Length > 0)
             {
-                if (!string.IsNullOrEmpty(settings.outputPath) && settings.outputPath.EndsWith("schema-index-snapshot.json"))
+                if (guids.Length > 1)
+                    Debug.LogWarning("[ContentSchemaExporterSettings] Multiple settings assets found. Using: "
+                                     + AssetDatabase.GUIDToAssetPath(guids[0]));
+
+                var settings = AssetDatabase.LoadAssetAtPath<ContentSchemaExporterSettings>(
+                    AssetDatabase.GUIDToAssetPath(guids[0]));
+                if (settings != null)
                 {
-                    settings.outputPath = string.Join("/", ContentSchemaExporter.DefaultOutputRelativeSegments);
-                    EditorUtility.SetDirty(settings);
-                    AssetDatabase.SaveAssets();
+                    settings.EnsureCollections();
+                    return settings;
                 }
-                settings.EnsureCollections();
-                return settings;
             }
 
-            settings = CreateInstance<ContentSchemaExporterSettings>();
-            settings.outputPathIsRelative = true;
-            settings.outputPath = string.Join("/", ContentSchemaExporter.DefaultOutputRelativeSegments);
-            settings.schemaVersion = 1;
-            settings.gameName = string.Empty;
-            settings.gameVersion = string.Empty;
-            settings.publisherName = string.Empty;
-            settings.gameDescription = string.Empty;
-            settings.websiteUrl = string.Empty;
-            settings.supportUrl = string.Empty;
-            settings.tags = new List<string>();
-            settings.additionalMetadata = new List<AdditionalMetadataEntry>();
-            Directory.CreateDirectory(Path.GetDirectoryName(AssetPath));
-            AssetDatabase.CreateAsset(settings, AssetPath);
+            var created = CreateInstance<ContentSchemaExporterSettings>();
+            Directory.CreateDirectory(Path.GetDirectoryName(DefaultCreatePath));
+            AssetDatabase.CreateAsset(created, DefaultCreatePath);
             AssetDatabase.SaveAssets();
-            Debug.Log("[ContentSchemaExporterSettings] Created settings asset at " + AssetPath);
-            return settings;
+            Debug.Log("[ContentSchemaExporterSettings] Created settings asset at " + DefaultCreatePath);
+            return created;
         }
 
         internal string ResolveOutputPath(string projectRoot, string[] defaultSegments)
@@ -68,10 +61,17 @@ namespace JG.GameContent.SchemaExport
 
             raw = NormalizeSeparators(raw);
 
-            if (outputPathIsRelative || !Path.IsPathRooted(raw))
-                return Path.Combine(projectRoot, raw);
+            // Migrate legacy paths that included the filename.
+            if (raw.EndsWith("schema-index.json", StringComparison.OrdinalIgnoreCase))
+                raw = raw.Substring(0, raw.Length - "/schema-index.json".Length);
 
-            return raw;
+            string folder;
+            if (outputPathIsRelative || !Path.IsPathRooted(raw))
+                folder = Path.Combine(projectRoot, raw);
+            else
+                folder = raw;
+
+            return Path.Combine(folder, "schema-index.json");
         }
 
         internal int GetSchemaVersion()
@@ -90,10 +90,13 @@ namespace JG.GameContent.SchemaExport
 
         internal string GetGameVersion()
         {
+            if (useProjectVersion)
+                return string.IsNullOrWhiteSpace(Application.version) ? "0.0.0" : Application.version.Trim();
+
             if (!string.IsNullOrWhiteSpace(gameVersion))
                 return gameVersion.Trim();
 
-            return string.IsNullOrWhiteSpace(Application.version) ? "0.0.0" : Application.version.Trim();
+            return "0.0.0";
         }
 
         internal string GetPublisherName()
