@@ -83,7 +83,7 @@ MonoBehaviour:
         mixerGroupType: 3
         loop: 0
         playOnAwake: 0
-        frequent: 1
+        frequent: 0
         mute: 0
         bypassEffects: 0
         bypassListenerEffects: 0

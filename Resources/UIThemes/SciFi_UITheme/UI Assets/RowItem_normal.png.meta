@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 2ba02425935e9ad4f9ef998dc66bd531
+guid: a17cc37cdfd7c47ec9ca819609a9144a
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5951131726985616000
-    second: PanelFull_0
+      213: -1303454585290633740
+    second: RowItem_normal(1)_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,40 +96,27 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: Android
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: PanelFull_0
+      name: RowItem_normal(1)_0
       rect:
         serializedVersion: 2
-        x: 124
-        y: 0
-        width: 252
-        height: 512
+        x: 0
+        y: 24
+        width: 256
+        height: 80
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
-      border: {x: 10, y: 0, z: 10, w: 0}
+      border: {x: 0, y: 5, z: 0, w: 5}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 08527798935596da0800000000000000
-      internalID: -5951131726985616000
+      spriteID: 4fdc5eee5f239ede0800000000000000
+      internalID: -1303454585290633740
       vertices: []
       indices: 
       edges: []
@@ -138,7 +125,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: e0bf82395f2ddf642bb6b39f3a2fb80f
+    spriteID: f463588a846d0d39c9bfeb836afedc7c
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      PanelFull_0: -5951131726985616000
+      RowItem_normal(1)_0: -1303454585290633740
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

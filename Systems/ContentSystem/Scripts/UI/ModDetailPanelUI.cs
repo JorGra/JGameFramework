@@ -22,6 +22,7 @@ namespace JG.Modding.UI
         [SerializeField] private TextMeshProUGUI textLoadAfter;
         [SerializeField] private TextMeshProUGUI textEnabled;
         [SerializeField] private TextMeshProUGUI textError;
+        [SerializeField] private TextMeshProUGUI textVersion;
 
         [SerializeField] Transform ContentRect;
 
@@ -37,24 +38,42 @@ namespace JG.Modding.UI
         {
             ContentRect.gameObject.SetActive(true);
 
-            textHeader.text = $"{mod.Manifest.name} <size=70%>v{mod.Manifest.version}</size>";
+            textHeader.text = $"{mod.Manifest.name}";
             textAuthor.text = string.IsNullOrEmpty(mod.Manifest.author)
-                                 ? "—"
+                                 ? ""
                                  : mod.Manifest.author;
             textDescription.text = mod.Manifest.description ?? string.Empty;
-            textRequires.text = mod.Manifest.requires.Length == 0
-                                 ? "—"
-                                 : string.Join(", ", mod.Manifest.requires);
-            textLoadBefore.text = mod.Manifest.loadBefore.Length == 0
-                                 ? "—"
-                                 : string.Join(", ", mod.Manifest.loadBefore);
-            textLoadAfter.text = mod.Manifest.loadAfter.Length == 0
-                                 ? "—"
-                                 : string.Join(", ", mod.Manifest.loadAfter);
-            textEnabled.text = enabled ? "Enabled" : "Disabled";
+            if (textRequires)
+            {
+                textRequires.text = mod.Manifest.requires.Length == 0
+                                     ? ""
+                                     : string.Join(", ", mod.Manifest.requires);
+            }
 
-            textError.gameObject.SetActive(!string.IsNullOrEmpty(errorMsg));
-            textError.text = errorMsg;
+            if (textVersion)
+            {
+                textVersion.text = mod.Manifest.version;
+            }
+            if (textLoadBefore)
+            {
+                textLoadBefore.text = mod.Manifest.loadBefore.Length == 0
+                                 ? ""
+                                 : string.Join(", ", mod.Manifest.loadBefore);
+            }
+            if (textLoadAfter)
+            {
+                textLoadAfter.text = mod.Manifest.loadAfter.Length == 0
+                                     ? ""
+                                     : string.Join(", ", mod.Manifest.loadAfter);
+            }
+            if(textEnabled)
+                textEnabled.text = enabled ? "Enabled" : "Disabled";
+
+            if (textError)
+            {
+                textError.gameObject.SetActive(!string.IsNullOrEmpty(errorMsg));
+                textError.text = errorMsg;
+            }
 
             // icon may not be available if the row failed to load it
             if (!string.IsNullOrEmpty(mod.Manifest.icon))

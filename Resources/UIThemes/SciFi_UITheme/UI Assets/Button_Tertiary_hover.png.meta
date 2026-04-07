@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 2ba02425935e9ad4f9ef998dc66bd531
+guid: 49c7a1d368cb48806a160ddd989ae6c5
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5951131726985616000
-    second: PanelFull_0
+      213: 5169862026387369657
+    second: Button_Tertiary_hover_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,40 +96,27 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: Android
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: PanelFull_0
+      name: Button_Tertiary_hover_0
       rect:
         serializedVersion: 2
-        x: 124
-        y: 0
-        width: 252
-        height: 512
+        x: 3
+        y: 3
+        width: 122
+        height: 122
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
-      border: {x: 10, y: 0, z: 10, w: 0}
+      border: {x: 12, y: 12, z: 12, w: 12}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 08527798935596da0800000000000000
-      internalID: -5951131726985616000
+      spriteID: 9bea9943f1a0fb740800000000000000
+      internalID: 5169862026387369657
       vertices: []
       indices: 
       edges: []
@@ -138,7 +125,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: e0bf82395f2ddf642bb6b39f3a2fb80f
+    spriteID: 687abb1bb48bd460fbbf9f4f4dae7dc9
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      PanelFull_0: -5951131726985616000
+      Button_Tertiary_hover_0: 5169862026387369657
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

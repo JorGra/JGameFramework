@@ -1,10 +1,11 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace UI.Theming.DebugTools
 {
     /// <summary>
-    /// Development helper that switches through a predefined list of <see cref="ThemeAsset"/>s
-    /// whenever a key is pressed. Uses <see cref="ThemeManager.SetTheme"/> to apply changes.
+    /// Development helper that switches through a predefined list of ThemeAssets
+    /// whenever a key is pressed. Uses ThemeManager.SetTheme to apply changes.
     /// </summary>
     public class ThemeCycler : MonoBehaviour
     {
@@ -14,18 +15,25 @@ namespace UI.Theming.DebugTools
 
         [Header("Input")]
         [Tooltip("Key that triggers the theme change.")]
-        [SerializeField] private KeyCode cycleKey = KeyCode.F2;
+        [SerializeField] private Key cycleKey = Key.F2;
 
         private int currentIndex = -1;
 
-        // ---------------------------------------------------------------------
-
         void Update()
         {
-            if (themes == null || themes.Length == 0) { return; }
-            if (!Input.GetKeyDown(cycleKey)) { return; }
+            if (themes == null || themes.Length == 0)
+                return;
 
-            // Advance index and loop.
+            var keyboard = Keyboard.current;
+            if (keyboard == null)
+                return;
+
+            if (cycleKey == Key.None)
+                return;
+
+            if (!keyboard[cycleKey].wasPressedThisFrame)
+                return;
+
             currentIndex = (currentIndex + 1) % themes.Length;
 
             ThemeAsset nextTheme = themes[currentIndex];
