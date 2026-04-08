@@ -54,9 +54,9 @@ MonoBehaviour:
   m_MinWidth: -1
   m_MinHeight: -1
   m_PreferredWidth: 500
-  m_PreferredHeight: 800
+  m_PreferredHeight: -1
   m_FlexibleWidth: -1
-  m_FlexibleHeight: -1
+  m_FlexibleHeight: 1
   m_LayoutPriority: 1
 --- !u!114 &8389243784870071557
 MonoBehaviour:
@@ -71,6 +71,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   animationDuration: 0.15
+  animationProfile: {fileID: 11400000, guid: dcddcad4b2aecdadda0481ac45ef5d08, type: 2}
   canvasGroup: {fileID: 5597695762417548492}
   SoundProfile: Default
   masterVolume: {fileID: 1338238347176535408}
@@ -230,6 +231,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: JGameFramework.UITheming::UI.Theming.ThemeableText
   styleKey: Body
   CustomFontSize: 1
+  CustomLetterSpacing: 0
 --- !u!114 &8524882517769373432
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -763,6 +765,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: JGameFramework.UITheming::UI.Theming.ThemeableText
   styleKey: Header
   CustomFontSize: 1
+  CustomLetterSpacing: 0
 --- !u!1 &4946185634430476753
 GameObject:
   m_ObjectHideFlags: 0
@@ -820,6 +823,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
@@ -1018,6 +1022,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: JGameFramework.UITheming::UI.Theming.ThemeableText
   styleKey: Body
   CustomFontSize: 1
+  CustomLetterSpacing: 0
 --- !u!114 &2545370911476221098
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1376,6 +1381,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: JGameFramework.UITheming::UI.Theming.ThemeableText
   styleKey: Header
   CustomFontSize: 1
+  CustomLetterSpacing: 0
 --- !u!1 &6953292451245534548
 GameObject:
   m_ObjectHideFlags: 0
@@ -1699,6 +1705,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: JGameFramework.UITheming::UI.Theming.ThemeableText
   styleKey: Body
   CustomFontSize: 1
+  CustomLetterSpacing: 0
 --- !u!114 &2618166527548999320
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1844,7 +1851,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 4000}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &795402019385769508
 CanvasRenderer:
@@ -1866,7 +1873,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7797a39d0c1222459b0b8c471fb3c49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: JGameFramework.UITheming::UI.Theming.ThemeableImage
-  styleKey: CardLarge
+  styleKey: PanelFull
 --- !u!114 &7873795518754023452
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1925,7 +1932,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -7616042140967691139, guid: d4e365d5e4f77a4408c8e360e9850f54, type: 3}
+  m_Sprite: {fileID: -5951131726985616000, guid: 2ba02425935e9ad4f9ef998dc66bd531, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1934,7 +1941,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 2
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &9095842050531044395
 GameObject:
   m_ObjectHideFlags: 0
@@ -2088,6 +2095,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: JGameFramework.UITheming::UI.Theming.ThemeableText
   styleKey: Body
   CustomFontSize: 1
+  CustomLetterSpacing: 0
 --- !u!114 &2537421571399228890
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2246,11 +2254,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4156954870552654482, guid: 77946f212e2c2c745be7954cb72fe3fb, type: 3}
       propertyPath: m_Size
-      value: 1
+      value: 0.99999994
       objectReference: {fileID: 0}
     - target: {fileID: 4156954870552654482, guid: 77946f212e2c2c745be7954cb72fe3fb, type: 3}
       propertyPath: m_Value
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4940597412140466857, guid: 77946f212e2c2c745be7954cb72fe3fb, type: 3}
       propertyPath: m_MovementType
