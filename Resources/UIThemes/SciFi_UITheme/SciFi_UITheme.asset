@@ -97,19 +97,19 @@ MonoBehaviour:
   - key: ButtonTertiary_normal
     sprite: {fileID: -1518930208592942370, guid: c408e72b90a733f9893e6b1c6883db8e, type: 3}
     imageType: 1
-    pixelPerUnit: 1
+    pixelPerUnit: 2
   - key: ButtonTertiary_highlighted
     sprite: {fileID: 5169862026387369657, guid: 49c7a1d368cb48806a160ddd989ae6c5, type: 3}
     imageType: 1
-    pixelPerUnit: 1
+    pixelPerUnit: 2
   - key: ButtonTertiary_pressed
     sprite: {fileID: 2094414361532154322, guid: d39b78ea6dd706aa1a3eebcd87986cdd, type: 3}
     imageType: 1
-    pixelPerUnit: 1
+    pixelPerUnit: 2
   - key: ButtonTertiary_disabled
     sprite: {fileID: -8389121918317693636, guid: 117b5d0cdd48d895da53c24b9b42a105, type: 3}
     imageType: 1
-    pixelPerUnit: 1
+    pixelPerUnit: 2
   - key: RowItem_normal
     sprite: {fileID: -1303454585290633740, guid: a17cc37cdfd7c47ec9ca819609a9144a, type: 3}
     imageType: 1
