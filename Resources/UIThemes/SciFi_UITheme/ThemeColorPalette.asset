@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: JGameFramework.UITheming::UI.Theming.ThemeColorPalette
   colors:
   - key: Primary
-    color: {r: 0.5613208, g: 0.9569923, b: 1, a: 1}
+    color: {r: 1, g: 1, b: 1, a: 1}
   - key: Secondary
     color: {r: 1, g: 1, b: 1, a: 1}
   - key: Surface
