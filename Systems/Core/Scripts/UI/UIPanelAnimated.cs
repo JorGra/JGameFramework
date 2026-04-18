@@ -120,7 +120,13 @@ public class UIPanelAnimated : UIPanel
 
     public override void Close()
     {
-        if (!IsOpen && !isAnimatingClose)
+        // If we're marked not-open, only short-circuit when the visual actually is closed.
+        // Otherwise our logical state and canvasGroup state are out of sync — which happens
+        // when the base UIPanel.OnDisable clobbers IsOpen=false after an ancestor is
+        // SetActive(false) (e.g., a tab switcher hiding this panel's content root) without
+        // touching our canvasGroup. In that case, run the close flow to resync.
+        bool visuallyOpen = canvasGroup != null && canvasGroup.gameObject.activeSelf;
+        if (!IsOpen && !isAnimatingClose && !visuallyOpen)
         {
             return;
         }
@@ -133,8 +139,16 @@ public class UIPanelAnimated : UIPanel
 
         if (!canvasGroup.gameObject.activeInHierarchy)
         {
+            // We can't animate while an ancestor is inactive (coroutines don't tick),
+            // but we must still leave the panel in a fully-closed state — both logical
+            // AND visual — otherwise re-activating the ancestor later reveals an
+            // orphaned "open-looking" panel that no future Close() will hide (because
+            // IsOpen is already false). Snap straight to the closed visual state.
+            ActiveAnimation.SnapClosed(this, canvasGroup, initialScale);
+            canvasGroup.gameObject.SetActive(false);
             isAnimatingClose = false;
             IsOpen = false;
+            OnPanelClosed?.Invoke();
             return;
         }
 
