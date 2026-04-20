@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -29,6 +30,10 @@ namespace JGameFramework.UI.Tooltips
         private bool _isFollowing;
         private bool _blocksRaycasts;
         private bool _isSticky;
+        private GameObject _previousSelection;
+        private bool _closedByPointer;
+        private bool _hijackedSelection;
+        private EventSystem _hijackedEventSystem;
 
         public TooltipPlayerContext PlayerContext => _request.PlayerContext;
         public object Tag { get; private set; }
@@ -69,6 +74,11 @@ namespace JGameFramework.UI.Tooltips
             _root.pivot = request.Pivot;
             _basePivot = _root.pivot;
 
+            _previousSelection = null;
+            _closedByPointer = false;
+            _hijackedSelection = false;
+            _hijackedEventSystem = null;
+
             SetupSorting(request.SortingOffset);
             BuildContent();
             UpdatePosition(true);
@@ -77,6 +87,7 @@ namespace JGameFramework.UI.Tooltips
 
         internal void Release()
         {
+            RestorePreviousSelection();
             ClearContent();
             ClearActions();
             _system = null;
@@ -91,6 +102,64 @@ namespace JGameFramework.UI.Tooltips
             _basePivot = Vector2.zero;
             _isVisible = false;
             ApplyCanvasGroupState(false);
+        }
+
+        private void RestorePreviousSelection()
+        {
+            // Only tooltips that took focus (context menus with action buttons) need
+            // to restore anything. Hover tooltips leave EventSystem selection alone.
+            if (!_hijackedSelection)
+            {
+                _previousSelection = null;
+                return;
+            }
+
+            var es = _hijackedEventSystem != null ? _hijackedEventSystem : ResolveEventSystem();
+            GameObject target = null;
+            if (!_closedByPointer && _previousSelection != null && _previousSelection.activeInHierarchy)
+            {
+                target = _previousSelection;
+            }
+            _previousSelection = null;
+            _hijackedSelection = false;
+            _hijackedEventSystem = null;
+
+            if (es == null) return;
+
+            // Defer through the system root so the selection change happens on a
+            // fresh frame, avoiding Unity's "already selecting an object" warning
+            // when Release runs from inside an OnDeselect callback.
+            if (_system != null)
+            {
+                _system.ScheduleSelect(es, target);
+            }
+            else
+            {
+                es.SetSelectedGameObject(target);
+            }
+        }
+
+        internal void NotifyActionClickedByPointer()
+        {
+            _closedByPointer = true;
+        }
+
+        // Prefer the EventSystem that is actively processing the current event
+        // (EventSystem.current during a click / submit handler). In multiplayer
+        // setups that instance is the player's MES — using any other EventSystem
+        // would target a different player's selection state and have no visible
+        // effect. Fall back to values baked into the tooltip request only if
+        // there is no active EventSystem.
+        private EventSystem ResolveEventSystem()
+        {
+            var current = EventSystem.current;
+#if ENABLE_INPUT_SYSTEM
+            if (current is UnityEngine.InputSystem.UI.MultiplayerEventSystem) return current;
+#endif
+            var ctx = _request.PlayerContext;
+            if (ctx.MultiplayerEventSystem != null) return ctx.MultiplayerEventSystem;
+            if (ctx.EventSystem != null) return ctx.EventSystem;
+            return current;
         }
 
         private void SetupSorting(int sortingOffset)
@@ -162,6 +231,23 @@ namespace JGameFramework.UI.Tooltips
                     _actionsLayout.enabled = true;
                     LayoutRebuilder.ForceRebuildLayoutImmediate(_actionsRoot ?? _contentRoot);
                 }
+
+                if (_spawnedActions.Count > 0)
+                {
+                    // Capture hijack state up-front so restore on close always has
+                    // a target, independent of whether the auto-select below
+                    // succeeds in time.
+                    var hijackEs = ResolveEventSystem();
+                    if (hijackEs != null)
+                    {
+                        _previousSelection = hijackEs.currentSelectedGameObject;
+                        _hijackedSelection = true;
+                        _hijackedEventSystem = hijackEs;
+                    }
+
+                    ConfigureActionButtonNavigation();
+                    SelectBottomActionButton();
+                }
             }
             else if (_actionsRoot != null)
             {
@@ -169,6 +255,63 @@ namespace JGameFramework.UI.Tooltips
             }
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(_root);
+        }
+
+        // Wires explicit vertical navigation between spawned action buttons so controller
+        // input cannot escape the tooltip while it is open. Buttons outside the list
+        // (e.g. the shop reroll button) remain unreachable until an action is chosen.
+        private void ConfigureActionButtonNavigation()
+        {
+            for (int i = 0; i < _spawnedActions.Count; i++)
+            {
+                var btn = _spawnedActions[i];
+                if (btn == null) continue;
+
+                var nav = btn.navigation;
+                nav.mode = Navigation.Mode.Explicit;
+                nav.selectOnUp = i > 0 ? _spawnedActions[i - 1] : null;
+                nav.selectOnDown = i < _spawnedActions.Count - 1 ? _spawnedActions[i + 1] : null;
+                nav.selectOnLeft = null;
+                nav.selectOnRight = null;
+                btn.navigation = nav;
+            }
+        }
+
+        // Focuses the bottommost spawned action button. Layout was rebuilt synchronously
+        // above so world positions are valid. Only runs when actions exist, so hover
+        // tooltips never touch EventSystem selection.
+        private void SelectBottomActionButton()
+        {
+            var eventSystem = _hijackedEventSystem != null ? _hijackedEventSystem : ResolveEventSystem();
+            if (eventSystem == null) return;
+
+            TooltipActionButtonView bottom = null;
+            float minY = float.MaxValue;
+            for (int i = 0; i < _spawnedActions.Count; i++)
+            {
+                var btn = _spawnedActions[i];
+                // Use the Button.interactable flag directly. Button.IsInteractable()
+                // also checks CanvasGroup which is not yet enabled at BuildContent
+                // time (SetVisibility runs after us), so it would filter everything.
+                if (btn == null || !btn.interactable) continue;
+                float y = btn.transform.position.y;
+                if (y < minY)
+                {
+                    minY = y;
+                    bottom = btn;
+                }
+            }
+
+            if (bottom == null) return;
+
+            if (_system != null)
+            {
+                _system.ScheduleSelectPersistent(eventSystem, bottom.gameObject, 10);
+            }
+            else
+            {
+                eventSystem.SetSelectedGameObject(bottom.gameObject);
+            }
         }
 
         public void ReplaceContent(IReadOnlyList<TooltipContentData> content, IReadOnlyList<TooltipActionData> actions)

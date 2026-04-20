@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.EventSystems;
 
 namespace JGameFramework.UI.Tooltips
 {
@@ -53,6 +55,45 @@ namespace JGameFramework.UI.Tooltips
         public RectTransform TooltipLayer => _tooltipLayer;
         public bool ClampToViewport => _clampToViewport;
         public TooltipActionButtonView ActionButtonPrefab => _actionButtonPrefab;
+
+        // Defers SetSelectedGameObject to the next frame so we don't stomp on the
+        // EventSystem mid-selection (Unity warns "Attempting to select ... while
+        // already selecting an object" when called from inside OnDeselect).
+        public void ScheduleSelect(EventSystem eventSystem, GameObject target)
+        {
+            if (eventSystem == null) return;
+            StartCoroutine(ApplySelectionNextFrame(eventSystem, target));
+        }
+
+        private IEnumerator ApplySelectionNextFrame(EventSystem eventSystem, GameObject target)
+        {
+            yield return null;
+            if (eventSystem == null) yield break;
+            eventSystem.SetSelectedGameObject(target);
+        }
+
+        // Keeps re-asserting a selection for up to maxFrames frames, stopping once
+        // the selection sticks. Use for opening context menus where the target
+        // button may not be ready to receive selection on the very next frame,
+        // or where another system (InputModule, focus guard) overrides selection
+        // right after we set it.
+        public void ScheduleSelectPersistent(EventSystem eventSystem, GameObject target, int maxFrames)
+        {
+            if (eventSystem == null || target == null) return;
+            StartCoroutine(ApplyPersistentSelection(eventSystem, target, maxFrames));
+        }
+
+        private IEnumerator ApplyPersistentSelection(EventSystem eventSystem, GameObject target, int maxFrames)
+        {
+            for (int i = 0; i < maxFrames; i++)
+            {
+                yield return null;
+                if (eventSystem == null || target == null) yield break;
+                if (eventSystem.currentSelectedGameObject == target) yield break;
+                if (!target.activeInHierarchy) continue;
+                eventSystem.SetSelectedGameObject(target);
+            }
+        }
 
         private void Awake()
         {

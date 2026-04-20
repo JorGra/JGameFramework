@@ -59,6 +59,12 @@ namespace JGameFramework.UI.Tooltips
                 return;
             }
 
+            var view = GetComponentInParent<TooltipView>();
+            if (view != null)
+            {
+                view.NotifyActionClickedByPointer();
+            }
+
             base.OnPointerClick(eventData);
         }
 
