@@ -27,7 +27,7 @@ public class Stats
         }
         else
         {
-            Debug.LogError("Stats ctor: StatRegistry missing—cannot load default stats.");
+            Debug.LogError("Stats ctor: StatRegistry missingï¿½cannot load default stats.");
         }
     }
 
@@ -65,6 +65,15 @@ public class Stats
         var query = new Query(statKey, baseValue);
         Mediator.PerfromQuery(this, ref query);
         return query.Value;
+    }
+
+    /// <summary>Returns the pre-modifier base value for a stat (profile or registry default).</summary>
+    public float GetBase(string statKey)
+    {
+        if (string.IsNullOrWhiteSpace(statKey)) return 0f;
+        if (baseStats.TryGetValue(statKey, out var v)) return v;
+        var def = StatRegistryProvider.Instance?.Registry?.Get(statKey);
+        return def?.DefaultValue ?? 0f;
     }
 
     public void SetBase(string statKey, float value)
