@@ -70,11 +70,14 @@ namespace JG.Tools.SceneManagement
                 yield break;
             }
 
+            // Reset timeScale so a scene transition never inherits a paused state from the previous scene.
+            Time.timeScale = 1f;
+
             /* ── Fade-in (opaque → clear) before unloading ───────── */
             if (fadeIn)
             {
                 RequestFade(fadeIn: true);
-                yield return new WaitForSeconds(fadeDuration);
+                yield return new WaitForSecondsRealtime(fadeDuration);
             }
 
             /* ── Loading workflow ───────────────────────────────── */
@@ -93,7 +96,7 @@ namespace JG.Tools.SceneManagement
             yield return sceneGroupManagement.LoadScenesCoroutine(sceneGroups[index], progress);
 
             // Maintain loading screen for a minimum time
-            yield return new WaitForSeconds(minLoadingScreenTime);
+            yield return new WaitForSecondsRealtime(minLoadingScreenTime);
 
             EnableLoadingBar(false);
 
@@ -122,7 +125,7 @@ namespace JG.Tools.SceneManagement
             if (fadeIn)
             {
                 RequestFade(fadeIn: true);
-                yield return new WaitForSeconds(fadeDuration);
+                yield return new WaitForSecondsRealtime(fadeDuration);
             }
 
             /* ── Loading workflow ───────────────────────────────── */
@@ -136,7 +139,7 @@ namespace JG.Tools.SceneManagement
             yield return sceneGroupManagement.ReloadScenesCoroutine(group, sceneType, progress);
 
             // Maintain loading screen for a minimum time
-            yield return new WaitForSeconds(minLoadingScreenTime);
+            yield return new WaitForSecondsRealtime(minLoadingScreenTime);
 
             EnableLoadingBar(false);
 

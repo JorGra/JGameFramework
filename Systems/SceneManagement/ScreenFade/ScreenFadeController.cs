@@ -83,7 +83,7 @@ public class ScreenFadeController : MonoBehaviour
         float elapsed = 0f;
         while (elapsed < duration)
         {
-            elapsed += Time.deltaTime;
+            elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
             SetFadeAmount(Mathf.Lerp(startValue, endValue, t));
             yield return null;
