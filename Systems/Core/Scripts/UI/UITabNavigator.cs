@@ -196,6 +196,7 @@ namespace UI.Tabs
 
         private void TryFocusCurrentTab()
         {
+            if (this == null) return;
             if (!isActiveAndEnabled || tabs == null || tabs.Length == 0) return;
 
             EnsureMultiplayerEventSystem();
@@ -315,12 +316,14 @@ namespace UI.Tabs
 
         private void OnNextPerformed(InputAction.CallbackContext ctx)
         {
+            if (this == null) return;
             if (!ctx.performed) return;
             NextTab();
         }
 
         private void OnPrevPerformed(InputAction.CallbackContext ctx)
         {
+            if (this == null) return;
             if (!ctx.performed) return;
             PrevTab();
         }
