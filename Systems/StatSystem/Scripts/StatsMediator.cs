@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using JG.Scaling;
 
 public class StatsMediator
 {
@@ -28,7 +29,7 @@ public class StatsMediator
             modifierCache[statKey] = cached;
         }
 
-        query.Value = order.Apply(cached, query.Value);
+        query.Value = order.Apply(cached, in query);
     }
 
     private void InvalidateCache(string statKey)
@@ -77,10 +78,19 @@ public struct Query
 {
     public readonly string StatKey;
     public float Value;
+    public IStatProvider Provider;
 
     public Query(string statKey, float value)
     {
         StatKey = statKey;
         Value = value;
+        Provider = null;
+    }
+
+    public Query(string statKey, float value, IStatProvider provider)
+    {
+        StatKey = statKey;
+        Value = value;
+        Provider = provider;
     }
 }

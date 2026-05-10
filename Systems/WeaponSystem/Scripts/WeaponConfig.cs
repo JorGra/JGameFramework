@@ -15,7 +15,6 @@ public partial class WeaponConfig : ScriptableObject
     public GameObject weaponPrefab;
     public WeaponFireMode weaponFireMode;
     public IAttackCommand attackCommand;
-    public StatModifierConfig[] StatsModifiers;
     public WeaponData[] weaponData;
     public InterfaceReference<IWeaponUseageHandler> weaponUseageHandler; //Handle weapon usage, like cooldowns, ammo, etc.
     private Dictionary<System.Type, WeaponData> cachedWeaponData = new();

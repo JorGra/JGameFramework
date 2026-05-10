@@ -16,10 +16,6 @@ public class StatRegistryProvider : Singleton<StatRegistryProvider>
 {
     [SerializeField] private StatRegistry registry;
 
-    [Header("Merge Behavior")]
-    [SerializeField, Tooltip("If true, runtime content (StatDef) overrides baked SOs on duplicate keys.")]
-    private bool runtimeOverridesBaked = true;
-
     public StatRegistry Registry => registry;
 
     protected override void Awake()
@@ -44,7 +40,7 @@ public class StatRegistryProvider : Singleton<StatRegistryProvider>
     {
         IEnumerable<IStatDefinition> runtime = TryGetRuntimeStatsFromContent();
 
-        registry.RebuildIndex(runtime, runtimeOverridesBaked);
+        registry.RebuildIndex(runtime);
         Debug.Log($"[StatRegistryProvider] Stat registry built. Count = {registry.Count}");
     }
 

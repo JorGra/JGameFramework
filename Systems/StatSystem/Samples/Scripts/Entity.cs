@@ -1,47 +1,35 @@
 using UnityEngine;
-using UnityServiceLocator;
 
 namespace JG.Samples
 {
     public class Entity : MonoBehaviour
     {
-        /// <summary>
-        /// The runtime Stats container (no profile needed).
-        /// </summary>
+        /// <summary>Runtime Stats container. Defaults pulled from the content registry.</summary>
         public Stats Stats { get; private set; }
-
-        private IStatModifierFactory modifierFactory;
 
         void Awake()
         {
-            // Construct Stats: pulls all defaults from your master JSON.
             Stats = new Stats();
-
-            // Create the factory (or resolve via your DI/ServiceLocator)
-            modifierFactory = ServiceLocator.For(this).Get<IStatModifierFactory>();
         }
 
         void Start()
         {
-            // 1) Lookup your stat definition by key
-            var powerDef = StatRegistryProvider.Instance.Registry.Get("power");
-            // 2) Direct modifier: +10 for 5 seconds
+            // Direct modifier: +10 power for 5 seconds.
             var directMod = new StatModifier("power", new AddOperation(10f), 5f);
             Stats.Mediator.AddModifier(directMod);
             Debug.Log($"Power after direct modifier: {Stats.GetStat("power")}");
 
-            // 3) Factory modifier: +20 permanently
-            var factoryMod = modifierFactory.Create(powerDef, OperatorType.Add, 20f, 0f);
-            Stats.Mediator.AddModifier(factoryMod);
-            Debug.Log($"Power after factory modifier: {Stats.GetStat("power")}");
+            // Permanent modifier: +20 power.
+            var permMod = new StatModifier("power", new AddOperation(20f), 0f);
+            Stats.Mediator.AddModifier(permMod);
+            Debug.Log($"Power after permanent modifier: {Stats.GetStat("power")}");
 
-            // 4) Remove the direct modifier
+            // Remove the temporary one.
             Stats.Mediator.RemoveModifier(directMod);
         }
 
         void Update()
         {
-            // Ticks modifier durations and cleans up expired ones
             Stats.Mediator.Update(Time.deltaTime);
         }
     }

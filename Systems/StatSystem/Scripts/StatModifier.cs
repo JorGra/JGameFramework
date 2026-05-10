@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using JG.Scaling;
 
 public class StatModifier : IDisposable
 {
@@ -27,11 +28,17 @@ public class StatModifier : IDisposable
 
     public void Update(float deltaTime) => timer?.Tick(deltaTime);
 
+    /// <summary>
+    /// Resolves the operation strategy used for the current query. Override to
+    /// produce a strategy whose value depends on the live stat provider.
+    /// </summary>
+    public virtual IOperationStrategy ResolveStrategy(IStatProvider provider) => Strategy;
+
     public void Handle(object sender, ref Query query)
     {
         if (string.Equals(query.StatKey, StatKey, StringComparison.OrdinalIgnoreCase))
         {
-            query.Value = Strategy.Calculate(query.Value);
+            query.Value = ResolveStrategy(query.Provider).Calculate(query.Value);
         }
     }
 

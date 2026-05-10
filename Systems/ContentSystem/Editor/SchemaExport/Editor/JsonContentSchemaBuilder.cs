@@ -384,6 +384,9 @@ namespace JG.GameContent.SchemaExport
             if (type.IsArray)
                 return BuildArraySchema(type, type.GetElementType(), value);
 
+            if (type == typeof(JG.Scaling.ScaledValue))
+                return BuildScaledValueSchema(value);
+
             if (type.IsInterface || type.IsAbstract)
             {
                 var polymorphic = BuildPolymorphicSchema(type, value);
@@ -615,6 +618,66 @@ namespace JG.GameContent.SchemaExport
             return schema;
         }
 
+        private JObject BuildScaledValueSchema(object value)
+        {
+            // Reuse the ScalingTerm reference schema so the array picks up
+            // its IdReference + enum metadata for free.
+            var termSchema = BuildSchemaForType(typeof(JG.Scaling.ScalingTerm), null) ?? new JObject { ["type"] = "object" };
+
+            var objectAlt = new JObject
+            {
+                ["type"] = "object",
+                ["properties"] = new JObject
+                {
+                    ["base"] = new JObject { ["type"] = "number" },
+                    ["scaling"] = new JObject
+                    {
+                        ["type"] = "array",
+                        ["items"] = termSchema,
+                        ["x-unity-collection"] = "array"
+                    }
+                },
+                ["required"] = new JArray("base"),
+                ["additionalProperties"] = false
+            };
+
+            var schema = new JObject
+            {
+                ["x-scaled-value"] = true,
+                ["oneOf"] = new JArray(
+                    new JObject { ["type"] = "number" },
+                    objectAlt)
+            };
+
+            if (value is JG.Scaling.ScaledValue sv)
+            {
+                if (!sv.HasScaling)
+                {
+                    schema["default"] = sv.Base;
+                }
+                else
+                {
+                    var terms = new JArray();
+                    foreach (var t in sv.Scaling)
+                    {
+                        terms.Add(new JObject
+                        {
+                            ["stat"] = t.Stat,
+                            ["mode"] = t.Mode.ToString(),
+                            ["factor"] = t.Factor
+                        });
+                    }
+                    schema["default"] = new JObject
+                    {
+                        ["base"] = sv.Base,
+                        ["scaling"] = terms
+                    };
+                }
+            }
+
+            return schema;
+        }
+
         private JObject BuildArraySchema(Type collectionType, Type elementType, object value)
         {
             var itemsSchema = BuildSchemaForType(elementType ?? typeof(object), null) ?? new JObject();
@@ -831,6 +894,17 @@ namespace JG.GameContent.SchemaExport
 
             if (member.GetCustomAttribute<TranslatableAttribute>() != null)
                 schema["x-translatable"] = true;
+
+            if (member.GetCustomAttribute<JG.Scaling.ScalingValueAttribute>() is JG.Scaling.ScalingValueAttribute sv)
+            {
+                schema["x-scaling-value"] = new JObject
+                {
+                    ["previewLabel"] = sv.PreviewLabel ?? string.Empty
+                };
+            }
+
+            if (member.GetCustomAttribute<JG.GameContent.Tooltips.TooltipTokensAttribute>() != null)
+                schema["x-supports-tooltip-tokens"] = true;
 
             if (assetBindingsByKey.TryGetValue(member.Name, out var keyBindings))
             {

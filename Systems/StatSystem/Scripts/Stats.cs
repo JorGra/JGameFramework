@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
+using JG.Scaling;
 using UnityEngine;
 
 /// <summary>
 /// Holds current stats + modifiers for an entity, using defaults from StatRegistry.
 /// </summary>
-public class Stats
+public class Stats : IStatProvider
 {
     public StatsMediator Mediator { get; private set; }
     private readonly Dictionary<string, float> baseStats;
@@ -45,6 +46,8 @@ public class Stats
         }
     }
 
+    [ThreadStatic] private static HashSet<string> _evaluating;
+
     /// <summary>Resolve final stat value by key (base + modifiers).</summary>
     public float GetStat(string statKey)
     {
@@ -54,17 +57,29 @@ public class Stats
             return 0f;
         }
 
-        float baseValue;
-        if (!baseStats.TryGetValue(statKey, out baseValue))
+        float baseValue = GetBase(statKey);
+
+        // Cycle guard: if we re-enter for the same stat (e.g. ScaledValue.Evaluate
+        // pulls a stat that itself scales on this stat), short-circuit to the raw
+        // base value instead of recursing.
+        _evaluating ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (_evaluating.Contains(statKey))
         {
-            // Fallback to content default if not present in base map
-            var def = StatRegistryProvider.Instance?.Registry?.Get(statKey);
-            baseValue = def?.DefaultValue ?? 0f;
+            Debug.LogWarning($"Scaling cycle detected on '{statKey}'; returning base value {baseValue}.");
+            return baseValue;
         }
 
-        var query = new Query(statKey, baseValue);
-        Mediator.PerfromQuery(this, ref query);
-        return query.Value;
+        _evaluating.Add(statKey);
+        try
+        {
+            var query = new Query(statKey, baseValue, this);
+            Mediator.PerfromQuery(this, ref query);
+            return query.Value;
+        }
+        finally
+        {
+            _evaluating.Remove(statKey);
+        }
     }
 
     /// <summary>Returns the pre-modifier base value for a stat (profile or registry default).</summary>
