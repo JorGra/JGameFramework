@@ -35,6 +35,8 @@ namespace JGameFramework.Scripts.Modding.Content.AssetResolvers.Resolvers
 
         public UnityEngine.Object LoadFromFile(string absolutePath, Type targetType)
         {
+            using var _ = JG.GameContent.Diagnostics.LoadProfiler.Measure(JG.GameContent.Diagnostics.LoadProfiler.AudioDecode);
+
             if (string.IsNullOrWhiteSpace(absolutePath))
                 throw new ArgumentNullException(nameof(absolutePath));
 
@@ -51,9 +53,11 @@ namespace JGameFramework.Scripts.Modding.Content.AssetResolvers.Resolvers
             downloadHandler.streamAudio = false;
 
             var asyncOp = request.SendWebRequest();
+            // SpinWait instead of Sleep(1): OS sleep granularity (1-15ms) added latency
+            // per clip while the download/decode runs on Unity's worker threads.
             while (!asyncOp.isDone)
             {
-                Thread.Sleep(1);
+                Thread.SpinWait(64);
             }
 
 #if UNITY_2020_1_OR_NEWER

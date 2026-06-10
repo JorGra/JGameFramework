@@ -14,6 +14,14 @@ internal static class AssetResolver
     private const string RESOURCES_PREFIX = "Resources:";
     private static readonly ReferenceEqualityComparer ReferenceComparer = new();
 
+    // Dedups repeated file references within one load run. Cleared by ModLoader.Reload().
+    private static readonly Dictionary<(string path, Type type), UnityEngine.Object> _assetCache = new();
+
+    // Per-type reflection plan; Type identity is stable for the session (assemblies never unload).
+    private static readonly Dictionary<Type, TypePlan> _typePlans = new();
+
+    public static void ClearCache() => _assetCache.Clear();
+
     public static void InjectAssets(IContentDef def, string modRoot, string modId, IDiagnosticSink sink = null)
     {
         if (def == null) throw new ArgumentNullException(nameof(def));
@@ -41,29 +49,16 @@ internal static class AssetResolver
         if (!visited.Add(target))
             return;
 
-        var members = targetType.GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        foreach (var mem in members)
+        var plan = GetPlan(targetType);
+
+        foreach (var (mem, memberType, attrPath) in plan.PathAssets)
+            ResolveFromPathAttribute(target, targetType, mem, memberType, attrPath, modRoot, modId, sourceFile, sink);
+
+        foreach (var (mem, memberType, directoryAttr) in plan.DirectoryAssets)
+            ResolveFromDirectoryAttribute(target, targetType, mem, memberType, directoryAttr, modRoot, modId, sourceFile, sink);
+
+        foreach (var (mem, memberType) in plan.Children)
         {
-            if (mem is not FieldInfo && mem is not PropertyInfo)
-                continue;
-
-            var memberType = GetMemberType(mem);
-            if (memberType == null)
-                continue;
-
-            if (typeof(UnityEngine.Object).IsAssignableFrom(memberType) &&
-                mem.GetCustomAttribute<AssetFromPathAttribute>() is AssetFromPathAttribute attrPath)
-            {
-                ResolveFromPathAttribute(target, targetType, mem, memberType, attrPath, modRoot, modId, sourceFile, sink);
-                continue;
-            }
-
-            if (mem.GetCustomAttribute<AssetsFromDirectoryAttribute>() is AssetsFromDirectoryAttribute directoryAttr)
-            {
-                ResolveFromDirectoryAttribute(target, targetType, mem, memberType, directoryAttr, modRoot, modId, sourceFile, sink);
-                continue;
-            }
-
             var memberValue = GetMemberValue(target, mem);
             if (memberValue == null)
                 continue;
@@ -98,6 +93,65 @@ internal static class AssetResolver
                 ProcessObject(memberValue, memberType, childSource, modRoot, modId, visited, sink);
             }
         }
+    }
+
+    private sealed class TypePlan
+    {
+        public readonly List<(MemberInfo mem, Type type, AssetFromPathAttribute attr)> PathAssets = new();
+        public readonly List<(MemberInfo mem, Type type, AssetsFromDirectoryAttribute attr)> DirectoryAssets = new();
+        public readonly List<(MemberInfo mem, Type type)> Children = new();
+    }
+
+    private static TypePlan GetPlan(Type type)
+    {
+        if (_typePlans.TryGetValue(type, out var plan))
+            return plan;
+
+        plan = new TypePlan();
+
+        foreach (var mem in type.GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+        {
+            if (mem is not FieldInfo && mem is not PropertyInfo)
+                continue;
+
+            var memberType = GetMemberType(mem);
+            if (memberType == null)
+                continue;
+
+            if (typeof(UnityEngine.Object).IsAssignableFrom(memberType) &&
+                mem.GetCustomAttribute<AssetFromPathAttribute>() is AssetFromPathAttribute attrPath)
+            {
+                plan.PathAssets.Add((mem, memberType, attrPath));
+                continue;
+            }
+
+            if (mem.GetCustomAttribute<AssetsFromDirectoryAttribute>() is AssetsFromDirectoryAttribute directoryAttr)
+            {
+                plan.DirectoryAssets.Add((mem, memberType, directoryAttr));
+                continue;
+            }
+
+            // Primitive/enum/string members can never hold or lead to assets.
+            if (memberType.IsPrimitive || memberType.IsEnum || memberType == typeof(string))
+                continue;
+
+            plan.Children.Add((mem, memberType));
+        }
+
+        _typePlans[type] = plan;
+        return plan;
+    }
+
+    private static UnityEngine.Object LoadFromFileCached(JG.GameContent.AssetResolving.IPathAssetResolver resolver, string absolutePath, Type targetType)
+    {
+        var key = (absolutePath, targetType);
+        if (_assetCache.TryGetValue(key, out var cached) && cached)
+            return cached;
+
+        var asset = resolver.LoadFromFile(absolutePath, targetType);
+        if (asset)
+            _assetCache[key] = asset;
+        return asset;
     }
 
     private static bool ShouldRecurseInto(Type type)
@@ -323,7 +377,7 @@ internal static class AssetResolver
                 return;
             }
 
-            TryLoadWithPlugin(() => plug.LoadFromFile(abs, memberType), target, mem, memberType, modId, abs, attr.Optional, sink, sourceFile, fieldPath);
+            TryLoadWithPlugin(() => LoadFromFileCached(plug, abs, memberType), target, mem, memberType, modId, abs, attr.Optional, sink, sourceFile, fieldPath);
         }
     }
 
@@ -503,7 +557,7 @@ internal static class AssetResolver
 
             try
             {
-                var asset = resolver.LoadFromFile(file, elementType);
+                var asset = LoadFromFileCached(resolver, file, elementType);
                 asset = EnsureAssetMatchesType(asset, elementType);
                 if (!asset)
                 {

@@ -40,10 +40,11 @@ public static class RuntimeFactoryRegistry
             var factoryInterface = typeof(IRuntimeFactory<>).MakeGenericType(defType);
             var setupMethod = factoryInterface.GetMethod("Setup");
 
+            int setupCount = 0;
             foreach (var def in defs)
             {
                 var contentDef = (IContentDef)def;
-                Debug.Log($"Setting up {defType.Name} '{contentDef.Id}'");
+                setupCount++;
                 try
                 {
                     setupMethod.Invoke(factory, new[] { def });
@@ -72,6 +73,8 @@ public static class RuntimeFactoryRegistry
                     });
                 }
             }
+
+            Debug.Log($"[RuntimeFactoryRegistry] Set up {setupCount} {defType.Name} definition(s)");
         }
     }
 }

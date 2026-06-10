@@ -112,6 +112,7 @@ namespace JG.GameContent
             EnsureScanned();
             var modId = Path.GetFileName(h.Path);
             var sink = DiagnosticSink;
+            _registeredCounts.Clear();
 
             if (LoggingLevel >= LoggingLevel.Info)
                 Debug.Log($"[{modId}] Importing content definitions from {h.Path}");
@@ -128,24 +129,38 @@ namespace JG.GameContent
 
                 OnProgress?.Invoke($"[{modId}] Importing {defType.Name} definitions...");
 
+                var jsonFiles = Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly);
+
                 // Pass 1: regular definition files
-                foreach (var fp in Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly))
+                foreach (var fp in jsonFiles)
                 {
                     if (!IsPatchFile(fp))
                         TryImportFile(fp, h, defType, sink);
                 }
 
                 // Pass 2: patch files
-                foreach (var fp in Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly))
+                using (LoadProfiler.Measure(LoadProfiler.Patches))
                 {
-                    if (IsPatchFile(fp))
-                        ApplyPatchFile(fp, h, modId, sink);
+                    foreach (var fp in jsonFiles)
+                    {
+                        if (IsPatchFile(fp))
+                            ApplyPatchFile(fp, h, modId, sink);
+                    }
                 }
             }
 
+            if (LoggingLevel >= LoggingLevel.Info)
+            {
+                foreach (var kv in _registeredCounts)
+                    Debug.Log($"[{modId}] ✔ Registered {kv.Value} {kv.Key} definition(s)");
+            }
+
             // Load sidecar translation files from Translations/*.json
-            ModTranslationLoader.Instance.LoadFromMod(h.Path);
+            using (LoadProfiler.Measure(LoadProfiler.Translations))
+                ModTranslationLoader.Instance.LoadFromMod(h.Path);
         }
+
+        static readonly Dictionary<string, int> _registeredCounts = new();
 
         public static bool IsPatchFile(string path)
         {
@@ -168,7 +183,9 @@ namespace JG.GameContent
 
                 using var sr = new StreamReader(filePath);
                 using var jr = new JsonTextReader(sr) { CloseInput = false };
-                var token = JToken.ReadFrom(jr);
+                JToken token;
+                using (LoadProfiler.Measure(LoadProfiler.JsonRead))
+                    token = JToken.ReadFrom(jr);
 
                 if (token.Type == JTokenType.Array)
                 {
@@ -246,7 +263,8 @@ namespace JG.GameContent
             IContentDef def;
             try
             {
-                def = (IContentDef)token.ToObject(defType, _json);
+                using (LoadProfiler.Measure(LoadProfiler.Deserialize))
+                    def = (IContentDef)token.ToObject(defType, _json);
                 def.SourceFile = filePath; // Set the source file for the def
             }
             catch (Exception ex)
@@ -290,12 +308,16 @@ namespace JG.GameContent
             }
 
             // Inject assets like sprites, audio clips, etc. from annotated fields
-            AssetResolver.InjectAssets(def, h.Path, modId, sink);
+            using (LoadProfiler.Measure(LoadProfiler.AssetInject))
+                AssetResolver.InjectAssets(def, h.Path, modId, sink);
 
             ContentCatalogue.Instance.AddOrReplace(def, modId);
             ContentCatalogue.Instance.StoreRawToken(def.Id, token, defType);
 
-            if (LoggingLevel >= LoggingLevel.Info)
+            _registeredCounts.TryGetValue(defType.Name, out var count);
+            _registeredCounts[defType.Name] = count + 1;
+
+            if (LoggingLevel >= LoggingLevel.Debug)
                 Debug.Log($"[{modId}] ✔ Registered {defType.Name} \"{def.Id}\" from {Path.GetFileName(filePath)}");
         }
 

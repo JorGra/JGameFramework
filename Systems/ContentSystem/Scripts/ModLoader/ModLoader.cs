@@ -79,6 +79,9 @@ namespace JG.Modding
         /* ------------------------------------------------------------ */
         public void Reload()
         {
+            LoadProfiler.Reset();
+            var swTotal = System.Diagnostics.Stopwatch.StartNew();
+
             Diagnostics = new DiagnosticReport();
 
             _mods.Clear();
@@ -86,26 +89,35 @@ namespace JG.Modding
             ActiveMods = Array.Empty<LoadedMod>();
 
             OnLoadProgress?.Invoke("Discovering mods...");
-            DiscoverMods();
+            using (LoadProfiler.Measure(LoadProfiler.Discover))
+                DiscoverMods();
             OnLoadProgress?.Invoke($"Found {_mods.Count} mod(s).");
 
             OnLoadProgress?.Invoke("Resolving dependencies...");
-            if (!ResolveOrder(out var ordered)) return;
+            bool orderOk;
+            List<LoadedMod> ordered;
+            using (LoadProfiler.Measure(LoadProfiler.ResolveOrder))
+                orderOk = ResolveOrder(out ordered);
+            if (!orderOk) return;
             OnLoadProgress?.Invoke($"Load order resolved: {string.Join(", ", ordered.Select(m => m.Manifest.id))}");
 
             BuildStateTable(ordered);
             ActiveMods = ordered.AsReadOnly();
 
 #if !UNITY_IOS
-            // Load mod assemblies before content import so new types are discoverable
-            LoadModAssemblies(ordered);
+            using (LoadProfiler.Measure(LoadProfiler.Assemblies))
+            {
+                // Load mod assemblies before content import so new types are discoverable
+                LoadModAssemblies(ordered);
 
-            // Reset reflection caches so newly loaded types are picked up
-            ResetReflectionCaches();
+                // Reset reflection caches so newly loaded types are picked up
+                ResetReflectionCaches();
+            }
 #endif
 
             ContentCatalogue.Instance.Clear();
             ModTranslationLoader.Instance.Clear();
+            AssetResolver.ClearCache();
 
             // Wire diagnostic sink into importer if supported
             if (_importer is JsonContentImporter jsonImporter)
@@ -114,35 +126,52 @@ namespace JG.Modding
                 jsonImporter.OnProgress = msg => OnLoadProgress?.Invoke(msg);
             }
 
-            foreach (var mod in ordered)
+            using (LoadProfiler.Measure(LoadProfiler.Import))
             {
-                var row = _state.mods.First(e => e.id == mod.Manifest.id);
-                if (!row.enabled) continue;
+                foreach (var mod in ordered)
+                {
+                    var row = _state.mods.First(e => e.id == mod.Manifest.id);
+                    if (!row.enabled) continue;
 
-                OnLoadProgress?.Invoke($"Importing content for {mod.Manifest.id}...");
-                try
-                {
-                    _importer.Import(mod.Handle);
-                }
-                catch (Exception ex)
-                {
-                    Raise(ErrorKind.IoError,
-                          $"Import failed for {mod.Manifest.id}: {ex.Message}",
-                          new[] { mod.Manifest.id });
+                    OnLoadProgress?.Invoke($"Importing content for {mod.Manifest.id}...");
+                    try
+                    {
+                        _importer.Import(mod.Handle);
+                    }
+                    catch (Exception ex)
+                    {
+                        Raise(ErrorKind.IoError,
+                              $"Import failed for {mod.Manifest.id}: {ex.Message}",
+                              new[] { mod.Manifest.id });
+                    }
                 }
             }
 
 #if !UNITY_IOS
-            // Let the host game populate the service registry before entry points run
-            ServiceRegistry.Clear();
-            OnBeforeEntryPoints?.Invoke();
+            using (LoadProfiler.Measure(LoadProfiler.EntryPoints))
+            {
+                // Let the host game populate the service registry before entry points run
+                ServiceRegistry.Clear();
+                OnBeforeEntryPoints?.Invoke();
 
-            // Run mod entry points after content import so mods can query the catalogue
-            RunModEntryPoints(ordered);
+                // Run mod entry points after content import so mods can query the catalogue
+                RunModEntryPoints(ordered);
+            }
 #endif
 
             OnLoadProgress?.Invoke("Running validation...");
-            ContentValidationRunner.RunAll(ContentCatalogue.Instance, Diagnostics);
+            using (LoadProfiler.Measure(LoadProfiler.Validation))
+                ContentValidationRunner.RunAll(ContentCatalogue.Instance, Diagnostics);
+
+            UnityEngine.Debug.Log(
+                $"[ModLoader] Reload took {swTotal.ElapsedMilliseconds}ms | " +
+                LoadProfiler.Summary(
+                    LoadProfiler.Discover, LoadProfiler.ResolveOrder, LoadProfiler.Assemblies,
+                    LoadProfiler.Import, LoadProfiler.JsonRead, LoadProfiler.Deserialize,
+                    LoadProfiler.AssetInject, LoadProfiler.ImageDecode, LoadProfiler.AudioDecode,
+                    LoadProfiler.Patches, LoadProfiler.Translations,
+                    LoadProfiler.EntryPoints, LoadProfiler.Validation) +
+                " (JsonRead/Deserialize/AssetInject/Patches/Translations are sub-phases of Import)");
 
             OnLoadProgress?.Invoke($"Loading complete. {Diagnostics.ErrorCount} error(s), {Diagnostics.WarningCount} warning(s).");
             OnDiagnosticsReady?.Invoke(Diagnostics);

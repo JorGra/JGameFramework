@@ -21,6 +21,8 @@ namespace JGameFramework.Scripts.Modding.Content.AssetResolvers.Resolvers
 
         public UnityEngine.Object LoadFromFile(string absolutePath, Type targetType)
         {
+            using var _ = JG.GameContent.Diagnostics.LoadProfiler.Measure(JG.GameContent.Diagnostics.LoadProfiler.ImageDecode);
+
             var data = File.ReadAllBytes(absolutePath);
             var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             if (!tex.LoadImage(data, markNonReadable: false))
