@@ -86,6 +86,20 @@ public class UIPanelAnimated : UIPanel
         isAnimatingClose = false;
         IsOpen = true;
 
+        if (!gameObject.activeInHierarchy)
+        {
+            // We can't animate while our own GameObject (or an ancestor) is
+            // inactive — coroutines don't tick. This happens when a tab switcher
+            // has SetActive(false) on this content root. Snap straight to the
+            // open visual state so the panel shows correctly once the ancestor
+            // is re-activated, instead of throwing a "couldn't start coroutine"
+            // error and leaving the panel logically closed.
+            ActiveAnimation.SnapOpen(this, canvasGroup, initialScale);
+            IsOpen = true;
+            OnPanelOpened?.Invoke();
+            return;
+        }
+
         if (!canvasGroup.gameObject.activeSelf)
         {
             canvasGroup.gameObject.SetActive(true);

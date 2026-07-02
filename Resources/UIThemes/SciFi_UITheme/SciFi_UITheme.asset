@@ -241,7 +241,7 @@ MonoBehaviour:
             overrideIcon: 0
             iconColorKey: 
             iconAlpha: 0
-            animateScale: 1
+            animateScale: 0
             targetScale: {x: 1.1, y: 1.1, z: 1.1}
             animateSizeDelta: 0
             targetSizeDelta: {x: 0, y: 0}

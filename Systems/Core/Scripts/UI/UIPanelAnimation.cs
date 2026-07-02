@@ -36,6 +36,34 @@ public abstract class UIPanelAnimation : ScriptableObject
     public abstract IEnumerator PlayClose(UIPanelAnimated panel, CanvasGroup canvasGroup, float duration, Vector3 initialScale);
 
     /// <summary>
+    /// Immediate open without animation. Used when the panel's own GameObject is
+    /// inactive (e.g. a tab switcher has deactivated this content root), so a
+    /// coroutine can't run — but the panel must still end up in a fully-open
+    /// visual state for when the ancestor is re-activated.
+    /// </summary>
+    public virtual void SnapOpen(UIPanelAnimated panel, CanvasGroup canvasGroup, Vector3 initialScale)
+    {
+        if (panel)
+        {
+            if (panel.HasRectTransform)
+                panel.RectT.anchoredPosition = panel.InitialAnchoredPosition;
+            else
+                panel.transform.localPosition = panel.InitialLocalPosition;
+
+            panel.transform.localRotation = panel.InitialRotation;
+            panel.transform.localScale = initialScale;
+        }
+
+        if (canvasGroup)
+        {
+            canvasGroup.gameObject.SetActive(true);
+            canvasGroup.alpha = 1f;
+            canvasGroup.interactable = true;
+            canvasGroup.blocksRaycasts = true;
+        }
+    }
+
+    /// <summary>
     /// Immediate close without animation (used by CloseImmediate).
     /// </summary>
     public virtual void SnapClosed(UIPanelAnimated panel, CanvasGroup canvasGroup, Vector3 initialScale)
