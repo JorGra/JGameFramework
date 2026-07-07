@@ -5,8 +5,10 @@ using UnityEngine;
 namespace JG.CursorSystem
 {
     /// <summary>
-    /// Central mouse cursor manager that responds to <see cref="CursorChangeRequestEvent"/>s.
-    /// Keeps the logic project-agnostic while allowing different preset sets (e.g. menu vs gameplay).
+    /// Central mouse cursor manager. Resolves the highest-priority claim on the
+    /// <see cref="CursorClaimStack"/> and shows it through an <see cref="ICursorPresenter"/>.
+    /// Sources (scene selectors, hover probe, game-state adapters) push claims instead of
+    /// imperatively setting the cursor, so releasing a claim restores whatever lies beneath.
     /// </summary>
     [DefaultExecutionOrder(-900)]
     [AddComponentMenu("JGameFramework/Cursor System/Mouse Cursor Controller")]
@@ -20,7 +22,13 @@ namespace JG.CursorSystem
         [SerializeField] bool applyDefaultOnAwake = true;
         [SerializeField] bool dontDestroyOnLoad = true;
 
-        [Header("Platform Tweaks")]
+        [Header("Presentation")]
+        [Tooltip("Auto = overlay cursor on Linux (avoids dual-cursor/OS-scaling issues), hardware cursor elsewhere.")]
+        [SerializeField] CursorPresenterMode presenterMode = CursorPresenterMode.Auto;
+        [Tooltip("Overlay presenter: cursor height as a fraction of screen height (resolution independent).")]
+        [SerializeField, Range(0.01f, 0.15f)] float overlayCursorHeightFraction = 0.035f;
+
+        [Header("Hardware Presenter — Linux Tweaks")]
         [Tooltip("Linux only: cursor textures larger than this (pixels) get downscaled to avoid huge hardware cursors.")]
         [SerializeField, Min(8)] int linuxMaxCursorSize = 64;
         [Tooltip("Linux only: target size (pixels) to scale cursors to; 0 = use max size only.")]
@@ -39,9 +47,16 @@ namespace JG.CursorSystem
         CursorPreset activePreset;
         string activeSetId;
         string activePresetId;
-        Texture2D cachedScaledTexture;
+        bool? lastClaimVisibility;
+        CursorLockMode? lastLockMode;
 
+        ICursorPresenter presenter;
+        CursorClaimHandle defaultClaim;
+        CursorClaimHandle legacyEventClaim;
+#pragma warning disable 618 // legacy compatibility path
         EventSubscription<CursorChangeRequestEvent> changeSubscription;
+#pragma warning restore 618
+        bool initialized;
 
         public string ActiveSetId => activeSetId;
         public string ActivePresetId => activePresetId;
@@ -55,7 +70,7 @@ namespace JG.CursorSystem
                 if (persistentInstance != null && persistentInstance != this)
                 {
                     // Another instance already survives scene loads; drop only this component
-                    // so other behaviours on the same GameObject (e.g., scene preset selectors) keep running.
+                    // so other behaviours on the same GameObject (e.g., hover probes) keep running.
                     Destroy(this);
                     return;
                 }
@@ -65,40 +80,61 @@ namespace JG.CursorSystem
             }
 
             BuildLookup();
+            presenter = CreatePresenter();
 
+            CursorClaimStack.Changed += OnClaimsChanged;
+
+#pragma warning disable 618 // legacy compatibility path
             changeSubscription = EventBus<CursorChangeRequestEvent>.Subscribe(HandleCursorChangeRequest, this);
+#pragma warning restore 618
 
             if (applyDefaultOnAwake)
             {
-                ApplyPreset(defaultPresetId, defaultCursorSetId, fallbackToDefault: true, forceRefresh: true, logMissing: false);
+                // Pushed first, so any later claim at the same Default priority outranks it.
+                defaultClaim = CursorClaimStack.Push(
+                    defaultPresetId,
+                    defaultCursorSetId,
+                    CursorLayer.Default,
+                    owner: this);
             }
+
+            initialized = true;
+            // Claims may have been pushed before this controller existed — resolve them now.
+            ResolveAndApply(forceRefresh: true);
         }
+
+        void Update() => presenter?.Tick();
 
         void OnDestroy()
         {
             if (persistentInstance == this)
                 persistentInstance = null;
 
+            if (!initialized)
+                return;
+
+            CursorClaimStack.Changed -= OnClaimsChanged;
+
             changeSubscription?.Dispose();
             changeSubscription = null;
 
-            if (cachedScaledTexture != null)
-            {
-                Destroy(cachedScaledTexture);
-                cachedScaledTexture = null;
-            }
+            legacyEventClaim?.Dispose();
+            legacyEventClaim = null;
+
+            defaultClaim?.Dispose();
+            defaultClaim = null;
+
+            presenter?.Cleanup();
+            presenter = null;
         }
 
         void OnValidate()
         {
-            if (!Application.isPlaying)
+            if (!Application.isPlaying || !initialized)
                 return;
 
             BuildLookup();
-            if (activeSet == null)
-            {
-                ApplyPreset(defaultPresetId, defaultCursorSetId, fallbackToDefault: true, forceRefresh: true, logMissing: false);
-            }
+            ResolveAndApply(forceRefresh: true);
         }
 
         void BuildLookup()
@@ -120,54 +156,78 @@ namespace JG.CursorSystem
             }
         }
 
-        void HandleCursorChangeRequest(CursorChangeRequestEvent request)
+        ICursorPresenter CreatePresenter()
         {
-            LogInfo($"Request: set='{request.CursorSetId ?? "<null>"}' preset='{request.PresetId ?? "<null>"}' force={request.ForceRefresh}");
-
-            var successfullyApplied = ApplyPreset(
-                request.PresetId,
-                request.CursorSetId,
-                request.AllowFallbackToDefaultPreset,
-                request.ForceRefresh,
-                logMissing: true);
-
-            if (!successfullyApplied && logWarnings)
+            var mode = presenterMode;
+            if (mode == CursorPresenterMode.Auto)
             {
-                Debug.LogWarning(
-                    $"[MouseCursorController] Could not apply preset '{request.PresetId ?? "<default>"}' " +
-                    $"from set '{request.CursorSetId ?? ActiveSetId ?? defaultCursorSetId}'.");
+                var isLinux = Application.platform == RuntimePlatform.LinuxEditor ||
+                              Application.platform == RuntimePlatform.LinuxPlayer;
+                mode = isLinux ? CursorPresenterMode.Overlay : CursorPresenterMode.Hardware;
             }
 
-            if (request.LockMode.HasValue)
-                Cursor.lockState = request.LockMode.Value;
+            LogInfo($"Presenter: {mode}");
 
-            if (request.CursorVisibility.HasValue)
-                Cursor.visible = request.CursorVisibility.Value;
-            else if (activePreset != null && activePreset.OverrideCursorVisibility)
-                Cursor.visible = activePreset.CursorVisible;
+            return mode == CursorPresenterMode.Overlay
+                ? new OverlayCursorPresenter(transform, overlayCursorHeightFraction)
+                : (ICursorPresenter)new HardwareCursorPresenter(
+                    linuxMaxCursorSize, linuxTargetCursorSize, linuxForceSoftwareCursor, logWarnings);
         }
 
-        bool ApplyPreset(
-            string presetId,
-            string setId,
-            bool fallbackToDefault,
-            bool forceRefresh,
-            bool logMissing)
+        void OnClaimsChanged() => ResolveAndApply(forceRefresh: false);
+
+        void ResolveAndApply(bool forceRefresh)
         {
-            var targetSet = ResolveSet(setId, logMissing);
+            if (!CursorClaimStack.TryGetWinner(out var winner))
+                return;
+
+            if (!ApplyClaim(winner, forceRefresh) && logWarnings)
+            {
+                Debug.LogWarning(
+                    $"[MouseCursorController] Could not apply claim preset '{winner.PresetId ?? "<default>"}' " +
+                    $"from set '{winner.SetId ?? ActiveSetId ?? defaultCursorSetId}'.");
+            }
+        }
+
+        /// <summary>Legacy fire-and-forget path: each request replaces a single Scene-layer claim.</summary>
+#pragma warning disable 618
+        void HandleCursorChangeRequest(CursorChangeRequestEvent request)
+        {
+            LogInfo($"Legacy request: set='{request.CursorSetId ?? "<null>"}' preset='{request.PresetId ?? "<null>"}' force={request.ForceRefresh}");
+
+            legacyEventClaim?.Dispose();
+            legacyEventClaim = CursorClaimStack.Push(
+                request.PresetId,
+                request.CursorSetId,
+                CursorLayer.Scene,
+                owner: this,
+                allowFallback: request.AllowFallbackToDefaultPreset,
+                visibility: request.CursorVisibility,
+                lockMode: request.LockMode);
+
+            if (request.ForceRefresh)
+                ResolveAndApply(forceRefresh: true);
+        }
+#pragma warning restore 618
+
+        bool ApplyClaim(CursorClaim claim, bool forceRefresh)
+        {
+            var targetSet = ResolveSet(claim.SetId, logMissing: true);
             if (targetSet == null)
                 return false;
 
-            var targetPreset = ResolvePreset(targetSet, presetId, fallbackToDefault, logMissing);
+            var targetPreset = ResolvePreset(targetSet, claim.PresetId, claim.AllowFallback, logMissing: true);
             if (targetPreset == null)
                 return false;
 
-            if (!forceRefresh && ReferenceEquals(targetSet, activeSet) && ReferenceEquals(targetPreset, activePreset))
+            var samePreset = ReferenceEquals(targetSet, activeSet) && ReferenceEquals(targetPreset, activePreset);
+            var sameOverrides = claim.Visibility == lastClaimVisibility && claim.LockMode == lastLockMode;
+            if (!forceRefresh && samePreset && sameOverrides)
                 return true;
 
             if (!targetPreset.HasTexture)
             {
-                if (logWarnings && logMissing)
+                if (logWarnings)
                 {
                     Debug.LogWarning(
                         $"[MouseCursorController] Preset '{targetPreset.PresetId}' in set '{targetSet.SetId}' is missing a texture.");
@@ -175,12 +235,14 @@ namespace JG.CursorSystem
                 return false;
             }
 
-            if (!TryGetPlatformCursorData(targetPreset, out var texture, out var hotSpot, out var mode))
+            if (!presenter.Apply(targetPreset, claim.Visibility))
                 return false;
 
-            Cursor.SetCursor(texture, hotSpot, mode);
-            if (targetPreset.OverrideCursorVisibility)
-                Cursor.visible = targetPreset.CursorVisible;
+            if (claim.LockMode.HasValue)
+                Cursor.lockState = claim.LockMode.Value;
+
+            lastClaimVisibility = claim.Visibility;
+            lastLockMode = claim.LockMode;
 
             var previousSetId = activeSetId;
             activeSet = targetSet;
@@ -188,9 +250,9 @@ namespace JG.CursorSystem
             activeSetId = targetSet.SetId;
             activePresetId = !string.IsNullOrWhiteSpace(targetPreset.PresetId)
                 ? targetPreset.PresetId
-                : (presetId ?? defaultPresetId);
+                : (claim.PresetId ?? defaultPresetId);
 
-            LogInfo($"Applied cursor set='{activeSetId}', preset='{activePresetId}', tex={texture.width}x{texture.height}, hotspot={hotSpot}, mode={mode}");
+            LogInfo($"Applied cursor set='{activeSetId}', preset='{activePresetId}' (claim priority={claim.Priority})");
 
             if (!string.Equals(previousSetId, activeSetId, StringComparison.Ordinal))
             {
@@ -269,93 +331,6 @@ namespace JG.CursorSystem
             return fallback;
         }
 
-        bool TryGetPlatformCursorData(CursorPreset preset, out Texture2D texture, out Vector2 hotSpot, out CursorMode mode)
-        {
-            texture = preset.Texture;
-            hotSpot = preset.HotSpot;
-            mode = preset.Mode;
-
-            if (texture == null)
-                return false;
-
-            if (!IsLinuxPlatform())
-            {
-                hotSpot = ClampHotspot(hotSpot, texture.width, texture.height);
-                return true;
-            }
-
-            if (linuxForceSoftwareCursor)
-                mode = CursorMode.ForceSoftware;
-
-            var desiredSize = linuxTargetCursorSize > 0 ? linuxTargetCursorSize : linuxMaxCursorSize;
-            var clampedMaxSize = Mathf.Max(16, desiredSize);
-            var maxDimension = Mathf.Max(texture.width, texture.height);
-
-            if (maxDimension <= clampedMaxSize)
-                return true;
-
-            if (!texture.isReadable)
-            {
-                if (logWarnings)
-                {
-                    Debug.LogWarning(
-                        "[MouseCursorController] Cursor texture is not readable; cannot downscale for Linux. " +
-                        "Enable Read/Write in the texture import settings. Forcing software cursor to avoid OS scaling.");
-                }
-                mode = CursorMode.ForceSoftware;
-                return true;
-            }
-
-            var scale = clampedMaxSize / (float)maxDimension;
-            var targetWidth = Mathf.Max(1, Mathf.RoundToInt(texture.width * scale));
-            var targetHeight = Mathf.Max(1, Mathf.RoundToInt(texture.height * scale));
-            var scaledHotSpot = hotSpot * scale;
-
-            if (cachedScaledTexture != null)
-                Destroy(cachedScaledTexture);
-
-            cachedScaledTexture = CreateScaledTexture(texture, targetWidth, targetHeight);
-
-            texture = cachedScaledTexture;
-            hotSpot = ClampHotspot(scaledHotSpot, targetWidth, targetHeight);
-            return true;
-        }
-
-        bool IsLinuxPlatform() =>
-            Application.platform == RuntimePlatform.LinuxEditor ||
-            Application.platform == RuntimePlatform.LinuxPlayer;
-
-        static Vector2 ClampHotspot(Vector2 hotSpot, int width, int height)
-        {
-            var clampedX = Mathf.Clamp(hotSpot.x, 0, Mathf.Max(0, width - 1));
-            var clampedY = Mathf.Clamp(hotSpot.y, 0, Mathf.Max(0, height - 1));
-            return new Vector2(clampedX, clampedY);
-        }
-
-        static Texture2D CreateScaledTexture(Texture2D source, int targetWidth, int targetHeight)
-        {
-            var result = new Texture2D(targetWidth, targetHeight, TextureFormat.RGBA32, mipChain: false)
-            {
-                name = string.IsNullOrWhiteSpace(source.name) ? "Cursor_LinuxScaled" : $"{source.name}_LinuxScaled",
-                hideFlags = HideFlags.HideAndDontSave,
-                filterMode = FilterMode.Bilinear,
-                wrapMode = TextureWrapMode.Clamp
-            };
-
-            for (int y = 0; y < targetHeight; y++)
-            {
-                var v = (y + 0.5f) / targetHeight;
-                for (int x = 0; x < targetWidth; x++)
-                {
-                    var u = (x + 0.5f) / targetWidth;
-                    result.SetPixel(x, y, source.GetPixelBilinear(u, v));
-                }
-            }
-
-            result.Apply(updateMipmaps: false, makeNoLongerReadable: false);
-            return result;
-        }
-
         void LogInfo(string message)
         {
             if (logInfo)
@@ -363,7 +338,11 @@ namespace JG.CursorSystem
         }
     }
 
-    /// <summary>Event raised to request a cursor change anywhere in code.</summary>
+    /// <summary>
+    /// Legacy fire-and-forget cursor request. Handled as a single replaceable claim at
+    /// <see cref="CursorLayer.Scene"/> priority.
+    /// </summary>
+    [Obsolete("Push a claim via CursorClaimStack.Push(...) instead; claims restore automatically when disposed.", false)]
     public readonly struct CursorChangeRequestEvent : IEvent
     {
         public string CursorSetId { get; }

@@ -3,17 +3,18 @@ using UnityEngine;
 namespace JG.CursorSystem
 {
     /// <summary>
-    /// Scene-level helper that raises a preset change as soon as the scene is loaded.
-    /// Useful to swap between menu cursors and gameplay crosshairs without extra code.
+    /// Scene-level helper that holds a <see cref="CursorLayer.Scene"/> claim while enabled.
+    /// Useful to swap between menu cursors and gameplay crosshairs without extra code:
+    /// the claim is released automatically when the scene unloads, revealing whatever lies beneath.
     /// </summary>
+    [AddComponentMenu("JGameFramework/Cursor System/Cursor Scene Preset Selector")]
     public sealed class CursorScenePresetSelector : MonoBehaviour
     {
         [SerializeField] string cursorSetId = "Default";
         [SerializeField] string presetId = "Default";
         [SerializeField] bool allowFallbackToDefault = true;
-        [SerializeField] bool forceRefresh = true;
-        [SerializeField] bool applyOnEnable = true;
-        [SerializeField] bool applyOnSceneActive = true;
+        [Tooltip("Added to the Scene layer priority; lets one selector outrank another (e.g. sub-menu over menu).")]
+        [SerializeField] int priorityOffset = 0;
 
         [Header("Optional Overrides")]
         [SerializeField] bool overrideCursorVisibility;
@@ -21,48 +22,24 @@ namespace JG.CursorSystem
         [SerializeField] bool overrideLockMode;
         [SerializeField] CursorLockMode lockMode = CursorLockMode.None;
 
+        CursorClaimHandle claim;
+
         void OnEnable()
         {
-            if (applyOnSceneActive)
-                UnityEngine.SceneManagement.SceneManager.activeSceneChanged += OnActiveSceneChanged;
-
-            if (applyOnEnable)
-                RaiseRequestDeferred();
+            claim = CursorClaimStack.Push(
+                presetId,
+                string.IsNullOrWhiteSpace(cursorSetId) ? null : cursorSetId,
+                CursorLayer.Scene + priorityOffset,
+                owner: this,
+                allowFallback: allowFallbackToDefault,
+                visibility: overrideCursorVisibility ? cursorVisible : (bool?)null,
+                lockMode: overrideLockMode ? lockMode : (CursorLockMode?)null);
         }
 
         void OnDisable()
         {
-            if (applyOnSceneActive)
-                UnityEngine.SceneManagement.SceneManager.activeSceneChanged -= OnActiveSceneChanged;
-        }
-
-        void RaiseRequest()
-        {
-            EventBus<CursorChangeRequestEvent>.Raise(
-                new CursorChangeRequestEvent(
-                    presetId,
-                    string.IsNullOrWhiteSpace(cursorSetId) ? null : cursorSetId,
-                    allowFallbackToDefault,
-                    overrideCursorVisibility ? cursorVisible : (bool?)null,
-                    overrideLockMode ? lockMode : (CursorLockMode?)null,
-                    forceRefresh));
-        }
-
-        void RaiseRequestDeferred()
-        {
-            StartCoroutine(RaiseNextFrame());
-        }
-
-        System.Collections.IEnumerator RaiseNextFrame()
-        {
-            yield return null;
-            RaiseRequest();
-        }
-
-        void OnActiveSceneChanged(UnityEngine.SceneManagement.Scene oldScene, UnityEngine.SceneManagement.Scene newScene)
-        {
-            if (newScene == gameObject.scene)
-                RaiseRequestDeferred();
+            claim?.Dispose();
+            claim = null;
         }
     }
 }

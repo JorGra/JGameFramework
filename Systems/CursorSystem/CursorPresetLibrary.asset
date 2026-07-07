@@ -37,3 +37,9 @@ MonoBehaviour:
       cursorMode: 0
       overrideCursorVisibility: 0
       cursorVisible: 0
+    - presetId: Build
+      cursorTexture: {fileID: 2800000, guid: c11561152c2273349b9c6a1e6c87dad8, type: 3}
+      hotSpot: {x: 128, y: 128}
+      cursorMode: 0
+      overrideCursorVisibility: 0
+      cursorVisible: 0

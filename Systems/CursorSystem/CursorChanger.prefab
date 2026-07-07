@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1249175872202772168}
   - component: {fileID: 7771927000099147494}
   - component: {fileID: 7201520596070233771}
+  - component: {fileID: 5731982716451230987}
   m_Layer: 0
   m_Name: CursorChanger
   m_TagString: Untagged
@@ -69,7 +70,28 @@ MonoBehaviour:
   defaultCursorSetId: Main
   defaultPresetId: Default
   applyDefaultOnAwake: 1
+  presenterMode: 0
+  overlayCursorHeightFraction: 0.035
   linuxMaxCursorSize: 64
   linuxTargetCursorSize: 64
   linuxForceSoftwareCursor: 1
   logWarnings: 1
+  logInfo: 0
+--- !u!114 &5731982716451230987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 281058349622531341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1218858c8b34f48beccc865d0349a2e, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::JG.CursorSystem.CursorHoverProbe
+  pointerSourceBehaviour: {fileID: 0}
+  fallbackCamera: {fileID: 0}
+  worldLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  revalidateInterval: 0.15
