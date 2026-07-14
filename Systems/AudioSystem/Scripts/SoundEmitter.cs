@@ -16,15 +16,21 @@ namespace JG.Audio
         AudioSource audioSource;
         Coroutine playingCoroutine;
         float baseVolume = 1f;
+        float stackScale = 1f;
+        float lastMultiplier = 1f;
+        bool isReleased;
 
         void Awake()
         {
             audioSource = gameObject.GetOrAdd<AudioSource>();
+            Node = new LinkedListNode<SoundEmitter>(this);
         }
 
         public void Initialize(SoundData data)
         {
             Data = data;
+            isReleased = false;
+            stackScale = 1f;
             baseVolume = data != null ? data.volume : 1f;
             MixerGroupType = data != null ? data.mixerGroupType : SoundMixerGroup.Effects;
 
@@ -81,6 +87,9 @@ namespace JG.Audio
 
         public void Stop()
         {
+            if (isReleased) return;
+            isReleased = true;
+
             if (playingCoroutine != null)
             {
                 StopCoroutine(playingCoroutine);
@@ -88,7 +97,13 @@ namespace JG.Audio
             }
 
             audioSource.Stop();
-            SoundManager.Instance.ReturnToPool(this);
+
+            var manager = SoundManager.TryGetInstance();
+            if (manager != null)
+            {
+                manager.OnEmitterStopped(this);
+                manager.ReturnToPool(this);
+            }
         }
 
         public void WithRandomPitch(Vector2 pitchRange)
@@ -96,9 +111,16 @@ namespace JG.Audio
             audioSource.pitch += Random.Range(pitchRange.x, pitchRange.y);
         }
 
+        public void SetStackScale(float scale)
+        {
+            stackScale = Mathf.Clamp01(scale);
+            ApplyVolumeMultiplier(lastMultiplier);
+        }
+
         public void ApplyVolumeMultiplier(float multiplier)
         {
-            audioSource.volume = baseVolume * Mathf.Max(0f, multiplier);
+            lastMultiplier = Mathf.Max(0f, multiplier);
+            audioSource.volume = baseVolume * stackScale * lastMultiplier;
         }
     }
 }

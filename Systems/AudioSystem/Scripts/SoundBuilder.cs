@@ -39,7 +39,7 @@ namespace JG.Audio
 
         public void Play()
         {
-            if (!soundManager.CanPlaySound(soundData)) return;
+            if (!soundManager.TryAcquireVoice(soundData, out float volumeScale)) return;
 
             SoundEmitter soundEmitter = soundManager.Get();
             soundEmitter.Initialize(soundData);
@@ -60,10 +60,8 @@ namespace JG.Audio
                 soundEmitter.WithRandomPitch(pitchRange);
             }
 
-            if (soundData.frequent)
-            {
-                soundManager.FrequentSoundEmitters.Enqueue(soundEmitter);
-            }
+            soundEmitter.SetStackScale(volumeScale);
+            soundManager.RegisterVoice(soundEmitter);
             soundEmitter.Play();
         }
     }

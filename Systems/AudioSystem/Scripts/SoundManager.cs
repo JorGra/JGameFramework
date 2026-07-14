@@ -13,7 +13,7 @@ namespace JG.Audio
     {
         IObjectPool<SoundEmitter> soundEmitterPool;
         readonly List<SoundEmitter> activeSoundEmitters = new List<SoundEmitter>();
-        public readonly Queue<SoundEmitter> FrequentSoundEmitters = new Queue<SoundEmitter>();
+        readonly Dictionary<AudioClip, ClipVoiceState> voiceStates = new Dictionary<AudioClip, ClipVoiceState>();
         float masterVolume = 1f;
         float musicVolume = 1f;
         float effectsVolume = 1f;
@@ -28,9 +28,23 @@ namespace JG.Audio
         [SerializeField] bool collecitonCheck = true;
         [SerializeField] int defaultCapacity = 10;
         [SerializeField] int maxPoolSize = 100;
-        [SerializeField] int maxSoundInstances = 30;
+        [Header("Voice Limiting")]
+        [Tooltip("Max simultaneous instances of the same clip. Oldest is stopped when exceeded.")]
+        [SerializeField] int maxVoicesPerClip = 8;
+        [Tooltip("Tighter cap for sounds marked 'frequent'.")]
+        [SerializeField] int frequentMaxVoices = 4;
+        [Tooltip("Minimum seconds between two starts of the same 'frequent' clip; requests inside the window are dropped.")]
+        [SerializeField] float frequentMinInterval = 0.05f;
+        [Tooltip("Volume multiplier per already-playing instance of the same clip (1 = off). 0.8 ≈ -2 dB per extra instance.")]
+        [Range(0f, 1f)][SerializeField] float stackedVolumeFalloff = 0.8f;
 
         EventSubscription<PlaySoundEvent> soundEventSubscription;
+
+        sealed class ClipVoiceState
+        {
+            public readonly LinkedList<SoundEmitter> active = new LinkedList<SoundEmitter>();
+            public float lastPlayTime = float.NegativeInfinity;
+        }
 
         private void Start()
         {
@@ -61,26 +75,53 @@ namespace JG.Audio
 
         public SoundBuilder CreateSound() => new SoundBuilder(this);
 
-        public bool CanPlaySound(SoundData data)
+        public bool TryAcquireVoice(SoundData data, out float volumeScale)
         {
-            if (!data.frequent) return true;
+            volumeScale = 1f;
+            var clip = data?.clip;
+            if (clip == null) return false;
 
-            if (FrequentSoundEmitters.Count >= maxSoundInstances && FrequentSoundEmitters.TryDequeue(out var soundEmitter))
+            if (!voiceStates.TryGetValue(clip, out var state))
             {
-                try
-                {
-                    soundEmitter.Stop();
-                    return true;
-                }
-                catch
-                {
-                    //Debug.Log("SoundEmitter is already released");
-                }
+                voiceStates.Add(clip, state = new ClipVoiceState());
+            }
 
+            float now = Time.unscaledTime;
+            if (data.frequent && frequentMinInterval > 0f && now - state.lastPlayTime < frequentMinInterval)
+            {
                 return false;
             }
-            return true;
 
+            int max = Mathf.Max(1, data.frequent ? frequentMaxVoices : maxVoicesPerClip);
+            while (state.active.Count >= max)
+            {
+                var oldest = state.active.First;
+                state.active.Remove(oldest);
+                oldest.Value.Stop();
+            }
+
+            if (stackedVolumeFalloff < 1f && state.active.Count > 0)
+            {
+                volumeScale = Mathf.Pow(stackedVolumeFalloff, state.active.Count);
+            }
+
+            state.lastPlayTime = now;
+            return true;
+        }
+
+        public void RegisterVoice(SoundEmitter emitter)
+        {
+            if (emitter == null || emitter.Node == null || emitter.Node.List != null) return;
+            if (emitter.Data == null || emitter.Data.clip == null) return;
+            if (!voiceStates.TryGetValue(emitter.Data.clip, out var state)) return;
+
+            state.active.AddLast(emitter.Node);
+        }
+
+        public void OnEmitterStopped(SoundEmitter emitter)
+        {
+            var node = emitter?.Node;
+            node?.List?.Remove(node);
         }
 
         public SoundEmitter Get()
@@ -113,6 +154,7 @@ namespace JG.Audio
 
         private void OnReturnFromPool(SoundEmitter emitter)
         {
+            OnEmitterStopped(emitter);
             emitter.gameObject.SetActive(false);
             activeSoundEmitters.Remove(emitter);
         }
