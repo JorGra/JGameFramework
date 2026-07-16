@@ -2,7 +2,8 @@
     "name": "JGameFramework.Vfx",
     "rootNamespace": "",
     "references": [
-        "JGameFramwork.Content"
+        "JGameFramwork.Content",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

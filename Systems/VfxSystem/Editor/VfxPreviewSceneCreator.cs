@@ -25,6 +25,7 @@ namespace JG.Vfx.Editor
             camGo.transform.position = new Vector3(0f, 1f, -10f);
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.1f, 0.1f, 0.12f, 1f);
+            camGo.AddComponent<VfxPreviewCamera>();
 
             // Lit particle shaders (e.g. URP Particles/Simple Lit) render black without a light.
             var lightGo = new GameObject("Directional Light");

@@ -35,7 +35,12 @@ namespace JG.Vfx.Preview
                 return;
             }
 
-            _current = ParticleSystemBuilder.Build(def, transform);
+            _current = ParticleSystemBuilder.Build(def, transform, ResolveDef);
+        }
+
+        private static ParticleSystemDef ResolveDef(string id)
+        {
+            return ContentCatalogue.Instance.TryGet<ParticleSystemDef>(id, out var def) ? def : null;
         }
     }
 }

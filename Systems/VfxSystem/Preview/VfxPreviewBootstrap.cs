@@ -14,7 +14,12 @@ namespace JG.Vfx.Preview
     /// hosting page via postMessage -> VfxJsonBridge.jslib -> ApplyPayload.
     ///
     /// Payload is either a raw ParticleSystemDef JSON object, or a wrapper:
-    /// { "def": { ... }, "textures": { "&lt;texturePath&gt;": "&lt;base64 png&gt;" } }
+    /// {
+    ///   "def": { ... },                                  // the system to play
+    ///   "defs": { "&lt;id&gt;": { ... } },                     // referenced sub-system defs
+    ///   "textures": { "&lt;texturePath&gt;": "&lt;base64 png&gt;" },
+    ///   "loop": true                                      // restart when finished
+    /// }
     /// </summary>
     public class VfxPreviewBootstrap : MonoBehaviour
     {
@@ -29,7 +34,8 @@ namespace JG.Vfx.Preview
         [TextArea(5, 30)]
         private string initialJson;
 
-        private ParticleSystem _ps;
+        private ParticleSystem _root;
+        private bool _loop = true;
         private readonly List<Texture2D> _runtimeTextures = new();
 
         private static readonly JsonSerializer Serializer = JsonSerializer.Create(new JsonSerializerSettings
@@ -51,14 +57,10 @@ namespace JG.Vfx.Preview
             if (gameObject.name != GameObjectName)
                 gameObject.name = GameObjectName;
 
-            _ps = GetComponentInChildren<ParticleSystem>();
-            if (_ps == null)
-            {
-                var child = new GameObject("PreviewParticleSystem");
-                child.transform.SetParent(transform, false);
-                _ps = child.AddComponent<ParticleSystem>();
-                _ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            }
+            // Existing preview scenes predate the orbit camera - retrofit it.
+            var camera = Camera.main;
+            if (camera != null && camera.GetComponent<VfxPreviewCamera>() == null)
+                camera.gameObject.AddComponent<VfxPreviewCamera>();
 
 #if UNITY_WEBGL && !UNITY_EDITOR
             JGVfx_RegisterMessageListener();
@@ -71,6 +73,14 @@ namespace JG.Vfx.Preview
                 ApplyPayload(initialJson);
         }
 
+        private void Update()
+        {
+            // Loop option: replay finished (non-looping) systems so edits are
+            // easy to observe. Looping systems report IsAlive continuously.
+            if (_loop && _root != null && !_root.IsAlive(true))
+                Replay();
+        }
+
         /// <summary>Called via SendMessage from the jslib bridge, and usable directly in tests.</summary>
         public void ApplyPayload(string payload)
         {
@@ -79,6 +89,7 @@ namespace JG.Vfx.Preview
                 var root = JObject.Parse(payload);
                 var defToken = root["def"] as JObject ?? root;
                 var texturesToken = root["textures"] as JObject;
+                _loop = root["loop"]?.Type != JTokenType.Boolean || root["loop"].Value<bool>();
 
                 var def = defToken.ToObject<ParticleSystemDef>(Serializer);
                 if (def == null)
@@ -87,9 +98,19 @@ namespace JG.Vfx.Preview
                     return;
                 }
 
-                ReplaceRuntimeTextures(def, texturesToken);
+                var subDefs = ParseSubDefs(root["defs"] as JObject);
+
+                ClearRuntimeTextures();
+                ApplyRuntimeTexture(def, texturesToken);
+                foreach (var subDef in subDefs.Values)
+                    ApplyRuntimeTexture(subDef, texturesToken);
+
+                if (_root != null)
+                    Destroy(_root.gameObject);
+
                 ParticleSystemBuilder.ClearMaterialCache();
-                ParticleSystemBuilder.ApplyTo(def, _ps);
+                _root = ParticleSystemBuilder.Build(def, transform,
+                    id => subDefs.TryGetValue(id, out var d) ? d : null);
                 PostStatus(true, $"Applied def '{def.Id}'.");
             }
             catch (Exception ex)
@@ -99,13 +120,39 @@ namespace JG.Vfx.Preview
             }
         }
 
-        private void ReplaceRuntimeTextures(ParticleSystemDef def, JObject textures)
+        private void Replay()
+        {
+            _root.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            _root.Play(true);
+        }
+
+        private Dictionary<string, ParticleSystemDef> ParseSubDefs(JObject defsToken)
+        {
+            var result = new Dictionary<string, ParticleSystemDef>();
+            if (defsToken == null)
+                return result;
+
+            foreach (var property in defsToken.Properties())
+            {
+                if (property.Value is not JObject defObject)
+                    continue;
+                var subDef = defObject.ToObject<ParticleSystemDef>(Serializer);
+                if (subDef != null)
+                    result[property.Name] = subDef;
+            }
+            return result;
+        }
+
+        private void ClearRuntimeTextures()
         {
             foreach (var tex in _runtimeTextures)
                 if (tex != null)
                     Destroy(tex);
             _runtimeTextures.Clear();
+        }
 
+        private void ApplyRuntimeTexture(ParticleSystemDef def, JObject textures)
+        {
             var path = def.renderer?.texturePath;
             if (textures == null || string.IsNullOrWhiteSpace(path))
                 return;

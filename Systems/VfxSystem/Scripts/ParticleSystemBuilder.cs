@@ -9,6 +9,9 @@ namespace JG.Vfx
     /// </summary>
     public static class ParticleSystemBuilder
     {
+        /// <summary>Resolves a ParticleSystemDef by content id (for subSystems). Return null when unknown.</summary>
+        public delegate ParticleSystemDef DefResolver(string id);
+
         static readonly Dictionary<(string baseId, int textureId, Color tint), Material> MaterialCache = new();
 
         public static void ClearMaterialCache()
@@ -19,15 +22,71 @@ namespace JG.Vfx
             MaterialCache.Clear();
         }
 
-        /// <summary>Creates a new GameObject with a ParticleSystem configured from the def.</summary>
-        public static ParticleSystem Build(ParticleSystemDef def, Transform parent = null)
+        /// <summary>
+        /// Creates a new GameObject with a ParticleSystem configured from the def.
+        /// def.subSystems are built recursively as child GameObjects; pass a
+        /// <paramref name="resolver"/> to look their defs up (without one they are skipped).
+        /// </summary>
+        public static ParticleSystem Build(ParticleSystemDef def, Transform parent = null, DefResolver resolver = null)
+        {
+            return Build(def, parent, resolver, new HashSet<string> { def.Id });
+        }
+
+        static ParticleSystem Build(ParticleSystemDef def, Transform parent, DefResolver resolver, HashSet<string> visited)
         {
             var go = new GameObject($"Vfx_{def.Id}");
             if (parent != null)
                 go.transform.SetParent(parent, false);
             var ps = go.AddComponent<ParticleSystem>();
             ApplyTo(def, ps);
+            BuildSubSystems(def, go.transform, resolver, visited);
             return ps;
+        }
+
+        static void BuildSubSystems(ParticleSystemDef def, Transform parent, DefResolver resolver, HashSet<string> visited)
+        {
+            if (def.subSystems == null || def.subSystems.Count == 0)
+                return;
+
+            foreach (var sub in def.subSystems)
+            {
+                if (sub == null || string.IsNullOrWhiteSpace(sub.id))
+                    continue;
+                if (!visited.Add(sub.id))
+                {
+                    Debug.LogWarning($"[Vfx] Sub-system cycle or duplicate '{sub.id}' under '{def.Id}' - skipped.");
+                    continue;
+                }
+
+                var subDef = resolver?.Invoke(sub.id);
+                if (subDef == null)
+                {
+                    Debug.LogWarning($"[Vfx] Sub-system '{sub.id}' referenced by '{def.Id}' could not be resolved.");
+                    continue;
+                }
+
+                var child = Build(subDef, parent, resolver, visited);
+                child.transform.localPosition = sub.offset;
+                if (sub.delay != 0f)
+                {
+                    var main = child.main;
+                    main.startDelay = AddDelay(main.startDelay, sub.delay);
+                    // The delay must take effect from the start - replay.
+                    child.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    child.Play(true);
+                }
+            }
+        }
+
+        static ParticleSystem.MinMaxCurve AddDelay(ParticleSystem.MinMaxCurve delay, float extra)
+        {
+            switch (delay.mode)
+            {
+                case ParticleSystemCurveMode.TwoConstants:
+                    return new ParticleSystem.MinMaxCurve(delay.constantMin + extra, delay.constantMax + extra);
+                default:
+                    return new ParticleSystem.MinMaxCurve(delay.constant + extra);
+            }
         }
 
         /// <summary>Reconfigures an existing ParticleSystem from the def. Stops and clears it first.</summary>
