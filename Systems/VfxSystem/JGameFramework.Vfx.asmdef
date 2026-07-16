@@ -1,0 +1,16 @@
+{
+    "name": "JGameFramework.Vfx",
+    "rootNamespace": "",
+    "references": [
+        "JGameFramwork.Content"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
