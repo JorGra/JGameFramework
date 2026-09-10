@@ -28,6 +28,13 @@ namespace JG.GameContent.Debugging
 
         readonly object _lock = new();
 
+        // Time.realtimeSinceStartup is not allowed during serialization or off the
+        // main thread, but log callbacks can arrive from both (logMessageReceivedThreaded).
+        readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+        readonly float _baseTime;
+
+        float Now => _baseTime + (float)_clock.Elapsed.TotalSeconds;
+
         public int Version => _version;
         public int Count { get { lock (_lock) return _count; } }
         public int ErrorCount => _errorCount;
@@ -38,6 +45,7 @@ namespace JG.GameContent.Debugging
         {
             _capacity = Mathf.Max(capacity, 16);
             _entries = new ConsoleLogEntry[_capacity];
+            _baseTime = Time.realtimeSinceStartup; // constructed on main thread (Awake)
         }
 
         public void Add(string message, string stacktrace, LogType type)
@@ -81,7 +89,7 @@ namespace JG.GameContent.Debugging
                         Message = message,
                         Stacktrace = stacktrace,
                         Type = type,
-                        Timestamp = Time.realtimeSinceStartup,
+                        Timestamp = Now,
                         Count = 1
                     };
                     _count++;
@@ -94,7 +102,7 @@ namespace JG.GameContent.Debugging
                         Message = message,
                         Stacktrace = stacktrace,
                         Type = type,
-                        Timestamp = Time.realtimeSinceStartup,
+                        Timestamp = Now,
                         Count = 1
                     };
                     _head = (_head + 1) % _capacity;

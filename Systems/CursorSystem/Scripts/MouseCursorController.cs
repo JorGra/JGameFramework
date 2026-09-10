@@ -239,7 +239,12 @@ namespace JG.CursorSystem
                 return false;
 
             if (claim.LockMode.HasValue)
+            {
                 Cursor.lockState = claim.LockMode.Value;
+                // Lock-state writes can re-show the OS cursor on Linux without updating
+                // Unity's cached visibility.
+                presenter.ReassertVisibility();
+            }
 
             lastClaimVisibility = claim.Visibility;
             lastLockMode = claim.LockMode;

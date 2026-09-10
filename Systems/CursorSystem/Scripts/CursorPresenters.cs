@@ -25,6 +25,12 @@ namespace JG.CursorSystem
         /// <summary>Per-frame hook (overlay follows the pointer); no-op for hardware.</summary>
         void Tick();
 
+        /// <summary>
+        /// Called after OS cursor state was written outside the presenter (e.g., a lock-mode
+        /// change), which on Linux can re-show the OS cursor behind Unity's cached state.
+        /// </summary>
+        void ReassertVisibility();
+
         /// <summary>Release created textures/objects.</summary>
         void Cleanup();
     }
@@ -71,6 +77,8 @@ namespace JG.CursorSystem
         }
 
         public void Tick() { }
+
+        public void ReassertVisibility() { }
 
         public void Cleanup()
         {
@@ -186,10 +194,12 @@ namespace JG.CursorSystem
         readonly Dictionary<Texture2D, Sprite> spriteCache = new Dictionary<Texture2D, Sprite>();
 
         GameObject overlayRoot;
+        RectTransform canvasRect;
         Image cursorImage;
         RectTransform cursorRect;
         CursorPreset activePreset;
         bool cursorShown = true;
+        bool focusHooked;
 
         public OverlayCursorPresenter(Transform parent, float heightFraction)
         {
@@ -227,8 +237,8 @@ namespace JG.CursorSystem
             if (cursorImage == null || activePreset == null)
                 return;
 
-            // The OS cursor must stay hidden while the overlay is active; reassert every frame
-            // because other systems (alt-tab, lock-state changes) can flip it back on.
+            // Keeps Unity's cached visibility correct; the forced native toggle for cases where
+            // the OS re-shows the cursor behind Unity's back lives in ReassertVisibility().
             Cursor.visible = false;
 
             var mouse = Mouse.current;
@@ -245,12 +255,42 @@ namespace JG.CursorSystem
             if (cursorImage.enabled)
             {
                 UpdateSize();
-                cursorRect.position = new Vector3(pos.x, pos.y, 0f);
+                // Convert through the canvas rect instead of assuming world units == screen
+                // pixels, so the overlay stays on the pointer under non-1 canvas scale factors
+                // (Linux HiDPI / fractional scaling).
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, pos, null, out var local);
+                cursorRect.anchoredPosition = local;
             }
+        }
+
+        /// <summary>
+        /// Unity caches <see cref="Cursor.visible"/>, so re-assigning the same value never reaches
+        /// the OS. When the window manager re-shows the cursor on its own (alt-tab, focus regain,
+        /// lock-state writes), toggling forces the native hide call through.
+        /// </summary>
+        public void ReassertVisibility()
+        {
+            if (activePreset == null)
+                return;
+
+            Cursor.visible = true;
+            Cursor.visible = false;
+        }
+
+        void OnFocusChanged(bool focused)
+        {
+            if (focused)
+                ReassertVisibility();
         }
 
         public void Cleanup()
         {
+            if (focusHooked)
+            {
+                Application.focusChanged -= OnFocusChanged;
+                focusHooked = false;
+            }
+
             Cursor.visible = true;
 
             foreach (var sprite in spriteCache.Values)
@@ -264,6 +304,7 @@ namespace JG.CursorSystem
             {
                 Object.Destroy(overlayRoot);
                 overlayRoot = null;
+                canvasRect = null;
                 cursorImage = null;
                 cursorRect = null;
             }
@@ -278,10 +319,17 @@ namespace JG.CursorSystem
 
             overlayRoot = new GameObject("CursorOverlay", typeof(Canvas));
             overlayRoot.transform.SetParent(parent, worldPositionStays: false);
+            canvasRect = (RectTransform)overlayRoot.transform;
 
             var canvas = overlayRoot.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = short.MaxValue;
+
+            if (!focusHooked)
+            {
+                Application.focusChanged += OnFocusChanged;
+                focusHooked = true;
+            }
 
             var imageGo = new GameObject("CursorImage", typeof(Image));
             imageGo.transform.SetParent(overlayRoot.transform, worldPositionStays: false);
