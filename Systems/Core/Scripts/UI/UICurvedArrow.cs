@@ -389,7 +389,7 @@ namespace JG.UI
         private Image CreateDot()
         {
             Image img = Instantiate(dotPrefab, transform);
-            img.name = $"Dot_{img.GetInstanceID()}";
+            img.name = $"Dot_{img.GetEntityId()}";
             img.raycastTarget = false;
             img.gameObject.SetActive(false);
             return img;

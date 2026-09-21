@@ -32,9 +32,11 @@ public class AccordionRow : UIBehaviour, IPointerEnterHandler, ILayoutElement
     public void CalculateLayoutInputHorizontal() { }
     public void CalculateLayoutInputVertical() { } // values provided via properties below
     public float minWidth => -1;
+    public float maxWidth => float.PositiveInfinity;
     public float preferredWidth => -1;
     public float flexibleWidth => 1;
     public float minHeight => HeaderHeight;
+    public float maxHeight => float.PositiveInfinity;
     public float preferredHeight => HeaderHeight + _animContentHeight;
     public float flexibleHeight => -1;
     public int layoutPriority => 1;

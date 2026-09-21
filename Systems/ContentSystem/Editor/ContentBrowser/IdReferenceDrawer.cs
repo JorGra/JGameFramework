@@ -26,7 +26,7 @@ namespace JG.GameContent.EditorTools
             // Handle lists/arrays of strings
             if (property.isArray && property.arrayElementType == "string")
             {
-                string key = property.serializedObject.targetObject.GetInstanceID() + "/" + property.propertyPath;
+                string key = property.serializedObject.targetObject.GetEntityId() + "/" + property.propertyPath;
                 if (!_lists.TryGetValue(key, out var list) || list == null || list.serializedProperty != property)
                 {
                     list = new ReorderableList(property.serializedObject, property, true, true, true, true);
@@ -65,7 +65,7 @@ namespace JG.GameContent.EditorTools
 
             if (property.isArray && property.arrayElementType == "string")
             {
-                string key = property.serializedObject.targetObject.GetInstanceID() + "/" + property.propertyPath;
+                string key = property.serializedObject.targetObject.GetEntityId() + "/" + property.propertyPath;
                 if (!_lists.TryGetValue(key, out var list) || list == null || list.serializedProperty != property)
                 {
                     list = new ReorderableList(property.serializedObject, property, true, true, true, true);

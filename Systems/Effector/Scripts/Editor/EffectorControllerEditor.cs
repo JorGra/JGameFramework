@@ -179,7 +179,7 @@ public class EffectorControllerEditor : Editor
     private string GetFoldoutKey(MonoBehaviour effectMb)
     {
         // Unique key for foldout
-        return $"EffectorFoldout_{controller.GetInstanceID()}_{effectMb.GetInstanceID()}";
+        return $"EffectorFoldout_{controller.GetEntityId()}_{effectMb.GetEntityId()}";
     }
 
     #endregion

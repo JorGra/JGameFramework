@@ -12,7 +12,7 @@ namespace JG.Vfx
         /// <summary>Resolves a ParticleSystemDef by content id (for subSystems). Return null when unknown.</summary>
         public delegate ParticleSystemDef DefResolver(string id);
 
-        static readonly Dictionary<(string baseId, int textureId, Color tint), Material> MaterialCache = new();
+        static readonly Dictionary<(string baseId, EntityId textureId, Color tint), Material> MaterialCache = new();
 
         public static void ClearMaterialCache()
         {
@@ -275,7 +275,7 @@ namespace JG.Vfx
             if (untouched)
                 return baseMat;
 
-            var key = (def.baseMaterial, def.texture != null ? def.texture.GetInstanceID() : 0, def.tint);
+            var key = (def.baseMaterial, def.texture != null ? def.texture.GetEntityId() : EntityId.None, def.tint);
             if (MaterialCache.TryGetValue(key, out var cached) && cached != null)
                 return cached;
 

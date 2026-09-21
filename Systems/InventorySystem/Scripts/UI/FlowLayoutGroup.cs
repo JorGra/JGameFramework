@@ -132,14 +132,12 @@ namespace UnityEngine.UI.Extensions
             _layoutWidth = Mathf.Max(_layoutWidth, totalPreferred);
             _layoutHeight += maxSecondary + (axis == 0 ? padding.vertical : padding.horizontal);
 
-            if (axis == 0)
-            {
-                SetLayoutInputForAxis(totalMin, totalPreferred, totalFlexible, axis);
-            }
-            else
-            {
-                SetLayoutInputForAxis(totalMin, totalPreferred, totalFlexible, axis);
-            }
+#if UNITY_6000_6_OR_NEWER
+            // uGUI 2.6+ added a totalMax parameter
+            SetLayoutInputForAxis(totalMin, float.PositiveInfinity, totalPreferred, totalFlexible, axis);
+#else
+            SetLayoutInputForAxis(totalMin, totalPreferred, totalFlexible, axis);
+#endif
         }
 
         private void SetChildrenAlongAxis(int axis, bool isVertical)
