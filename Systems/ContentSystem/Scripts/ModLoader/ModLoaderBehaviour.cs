@@ -1,4 +1,3 @@
-using System.IO;
 using JG.GameContent.Debugging;
 using JG.GameContent.Diagnostics;
 using UnityEngine;
@@ -25,15 +24,14 @@ namespace JG.Modding
             Debug.Log("ModLoaderBehaviour Awake");
             var cfg = new ModLoaderConfig { modsRoot = modsRoot };
 
-            string projectOrBuildRoot =
-                Directory.GetParent(Application.dataPath)!.FullName;
-            var source = new FolderModSource(Path.Combine(projectOrBuildRoot, cfg.modsRoot));
+            var source = new FolderModSource(ModPaths.GetModsRoot(cfg.modsRoot));
 
             var manifest = new JsonManifestReader();
             var state = new JsonStateStore(Application.persistentDataPath, cfg.stateFile);
 
             Loader = new ModLoader(cfg, source, manifest, state, importer.Value,
-#if !UNITY_IOS
+            // IL2CPP on WebGL cannot load managed assemblies at runtime: JSON mods only.
+#if !UNITY_IOS && !(UNITY_WEBGL && !UNITY_EDITOR)
                 assemblyLoader: new ModAssemblyLoader(),
 #endif
                 loadInstantly: false);

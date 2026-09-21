@@ -1,4 +1,6 @@
+using System;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -26,12 +28,57 @@ namespace JG.Modding.Editor
             }
 
             // Build output is e.g. Builds/Win64/Game.exe — we want Builds/Win64/Mods/
-            var buildDir = Path.GetDirectoryName(report.summary.outputPath)!;
+            // WebGL's output path is the build folder itself — we want Mods/ beside index.html.
+            bool isWebGL = report.summary.platform == BuildTarget.WebGL;
+            var buildDir = isWebGL
+                ? report.summary.outputPath
+                : Path.GetDirectoryName(report.summary.outputPath)!;
             var destModsDir = Path.Combine(buildDir, "Mods");
 
             Debug.Log($"[ModsBuildPost] Copying Mods folder to build: {destModsDir}");
             CopyDirectoryRecursive(sourceModsDir, destModsDir);
             Debug.Log("[ModsBuildPost] Mods folder copied successfully.");
+
+            if (isWebGL)
+                WriteWebIndex(destModsDir);
+        }
+
+        /// <summary>
+        /// HTTP has no directory listing, so ModsVfsPreload.jspre needs a list of every file
+        /// to fetch into the browser's in-memory filesystem before the engine starts.
+        /// </summary>
+        static void WriteWebIndex(string modsDir)
+        {
+            var files = Directory.GetFiles(modsDir, "*", SearchOption.AllDirectories)
+                .Where(f => !IsExcludedFromWeb(f))
+                .Select(f => Path.GetRelativePath(modsDir, f).Replace('\\', '/'))
+                .OrderBy(f => f, StringComparer.Ordinal)
+                .ToArray();
+
+            var index = new WebIndex { version = DateTime.UtcNow.Ticks.ToString(), files = files };
+            File.WriteAllText(Path.Combine(modsDir, WebIndexFileName), JsonUtility.ToJson(index));
+            Debug.Log($"[ModsBuildPost] Wrote {WebIndexFileName} with {files.Length} files.");
+        }
+
+        static bool IsExcludedFromWeb(string file)
+        {
+            var name = Path.GetFileName(file);
+            if (name == WebIndexFileName || name == ".gitkeep")
+                return true;
+
+            return WebExcludedExtensions.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase);
+        }
+
+        const string WebIndexFileName = "mods-index.json";
+
+        // Code mods cannot load under IL2CPP; the rest is never read at runtime.
+        static readonly string[] WebExcludedExtensions = { ".dll", ".pdb", ".bak", ".meta", ".md" };
+
+        [Serializable]
+        class WebIndex
+        {
+            public string version;
+            public string[] files;
         }
 
         static void CopyDirectoryRecursive(string source, string destination)
