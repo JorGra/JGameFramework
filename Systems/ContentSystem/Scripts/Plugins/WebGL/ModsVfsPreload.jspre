@@ -1,6 +1,8 @@
 // Copies the Mods folder that sits beside index.html into the in-memory filesystem before the
 // engine starts, so the mod loader reads /Mods with plain System.IO exactly like on desktop.
-// The file list comes from Mods/mods-index.json, written by ModsFolderBuildPostprocessor.
+// The file list comes from Mods/mods-index.json, written by ModsFolderBuildPostprocessor. When the
+// index names a pack (index.pack + index.entries), every file is sliced out of that one download;
+// otherwise each file in index.files is fetched on its own.
 // Set `modsUrl` in the template's createUnityInstance config to load mods from elsewhere.
 if (typeof ENVIRONMENT_IS_PTHREAD === 'undefined' || !ENVIRONMENT_IS_PTHREAD) {
   if (!Module['preRun']) Module['preRun'] = [];
@@ -67,6 +69,14 @@ if (typeof ENVIRONMENT_IS_PTHREAD === 'undefined' || !ENVIRONMENT_IS_PTHREAD) {
       });
     }
 
+    // `bytes` is a Uint8Array view; audio decoding needs a standalone ArrayBuffer copy.
+    function storeFile(rel, bytes) {
+      var sidecar = AUDIO_EXTENSIONS.test(rel)
+        ? writePcmSidecar(rel, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))
+        : Promise.resolve();
+      return sidecar.then(function () { writeFile(rel, bytes); });
+    }
+
     function loadFile(rel, version) {
       return fetch(fileUrl(rel, version), { cache: 'no-store' })
         .then(function (response) {
@@ -75,15 +85,42 @@ if (typeof ENVIRONMENT_IS_PTHREAD === 'undefined' || !ENVIRONMENT_IS_PTHREAD) {
         })
         .then(function (buffer) {
           totalBytes += buffer.byteLength;
-          var sidecar = AUDIO_EXTENSIONS.test(rel) ? writePcmSidecar(rel, buffer) : Promise.resolve();
-          return sidecar.then(function () { writeFile(rel, new Uint8Array(buffer)); });
+          return storeFile(rel, new Uint8Array(buffer));
         })
         .catch(function (err) {
           console.error('[ModsPreload] Failed to load ' + rel + ':', err);
         });
     }
 
+    function loadPack(index) {
+      var entries = index.entries || [];
+      return fetch(fileUrl(index.pack, index.version), { cache: 'no-store' })
+        .then(function (response) {
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          return response.arrayBuffer();
+        })
+        .then(function (buffer) {
+          totalBytes = buffer.byteLength;
+          var pending = Promise.resolve();
+          entries.forEach(function (entry) {
+            pending = pending.then(function () {
+              // Views share the pack buffer, so no per-file copy is made.
+              return storeFile(entry.path, new Uint8Array(buffer, entry.offset, entry.size));
+            }).catch(function (err) {
+              console.error('[ModsPreload] Failed to unpack ' + entry.path + ':', err);
+            });
+          });
+          return pending;
+        })
+        .then(function () {
+          console.log('[ModsPreload] ' + entries.length + ' files from ' + index.pack + ', ' +
+            (totalBytes / 1048576).toFixed(1) + ' MB in ' +
+            ((performance.now() - startTime) / 1000).toFixed(1) + ' s -> ' + VFS_ROOT);
+        });
+    }
+
     function loadAll(index) {
+      if (index.pack && index.entries) return loadPack(index);
       var files = index.files || [];
       var next = 0;
 

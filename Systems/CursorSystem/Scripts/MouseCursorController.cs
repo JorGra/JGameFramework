@@ -23,15 +23,15 @@ namespace JG.CursorSystem
         [SerializeField] bool dontDestroyOnLoad = true;
 
         [Header("Presentation")]
-        [Tooltip("Auto = overlay cursor on Linux (avoids dual-cursor/OS-scaling issues), hardware cursor elsewhere.")]
+        [Tooltip("Auto = overlay cursor on Linux (dual-cursor/OS-scaling issues) and WebGL (browser draws the texture 1:1 in CSS px and ignores cursors > 128 px), hardware cursor elsewhere.")]
         [SerializeField] CursorPresenterMode presenterMode = CursorPresenterMode.Auto;
         [Tooltip("Overlay presenter: cursor height as a fraction of screen height (resolution independent).")]
         [SerializeField, Range(0.01f, 0.15f)] float overlayCursorHeightFraction = 0.035f;
 
-        [Header("Hardware Presenter — Linux Tweaks")]
-        [Tooltip("Linux only: cursor textures larger than this (pixels) get downscaled to avoid huge hardware cursors.")]
+        [Header("Hardware Presenter — Linux / WebGL Tweaks")]
+        [Tooltip("Linux and WebGL: cursor textures larger than this (pixels) get downscaled to avoid huge hardware cursors.")]
         [SerializeField, Min(8)] int linuxMaxCursorSize = 64;
-        [Tooltip("Linux only: target size (pixels) to scale cursors to; 0 = use max size only.")]
+        [Tooltip("Linux and WebGL: target size (pixels) to scale cursors to; 0 = use max size only.")]
         [SerializeField, Min(0)] int linuxTargetCursorSize = 64;
         [Tooltip("Linux only: forces software cursor to bypass OS hardware cursor issues (dual cursors, wrong scaling).")]
         [SerializeField] bool linuxForceSoftwareCursor = true;
@@ -161,9 +161,13 @@ namespace JG.CursorSystem
             var mode = presenterMode;
             if (mode == CursorPresenterMode.Auto)
             {
-                var isLinux = Application.platform == RuntimePlatform.LinuxEditor ||
-                              Application.platform == RuntimePlatform.LinuxPlayer;
-                mode = isLinux ? CursorPresenterMode.Overlay : CursorPresenterMode.Hardware;
+                // Linux: OS cursor scaling / dual-cursor problems.
+                // WebGL: the hardware cursor becomes a CSS cursor drawn 1 texel = 1 CSS px, with no
+                // DPI awareness, and Chrome silently drops cursors larger than 128 px.
+                var useOverlay = Application.platform == RuntimePlatform.LinuxEditor ||
+                                 Application.platform == RuntimePlatform.LinuxPlayer ||
+                                 Application.platform == RuntimePlatform.WebGLPlayer;
+                mode = useOverlay ? CursorPresenterMode.Overlay : CursorPresenterMode.Hardware;
             }
 
             LogInfo($"Presenter: {mode}");

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace JG.CursorSystem
@@ -8,7 +9,7 @@ namespace JG.CursorSystem
     /// <summary>How the resolved cursor preset is shown on screen.</summary>
     public enum CursorPresenterMode
     {
-        /// <summary>Overlay on Linux (avoids dual-cursor and OS scaling issues), hardware elsewhere.</summary>
+        /// <summary>Overlay on Linux (dual-cursor/OS scaling issues) and WebGL (CSS cursor size limits), hardware elsewhere.</summary>
         Auto,
         /// <summary>OS hardware cursor via <see cref="Cursor.SetCursor(Texture2D, Vector2, CursorMode)"/>.</summary>
         Hardware,
@@ -36,7 +37,8 @@ namespace JG.CursorSystem
     }
 
     /// <summary>
-    /// Classic hardware cursor path. Includes the Linux downscale fallback for oversized textures.
+    /// Classic hardware cursor path. Includes the Linux/WebGL downscale fallback for oversized
+    /// textures (Linux: OS scaling; WebGL: browsers cap CSS cursors, Chrome ignores > 128 px).
     /// </summary>
     public sealed class HardwareCursorPresenter : ICursorPresenter
     {
@@ -99,14 +101,14 @@ namespace JG.CursorSystem
             if (texture == null)
                 return false;
 
-            if (!IsLinuxPlatform())
+            if (!NeedsDownscale())
             {
                 hotSpot = ClampHotspot(hotSpot, texture.width, texture.height);
                 scaledTexture = null;
                 return true;
             }
 
-            if (linuxForceSoftwareCursor)
+            if (linuxForceSoftwareCursor && IsLinuxPlatform())
                 mode = CursorMode.ForceSoftware;
 
             var desiredSize = linuxTargetCursorSize > 0 ? linuxTargetCursorSize : linuxMaxCursorSize;
@@ -125,7 +127,7 @@ namespace JG.CursorSystem
                 if (logWarnings)
                 {
                     Debug.LogWarning(
-                        "[HardwareCursorPresenter] Cursor texture is not readable; cannot downscale for Linux. " +
+                        "[HardwareCursorPresenter] Cursor texture is not readable; cannot downscale for Linux/WebGL. " +
                         "Enable Read/Write in the texture import settings. Forcing software cursor to avoid OS scaling.");
                 }
                 mode = CursorMode.ForceSoftware;
@@ -148,6 +150,10 @@ namespace JG.CursorSystem
         static bool IsLinuxPlatform() =>
             Application.platform == RuntimePlatform.LinuxEditor ||
             Application.platform == RuntimePlatform.LinuxPlayer;
+
+        static bool IsWebGL() => Application.platform == RuntimePlatform.WebGLPlayer;
+
+        static bool NeedsDownscale() => IsLinuxPlatform() || IsWebGL();
 
         static Vector2 ClampHotspot(Vector2 hotSpot, int width, int height)
         {
@@ -250,7 +256,11 @@ namespace JG.CursorSystem
 
             var pos = mouse.position.ReadValue();
             var onScreen = pos.x >= 0 && pos.y >= 0 && pos.x <= Screen.width && pos.y <= Screen.height;
-            cursorImage.enabled = onScreen && Application.isFocused;
+            // On desktop an unfocused window gets the OS cursor back, so the overlay must hide to
+            // avoid a dual cursor. On WebGL the canvas is often unfocused (itch.io iframe until the
+            // first click) while `cursor: none` already applies, so hiding would leave no cursor.
+            var focusOk = Application.isFocused || Application.platform == RuntimePlatform.WebGLPlayer;
+            cursorImage.enabled = onScreen && focusOk;
 
             if (cursorImage.enabled)
             {
@@ -317,8 +327,14 @@ namespace JG.CursorSystem
             if (overlayRoot != null)
                 return;
 
+            // A root object: a Screen Space Overlay canvas nested under an arbitrary transform
+            // inherits that transform's offset/scale, which shifts the drawn cursor off the pointer.
             overlayRoot = new GameObject("CursorOverlay", typeof(Canvas));
-            overlayRoot.transform.SetParent(parent, worldPositionStays: false);
+            var parentScene = parent != null ? parent.gameObject.scene : default;
+            if (parentScene.IsValid() && parentScene.buildIndex == -1 && parentScene.name == "DontDestroyOnLoad")
+                Object.DontDestroyOnLoad(overlayRoot);
+            else if (parentScene.IsValid())
+                SceneManager.MoveGameObjectToScene(overlayRoot, parentScene);
             canvasRect = (RectTransform)overlayRoot.transform;
 
             var canvas = overlayRoot.GetComponent<Canvas>();

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -35,29 +36,60 @@ namespace JG.Modding.Editor
                 : Path.GetDirectoryName(report.summary.outputPath)!;
             var destModsDir = Path.Combine(buildDir, "Mods");
 
+            if (isWebGL)
+            {
+                // Web hosts cap file counts (itch.io: 1000) and HTTP has no directory listing,
+                // so ship a single pack + index instead of the loose tree.
+                Debug.Log($"[ModsBuildPost] Packing Mods folder for web: {destModsDir}");
+                WriteWebPack(sourceModsDir, destModsDir);
+                return;
+            }
+
             Debug.Log($"[ModsBuildPost] Copying Mods folder to build: {destModsDir}");
             CopyDirectoryRecursive(sourceModsDir, destModsDir);
             Debug.Log("[ModsBuildPost] Mods folder copied successfully.");
-
-            if (isWebGL)
-                WriteWebIndex(destModsDir);
         }
 
         /// <summary>
-        /// HTTP has no directory listing, so ModsVfsPreload.jspre needs a list of every file
-        /// to fetch into the browser's in-memory filesystem before the engine starts.
+        /// Writes Mods/mods.pack (all mod files concatenated) and Mods/mods-index.json
+        /// (path, offset, size per file). ModsVfsPreload.jspre fetches the pack once and
+        /// slices it into the browser's in-memory filesystem before the engine starts.
         /// </summary>
-        static void WriteWebIndex(string modsDir)
+        static void WriteWebPack(string sourceModsDir, string destModsDir)
         {
-            var files = Directory.GetFiles(modsDir, "*", SearchOption.AllDirectories)
+            if (Directory.Exists(destModsDir))
+                Directory.Delete(destModsDir, true);
+            Directory.CreateDirectory(destModsDir);
+
+            var files = Directory.GetFiles(sourceModsDir, "*", SearchOption.AllDirectories)
                 .Where(f => !IsExcludedFromWeb(f))
-                .Select(f => Path.GetRelativePath(modsDir, f).Replace('\\', '/'))
+                .Select(f => Path.GetRelativePath(sourceModsDir, f).Replace('\\', '/'))
                 .OrderBy(f => f, StringComparer.Ordinal)
                 .ToArray();
 
-            var index = new WebIndex { version = DateTime.UtcNow.Ticks.ToString(), files = files };
-            File.WriteAllText(Path.Combine(modsDir, WebIndexFileName), JsonUtility.ToJson(index));
-            Debug.Log($"[ModsBuildPost] Wrote {WebIndexFileName} with {files.Length} files.");
+            var entries = new List<WebPackEntry>(files.Length);
+            long offset = 0;
+
+            using (var pack = new FileStream(Path.Combine(destModsDir, WebPackFileName), FileMode.Create, FileAccess.Write))
+            {
+                foreach (var rel in files)
+                {
+                    using var input = File.OpenRead(Path.Combine(sourceModsDir, rel));
+                    input.CopyTo(pack);
+                    entries.Add(new WebPackEntry { path = rel, offset = offset, size = input.Length });
+                    offset += input.Length;
+                }
+            }
+
+            var index = new WebIndex
+            {
+                version = DateTime.UtcNow.Ticks.ToString(),
+                pack = WebPackFileName,
+                files = files,
+                entries = entries.ToArray(),
+            };
+            File.WriteAllText(Path.Combine(destModsDir, WebIndexFileName), JsonUtility.ToJson(index));
+            Debug.Log($"[ModsBuildPost] Wrote {WebPackFileName} ({offset / (1024f * 1024f):F1} MB, {files.Length} files) and {WebIndexFileName}.");
         }
 
         static bool IsExcludedFromWeb(string file)
@@ -70,6 +102,7 @@ namespace JG.Modding.Editor
         }
 
         const string WebIndexFileName = "mods-index.json";
+        const string WebPackFileName = "mods.pack";
 
         // Code mods cannot load under IL2CPP; the rest is never read at runtime.
         static readonly string[] WebExcludedExtensions = { ".dll", ".pdb", ".bak", ".meta", ".md" };
@@ -78,7 +111,17 @@ namespace JG.Modding.Editor
         class WebIndex
         {
             public string version;
+            public string pack;
             public string[] files;
+            public WebPackEntry[] entries;
+        }
+
+        [Serializable]
+        class WebPackEntry
+        {
+            public string path;
+            public long offset;
+            public long size;
         }
 
         static void CopyDirectoryRecursive(string source, string destination)
