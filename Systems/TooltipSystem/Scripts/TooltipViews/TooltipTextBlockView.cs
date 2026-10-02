@@ -24,6 +24,7 @@ namespace JGameFramework.UI.Tooltips
 
                 if (showHeader)
                 {
+                    TMProUtilities.EnableWrapping(_header);
                     _header.richText = data.UseRichText;
                     _header.text = data.UseRichText ? data.Header : TMProUtilities.ToPlainText(data.Header);
                     _header.alignment = data.HeaderAlignment;
@@ -35,6 +36,7 @@ namespace JGameFramework.UI.Tooltips
             if (_body != null)
             {
                 string body = data.Body ?? string.Empty;
+                TMProUtilities.EnableWrapping(_body);
                 _body.richText = data.UseRichText;
                 _body.gameObject.SetActive(body.Length > 0);
                 _body.text = data.UseRichText ? body : TMProUtilities.ToPlainText(body);

@@ -32,6 +32,8 @@ namespace JGameFramework.UI.Tooltips
         private bool _closeMenusOnDisable = true;
         [SerializeField, Tooltip("When enabled, opening a context menu closes any other menu owned by this controller.")]
         private bool _exclusiveContextMenus = true;
+        [SerializeField, Tooltip("When enabled, showing a hover tooltip closes any other tooltip owned by this controller, so a player never sees two at once (e.g. pointer hover + controller selection landing in the same frame).")]
+        private bool _exclusiveTooltips = true;
 
         private readonly Dictionary<object, TooltipHandle> _tooltips = new();
         private readonly Dictionary<object, TooltipHandle> _contextMenus = new();
@@ -63,7 +65,15 @@ namespace JGameFramework.UI.Tooltips
             if (configure == null) throw new ArgumentNullException(nameof(configure));
 
             var context = contextOverride ?? ResolvePlayerContext(eventData as PointerEventData);
-            CloseTooltip(owner);
+
+            if (_exclusiveTooltips)
+            {
+                CloseAllTooltips();
+            }
+            else
+            {
+                CloseTooltip(owner);
+            }
 
             var builder = new TooltipBuilder()
                 .WithPlayerContext(context)
@@ -175,7 +185,7 @@ namespace JGameFramework.UI.Tooltips
 
             if (_tooltips.TryGetValue(owner, out var handle))
             {
-                CloseHandle(handle);
+                CloseHandle(handle, owner);
                 _tooltips.Remove(owner);
             }
         }
@@ -189,7 +199,7 @@ namespace JGameFramework.UI.Tooltips
 
             if (_contextMenus.TryGetValue(owner, out var handle))
             {
-                CloseHandle(handle);
+                CloseHandle(handle, owner);
                 _contextMenus.Remove(owner);
             }
         }
@@ -198,7 +208,7 @@ namespace JGameFramework.UI.Tooltips
         {
             foreach (var kvp in _tooltips)
             {
-                CloseHandle(kvp.Value);
+                CloseHandle(kvp.Value, kvp.Key);
             }
             _tooltips.Clear();
         }
@@ -207,7 +217,7 @@ namespace JGameFramework.UI.Tooltips
         {
             foreach (var kvp in _contextMenus)
             {
-                CloseHandle(kvp.Value);
+                CloseHandle(kvp.Value, kvp.Key);
             }
             _contextMenus.Clear();
         }
@@ -316,7 +326,7 @@ namespace JGameFramework.UI.Tooltips
                 return false;
             }
 
-            if (IsHandleAlive(handle))
+            if (IsHandleAlive(handle, owner))
             {
                 return true;
             }
@@ -325,14 +335,22 @@ namespace JGameFramework.UI.Tooltips
             return false;
         }
 
-        private static bool IsHandleAlive(TooltipHandle handle)
+        private static bool IsHandleAlive(TooltipHandle handle, object owner)
         {
-            return handle.IsValid && handle.View != null && handle.View.gameObject.activeInHierarchy;
+            return OwnsView(handle, owner) && handle.View.gameObject.activeInHierarchy;
         }
 
-        private static void CloseHandle(TooltipHandle handle)
+        // Views are pooled, so a handle kept after its view was dismissed elsewhere
+        // (e.g. an action button closing the menu) may point at a view that now
+        // belongs to another owner. Only close views still tagged with our owner.
+        private static bool OwnsView(TooltipHandle handle, object owner)
         {
-            if (handle.IsValid)
+            return handle.IsValid && Equals(handle.View.Tag, owner);
+        }
+
+        private static void CloseHandle(TooltipHandle handle, object owner)
+        {
+            if (OwnsView(handle, owner))
             {
                 handle.Close();
             }

@@ -58,5 +58,18 @@ namespace JGameFramework.UI.Tooltips
 
             return RichTextRegex.Replace(input, string.Empty);
         }
+
+        // Tooltip width is capped, so text must wrap instead of truncating. The shared
+        // ThemeableText prefab defaults to NoWrap + Truncate, hence forcing it here.
+        public static void EnableWrapping(TMP_Text text)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.overflowMode = TextOverflowModes.Overflow;
+        }
     }
 }

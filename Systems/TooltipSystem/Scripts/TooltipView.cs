@@ -8,7 +8,7 @@ using UnityEngine.InputSystem;
 
 namespace JGameFramework.UI.Tooltips
 {
-    public sealed class TooltipView : MonoBehaviour
+    public sealed class TooltipView : MonoBehaviour, ILayoutElement
     {
         [Header("Structure")]
         [SerializeField] private RectTransform _root;
@@ -17,6 +17,18 @@ namespace JGameFramework.UI.Tooltips
         [SerializeField] private LayoutGroup _actionsLayout;
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private Canvas _overrideCanvas;
+        [SerializeField, Tooltip("Optional authored scroll viewport. If empty and Content Root is the root, one is created at runtime.")]
+        private TooltipScrollViewport _scrollViewport;
+
+        [Header("Sizing")]
+        [SerializeField, Min(0f), Tooltip("Upper bound for the tooltip width in layer units. Text wraps once this is reached. 0 = no fixed cap (only the layer width limits it).")]
+        private float _maxWidth = 500f;
+        [SerializeField, Min(0f), Tooltip("Gap kept between the tooltip and the tooltip layer edges.")]
+        private float _viewportMargin = 16f;
+        [SerializeField, Min(0f), Tooltip("If the wider side next to the anchor offers at least this much room, the tooltip shrinks to fit that side instead of being clamped over the anchor.")]
+        private float _minSideWidth = 240f;
+        [SerializeField, Min(0f), Tooltip("Upper bound for the tooltip height in layer units. Content scrolls beyond this. 0 = only the layer height limits it.")]
+        private float _maxHeight = 0f;
 
         private TooltipSystemRoot _system;
         private TooltipRequest _request;
@@ -34,6 +46,9 @@ namespace JGameFramework.UI.Tooltips
         private bool _closedByPointer;
         private bool _hijackedSelection;
         private EventSystem _hijackedEventSystem;
+        private LayoutGroup _rootLayoutGroup;
+        private float _availableWidth = -1f;
+        private float _availableHeight = -1f;
 
         public TooltipPlayerContext PlayerContext => _request.PlayerContext;
         public object Tag { get; private set; }
@@ -61,6 +76,8 @@ namespace JGameFramework.UI.Tooltips
                 _contentRoot = _root;
             }
 
+            EnsureScrollViewport();
+
             if (_canvasGroup == null)
             {
                 _canvasGroup = GetComponent<CanvasGroup>();
@@ -83,6 +100,26 @@ namespace JGameFramework.UI.Tooltips
             BuildContent();
             UpdatePosition(true);
             SetVisibility(true);
+
+            if (_scrollViewport != null)
+            {
+                _scrollViewport.Bind(request.PlayerContext);
+            }
+        }
+
+        // Content is spawned into a masked viewport so tall tooltips can scroll instead of
+        // running off screen. Built at runtime to keep existing prefabs working unchanged.
+        private void EnsureScrollViewport()
+        {
+            if (_scrollViewport == null && _contentRoot == _root)
+            {
+                _scrollViewport = TooltipScrollViewport.Create(_root, _root.GetComponent<HorizontalOrVerticalLayoutGroup>());
+            }
+
+            if (_scrollViewport != null && _scrollViewport.Content != null)
+            {
+                _contentRoot = _scrollViewport.Content;
+            }
         }
 
         internal void Release()
@@ -101,6 +138,12 @@ namespace JGameFramework.UI.Tooltips
             _currentOffset = Vector2.zero;
             _basePivot = Vector2.zero;
             _isVisible = false;
+            _availableWidth = -1f;
+            _availableHeight = -1f;
+            if (_scrollViewport != null)
+            {
+                _scrollViewport.Unbind();
+            }
             ApplyCanvasGroupState(false);
         }
 
@@ -320,6 +363,10 @@ namespace JGameFramework.UI.Tooltips
             _request.Actions = actions;
             BuildContent();
             UpdatePosition(true);
+            if (_scrollViewport != null)
+            {
+                _scrollViewport.ResetScroll();
+            }
         }
 
         public void UpdateOffset(Vector2 offset)
@@ -432,13 +479,13 @@ namespace JGameFramework.UI.Tooltips
             }
 
             var camera = ResolveCameraForCanvas(canvas);
+            var anchorScreenPoint = ResolveScreenPoint(camera);
 
             if (forceRebuildLayout)
             {
+                UpdateAvailableSpace(layer, camera, anchorScreenPoint);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(_root);
             }
-
-            var anchorScreenPoint = ResolveScreenPoint(camera);
             var resolvedOffset = _currentOffset;
             var resolvedPivot = _basePivot;
 
@@ -464,6 +511,127 @@ namespace JGameFramework.UI.Tooltips
                 ClampToCanvas(layer);
             }
         }
+
+        // Measures how much room the tooltip has. Height uses the full layer (clamping
+        // shifts it vertically); for width it prefers the wider side of the anchor (so the tooltip sits next to the slot instead of being clamped on
+        // top of it); falls back to the full layer width when both sides are cramped.
+        private void UpdateAvailableSpace(RectTransform layer, Camera camera, Vector2 anchorScreenPoint)
+        {
+            var container = layer.rect;
+            _availableHeight = container.height - _viewportMargin * 2f;
+            float full = container.width - _viewportMargin * 2f;
+            _availableWidth = full;
+
+            bool centered = Mathf.Approximately(_basePivot.x, 0.5f) && Mathf.Approximately(_currentOffset.x, 0f);
+            if (centered)
+            {
+                return;
+            }
+
+            var gap = new Vector2(Mathf.Abs(_currentOffset.x), 0f);
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(layer, anchorScreenPoint + gap, camera, out var rightStart) ||
+                !RectTransformUtility.ScreenPointToLocalPointInRectangle(layer, anchorScreenPoint - gap, camera, out var leftStart))
+            {
+                return;
+            }
+
+            float right = container.xMax - _viewportMargin - rightStart.x;
+            float left = leftStart.x - (container.xMin + _viewportMargin);
+            float side = Mathf.Max(left, right);
+
+            if (side >= _minSideWidth)
+            {
+                _availableWidth = Mathf.Min(full, side);
+            }
+        }
+
+        private float ResolveWidthCap()
+        {
+            float cap = _maxWidth > 0f ? _maxWidth : float.PositiveInfinity;
+
+            if (_availableWidth > 0f)
+            {
+                float scale = Mathf.Abs(_root != null ? _root.localScale.x : 1f);
+                cap = Mathf.Min(cap, _availableWidth / Mathf.Max(scale, 0.0001f));
+            }
+
+            return float.IsPositiveInfinity(cap) ? -1f : cap;
+        }
+
+        private float ResolveHeightCap()
+        {
+            float cap = _maxHeight > 0f ? _maxHeight : float.PositiveInfinity;
+
+            if (_availableHeight > 0f)
+            {
+                float scale = Mathf.Abs(_root != null ? _root.localScale.y : 1f);
+                cap = Mathf.Min(cap, _availableHeight / Mathf.Max(scale, 0.0001f));
+            }
+
+            return float.IsPositiveInfinity(cap) ? -1f : cap;
+        }
+
+        private LayoutGroup RootLayoutGroup
+        {
+            get
+            {
+                if (_rootLayoutGroup == null)
+                {
+                    _rootLayoutGroup = GetComponent<LayoutGroup>();
+                }
+
+                return _rootLayoutGroup;
+            }
+        }
+
+        #region ILayoutElement (size cap)
+
+        // Overrides the root LayoutGroup's preferred size (higher priority) so the
+        // ContentSizeFitter never grows past the cap. Children with wrapping text
+        // then get a narrower width and grow vertically instead.
+        float ILayoutElement.preferredWidth
+        {
+            get
+            {
+                if (RootLayoutGroup == null)
+                {
+                    return -1f;
+                }
+
+                float natural = RootLayoutGroup.preferredWidth;
+                float cap = ResolveWidthCap();
+                return cap > 0f ? Mathf.Min(natural, cap) : natural;
+            }
+        }
+
+        // Same idea vertically: the scroll viewport reports min height 0, so the root
+        // layout squeezes it to fit the cap and the rest becomes scrollable.
+        float ILayoutElement.preferredHeight
+        {
+            get
+            {
+                if (RootLayoutGroup == null || _scrollViewport == null)
+                {
+                    return -1f;
+                }
+
+                float natural = RootLayoutGroup.preferredHeight;
+                float cap = ResolveHeightCap();
+                return cap > 0f ? Mathf.Min(natural, cap) : natural;
+            }
+        }
+
+        void ILayoutElement.CalculateLayoutInputHorizontal() { }
+        void ILayoutElement.CalculateLayoutInputVertical() { }
+        float ILayoutElement.minWidth => -1f;
+        float ILayoutElement.flexibleWidth => -1f;
+        float ILayoutElement.minHeight => -1f;
+        float ILayoutElement.flexibleHeight => -1f;
+        float ILayoutElement.maxWidth => -1f;
+        float ILayoutElement.maxHeight => -1f;
+        int ILayoutElement.layoutPriority => 10;
+
+        #endregion
 
         private bool TryPlaceTooltip(RectTransform layer, Camera camera, Vector2 anchorScreenPoint, Vector2 offset, Vector2 pivot)
         {

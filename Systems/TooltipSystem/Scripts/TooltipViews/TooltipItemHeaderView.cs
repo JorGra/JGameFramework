@@ -18,10 +18,12 @@ public sealed class TooltipItemHeaderView : TooltipContentView<TooltipItemHeader
         }
         if (title != null)
         {
+            TMProUtilities.EnableWrapping(title);
             title.text = data.Title ?? string.Empty;
         }
         if (caption != null)
         {
+            TMProUtilities.EnableWrapping(caption);
             caption.text = data.Caption ?? string.Empty;
         }
     }

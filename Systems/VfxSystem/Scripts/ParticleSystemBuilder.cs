@@ -139,6 +139,15 @@ namespace JG.Vfx
             emission.rateOverTime = Curve(def.rateOverTime, 10f);
             emission.rateOverDistance = Curve(def.rateOverDistance, 0f);
 
+            // Distance emission reads the emitter's velocity. Unity's default (Rigidbody) takes it
+            // from a parent rigidbody, which is zero for kinematically moved hosts (e.g. projectiles
+            // driven by transform) — measure actual transform movement instead.
+            if (def.rateOverDistance != null)
+            {
+                var main = ps.main;
+                main.emitterVelocityMode = ParticleSystemEmitterVelocityMode.Transform;
+            }
+
             if (def.bursts != null && def.bursts.Count > 0)
             {
                 var bursts = new ParticleSystem.Burst[def.bursts.Count];
@@ -184,9 +193,14 @@ namespace JG.Vfx
             if (def == null)
                 return;
 
-            vel.x = Curve(def.x, 0f);
-            vel.y = Curve(def.y, 0f);
-            vel.z = Curve(def.z, 0f);
+            // Unity requires x/y/z to share one curve mode; promote them to a common mode.
+            var x = Curve(def.x, 0f);
+            var y = Curve(def.y, 0f);
+            var z = Curve(def.z, 0f);
+            var mode = CommonCurveMode(x.mode, y.mode, z.mode);
+            vel.x = ConvertCurveMode(x, mode);
+            vel.y = ConvertCurveMode(y, mode);
+            vel.z = ConvertCurveMode(z, mode);
             vel.radial = Curve(def.radial, 0f);
             vel.speedModifier = Curve(def.speedModifier, 1f);
             vel.space = def.space;
@@ -288,6 +302,50 @@ namespace JG.Vfx
             MaterialCache[key] = mat;
             return mat;
         }
+
+        static ParticleSystemCurveMode CommonCurveMode(params ParticleSystemCurveMode[] modes)
+        {
+            bool twoValues = false, curves = false;
+            foreach (var m in modes)
+            {
+                twoValues |= m == ParticleSystemCurveMode.TwoConstants || m == ParticleSystemCurveMode.TwoCurves;
+                curves |= m == ParticleSystemCurveMode.Curve || m == ParticleSystemCurveMode.TwoCurves;
+            }
+
+            if (curves)
+                return twoValues ? ParticleSystemCurveMode.TwoCurves : ParticleSystemCurveMode.Curve;
+            return twoValues ? ParticleSystemCurveMode.TwoConstants : ParticleSystemCurveMode.Constant;
+        }
+
+        static ParticleSystem.MinMaxCurve ConvertCurveMode(ParticleSystem.MinMaxCurve curve, ParticleSystemCurveMode target)
+        {
+            if (curve.mode == target)
+                return curve;
+
+            switch (target)
+            {
+                case ParticleSystemCurveMode.TwoConstants:
+                    // Only reachable from Constant.
+                    return new ParticleSystem.MinMaxCurve(curve.constant, curve.constant);
+                case ParticleSystemCurveMode.Curve:
+                    // Only reachable from Constant.
+                    return new ParticleSystem.MinMaxCurve(curve.constant, FlatCurve(1f));
+                case ParticleSystemCurveMode.TwoCurves:
+                    switch (curve.mode)
+                    {
+                        case ParticleSystemCurveMode.Constant:
+                            return new ParticleSystem.MinMaxCurve(curve.constant, FlatCurve(1f), FlatCurve(1f));
+                        case ParticleSystemCurveMode.TwoConstants:
+                            return new ParticleSystem.MinMaxCurve(1f, FlatCurve(curve.constantMin), FlatCurve(curve.constantMax));
+                        case ParticleSystemCurveMode.Curve:
+                            return new ParticleSystem.MinMaxCurve(curve.curveMultiplier, curve.curve, curve.curve);
+                    }
+                    break;
+            }
+            return curve;
+        }
+
+        static AnimationCurve FlatCurve(float value) => AnimationCurve.Constant(0f, 1f, value);
 
         static ParticleSystem.MinMaxCurve MultiplyCurve(ParticleSystem.MinMaxCurve curve, float factor)
         {
