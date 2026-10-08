@@ -13,8 +13,12 @@ namespace JG.GameContent.Tooltips
     /// </summary>
     public static class TooltipFormatting
     {
-        public static readonly Color PositiveColor = new(0.55f, 0.95f, 0.55f);
-        public static readonly Color NegativeColor = new(0.95f, 0.55f, 0.55f);
+        public static readonly Color DefaultPositiveColor = new(0.55f, 0.95f, 0.55f);
+        public static readonly Color DefaultNegativeColor = new(0.95f, 0.55f, 0.55f);
+
+        // Settable so a project-level settings asset can own the palette.
+        public static Color PositiveColor { get; set; } = DefaultPositiveColor;
+        public static Color NegativeColor { get; set; } = DefaultNegativeColor;
         public static readonly Color NeutralColor = Color.white;
 
         public static string FormatValue(in TooltipStatLine line, float value)
